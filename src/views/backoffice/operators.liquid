@@ -1,0 +1,334 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+<h1 class='pb-5 text-white fs-1'>Operators</h1>
+<div class='d-flex flex-row mb-4 justify-content-end' style='gap: 20px;'>
+  <div class='input-group' style='width: 350px'>
+    <a
+      class='btn btn-outline-success'
+      id='user-filter-btn'
+      href='?{{ query | mut-query }}'
+    >
+      Search
+    </a>
+    <input
+      placeholder='Username'
+      type='search'
+      class='form-control'
+      aria-label='Sizing example input'
+      aria-describedby='inputGroup-sizing-sm'
+      id='user-filter-input'
+      value='{{ query.username }}'
+    >
+  </div>
+  <div class='dropdown'>
+    <button
+      class='btn btn-secondary dropdown-toggle'
+      type='button'
+      id='dropdownMenuButton1'
+      data-bs-toggle='dropdown'
+      style='text-transform:uppercase; min-width: 150px;'
+      aria-expanded='false'
+    >
+      {% if query.role %}
+        {{ query.role }}
+      {% else %}
+        Role
+      {% endif %}
+    </button>
+    <ul class='dropdown-menu' aria-labelledby='dropdownMenuButton1'>
+      <li>
+        <a class='dropdown-item' href='?{{ query | mut-query: 'role' }}'>Any</a>
+      </li>
+      {% for role in roles %}
+        <li>
+          <a
+            class='dropdown-item'
+            style='text-transform:uppercase'
+            href='?{{ query | mut-query: 'role', role }}'
+          >
+            {{- role -}}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <button
+    class='btn btn-primary'
+    type='button'
+    data-bs-toggle='modal'
+    data-bs-target='#upsert-operator-modal'
+  >
+    <i class='bi-person-plus'></i>
+    Add operator
+  </button>
+</div>
+<div class='card bg-dark shadow-sm'>
+  <table class='table table-striped'>
+    <thead>
+      <tr>
+        <th scope='col'>Created</th>
+        <th scope='col'>
+          <a href='?{{ query | mut-query: 'sort', 'updated' }}'>Updated</a>
+        </th>
+        <th scope='col'>Username</th>
+        <th scope='col'>
+          <a href='?{{ query | mut-query: 'sort', 'role' }}'>Role</a>
+        </th>
+        <th scope='col'></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for operator in operators %}
+        <tr style='height:50px'>
+          <td class='align-middle'>
+            {{ operator.created_at | date: '%y-%m-%d %H:%M:%S' }}
+          </td>
+          <td class='align-middle'>
+            {{ operator.updated_at | date: '%y-%m-%d %H:%M:%S' }}
+          </td>
+          <td class='align-middle'>{{ operator.username }}</td>
+          <td class='align-middle'>
+            {{ operator.role }}
+          </td>
+          <td>
+            <div class='btn-group'>
+              <button
+                class='btn btn-danger {% if operator.username == account.username %}disabled{%endif%}'
+                type='button'
+                data-operator-id='{{ operator.id }}'
+                data-operator-username='{{ operator.username }}'
+                data-bs-toggle='modal'
+                data-bs-target='#delete-operator-modal'
+              >
+                <i class='bi-trash'></i>
+              </button>
+              <button
+                class='btn btn-secondary'
+                type='button'
+                data-operator-id='{{ operator.id }}'
+                data-operator-username='{{ operator.username }}'
+                data-bs-toggle='modal'
+                data-bs-target='#upsert-operator-modal'
+              >
+                <i class='bi-pencil-square'></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <nav aria-label='Page navigation example'>
+    {% assign prev_page = page.current | minus: 1 %}
+    {% assign next_page = page.current | plus: 1 %}
+
+    <ul class='pagination justify-content-center'>
+      <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+        <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'
+          ><i class='bi-arrow-left'></i
+        ></a>
+      </li>
+      {% for p in page.pages %}
+        <li class='page-item'>
+          <a
+            class='page-link {% if page.current == p %}active{%endif%}'
+            href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'
+          >
+            {{ p }}
+          </a>
+        </li>
+      {% endfor %}
+      <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+        <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'
+          ><i class='bi-arrow-right'></i
+        ></a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<div
+  class='modal fade'
+  id='upsert-operator-modal'
+  tabindex='-1'
+  aria-labelledby='exampleModalLabel'
+  aria-hidden='true'
+>
+  <div class='modal-dialog'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h1 class='modal-title fs-5' id='exampleModalLabel'>
+          Add/Update operator
+        </h1>
+        <button
+          type='button'
+          class='btn-close'
+          data-bs-dismiss='modal'
+          aria-label='Close'
+        ></button>
+      </div>
+      <div class='modal-body'>
+        <form
+          id='upsert-operator-form'
+          method='post'
+          action='./upsert-operator?{{ query | mut-query }}'
+        >
+          <input
+            type='number'
+            class='form-control'
+            style='display: none;'
+            id='operator-id-input'
+            name='operatorId'
+          >
+          <div class='form-floating mb-3'>
+            <input
+              type='text'
+              class='form-control'
+              id='operator-username-input'
+              name='operatorUsername'
+              required
+              min='6'
+            >
+            <label for='operator-username-input'>Username</label>
+          </div>
+          <div class='input-group form-floating mb-3'>
+            <input
+              type='password'
+              class='form-control'
+              id='operator-password-input'
+              name='operatorPassword'
+              required
+              min='6'
+            >
+            <label for='operator-password-input'>Password</label>
+          </div>
+          <div class='input-group'>
+            <label class='input-group-text' for='inputGroupSelect01'
+              >Role</label
+            >
+            <select
+              class='form-select'
+              name='operatorRole'
+              id='inputGroupSelect01'
+              value='operator'
+              form='upsert-operator-form'
+            >
+              {% for role in roles %}
+                <option
+                  value='{{role}}'
+                  {% if role == 'operator' %}
+                    selected
+                  {% endif %}
+                >
+                  {{ role }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class='modal-footer'>
+        <button
+          type='submit'
+          class='btn btn-primary'
+          form='upsert-operator-form'
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div
+  class='modal fade'
+  id='delete-operator-modal'
+  tabindex='-1'
+  aria-labelledby='exampleModalLabel'
+  aria-hidden='true'
+>
+  <div class='modal-dialog'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h1 class='modal-title fs-5' id='operatorLabel'>
+          Are you sure you want remove this operator?
+        </h1>
+        <button
+          type='button'
+          class='btn-close'
+          data-bs-dismiss='modal'
+          aria-label='Close'
+        ></button>
+      </div>
+      <form
+        id='delete-operator-form'
+        method='post'
+        action='./drop-operator?{{ query | mut-query }}'
+      >
+        <input
+          type='text'
+          class='form-control'
+          style='display: none;'
+          id='operator-id-input'
+          name='operatorId'
+        >
+      </form>
+      <div class='modal-footer'>
+        <button
+          type='submit'
+          class='btn btn-primary'
+          form='delete-operator-form'
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $userFilterBtn = document.querySelector('#user-filter-btn');
+
+  document.getElementById('user-filter-input').addEventListener('change', function(event){
+    const val = event.target.value.trim();
+    const emptyQuery = '?{{ query | mut-query: 'username' }}';
+    const queryTemplate = '?{{ query | mut-query: 'username', 'template' }}';
+
+    const newHref = val
+      ? queryTemplate.replace('username=template', 'username=' + val)
+      : emptyQuery;
+
+    $userFilterBtn.setAttribute('href', newHref);
+    window.location.assign(newHref);
+  });
+
+  const $upsertOperatorModal = document.getElementById('upsert-operator-modal');
+
+  $upsertOperatorModal.addEventListener('show.bs.modal', function(event){
+    const button = event.relatedTarget;
+    const operatorUsername = button.getAttribute('data-operator-username');
+    const operatorId = button.getAttribute('data-operator-id');
+    if(operatorUsername){
+        $upsertOperatorModal.querySelector('#operator-username-input').value = operatorUsername;
+    }
+    if(operatorId){
+        $upsertOperatorModal.querySelector('#operator-id-input').value = Number(operatorId);
+    }
+  });
+  
+  const $deleteOperatorModal = document.getElementById('delete-operator-modal');
+
+  $deleteOperatorModal.addEventListener('show.bs.modal', function(event){
+    const button = event.relatedTarget;
+    const operatorUsername = button.getAttribute('data-operator-username');
+    const operatorId = button.getAttribute('data-operator-id');
+    if(operatorUsername){
+        $deleteOperatorModal.querySelector('#operatorLabel').textContent = `Are you sure you want remove ${operatorUsername}?`;
+    }
+    if(operatorId){
+        $deleteOperatorModal.querySelector('#operator-id-input').value = Number(operatorId);
+    }
+  });
+</script>
+{% endblock %}
