@@ -1,0 +1,25 @@
+export enum CreditRequestStatus {
+    DEPOSIT_WAITING = "DEPOSIT_WAITING",
+    APPROVE_WAITING = "APPROVE_WAITING",
+    FINISHED = "FINISHED",
+    ERROR = "ERROR",
+}
+
+export enum WithdrawRequestStatus {
+    WAITING = "WITHDRAW_WAITING",
+    SUCCESS = "WITHDRAW_SUCCESS",
+    ERROR = "WITHDRAW_ERROR",
+}
+
+export enum ApproveStatus {
+    APPROWED = "APPROVED",
+    REJECTED = "REJECTED",
+    NOT_VERIFIED = "NOT_VERIFIED",
+}
+
+export enum RepayRequestStatus {
+    FIAT_REPAY_WAITING = "FIAT_REPAY_WAITING",
+    COLLATERAL_WITHDRAW_WAITING = "COLLATERAL_WITHDRAW_WAITING",
+    FINISHED = "FINISHED",
+    ERROR = "ERROR",
+}

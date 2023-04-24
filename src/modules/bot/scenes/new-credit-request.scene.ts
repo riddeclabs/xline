@@ -112,15 +112,12 @@ export class NewCreditRequestWizard {
         switch (callBackTarget) {
             case "supplyCurrency":
                 console.log("🥕 Case supplyCurrency");
-
                 if (value === "eth") {
                     state.collateralCurrency = "ETH";
                 } else {
                     state.collateralCurrency = "BTC";
                 }
-
                 await executeCurrentStep(ctx);
-
                 break;
             // handlerSupplyCurrencyStep
             case "signApplication":
@@ -182,15 +179,12 @@ export class NewCreditRequestWizard {
                 }
                 ctx.scene.session.state.sceneMessageIds.push(msg.message_id);
                 await ctx.scene.leave();
-
                 break;
             default:
                 await this.tryToDeleteMessages(ctx);
-
                 if (ctx.scene.session.cursor == TermSteps.CHOOSE_COLLATERAL_TOKEN) {
                     await executeCurrentStep(ctx);
                     ctx.scene.session.state.sceneMessageIds = [];
-
                     break;
                 }
 
@@ -207,7 +201,6 @@ export class NewCreditRequestWizard {
                 await ctx.scene.leave();
                 break;
         }
-
         console.log("State after  (ctx.scene.session.state):", ctx.scene.session.state);
     }
 
