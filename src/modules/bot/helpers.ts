@@ -1,17 +1,17 @@
-import { EVENT_TYPES } from "./constants";
-export const generateCBData = (type: EVENT_TYPES, data?: unknown): string => {
+import { MAIN_MENU_OPTIONS } from "./constants";
+export const generateCBData = (type: MAIN_MENU_OPTIONS, data?: unknown): string => {
     return `${type}:${data}`;
 };
 
-export const parseCBData = (cb: string): { type: EVENT_TYPES; data: unknown } => {
+export const parseCBData = (cb: string): { type: MAIN_MENU_OPTIONS; data: unknown } => {
     const [type, data] = cb.split(":");
     return {
-        type: type as EVENT_TYPES,
+        type: type as MAIN_MENU_OPTIONS,
         data,
     };
 };
 
-export const buildTypeExp = (type: EVENT_TYPES): RegExp => {
+export const buildTypeExp = (type: MAIN_MENU_OPTIONS): RegExp => {
     return new RegExp(`^${type}.*$`);
 };
 

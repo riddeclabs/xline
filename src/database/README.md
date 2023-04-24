@@ -10,7 +10,7 @@ yarn typeorm migration:run -d src/database/index.ts
 ```
 * Generate new migration
 ```
-yarn orm migration:generate -d src/database/index.ts src/database/migrations/<name-of-new-migration>
+yarn typeorm migration:generate -d src/database/index.ts src/database/migrations/<name-of-new-migration>
 ```
 * OR Create new migration (blank)
 ```
