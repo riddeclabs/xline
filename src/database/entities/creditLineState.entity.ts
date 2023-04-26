@@ -1,4 +1,4 @@
-import { CreditLineStateStatus } from "src/common";
+import { CreditLineStateStatus } from "../../common";
 import {
     Column,
     CreateDateColumn,
@@ -10,15 +10,14 @@ import {
 } from "typeorm";
 import { CreditRequest } from "./creditRequest.entity";
 import { RepayRequest } from "./repayRequest.entity";
+import { uint256 } from "./utils";
 
 @Entity()
 export class CreditLineState {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @OneToOne(() => CreditRequest, creditRequest => creditRequest.creditLineState, {
-        onDelete: "CASCADE",
-    })
+    @OneToOne(() => CreditRequest, creditRequest => creditRequest.creditLineState)
     @JoinColumn({ name: "credit_request_pk", referencedColumnName: "id" })
     creditRequestPk!: number;
 
@@ -33,16 +32,16 @@ export class CreditLineState {
     })
     creditLineStateStatus!: CreditLineStateStatus;
 
-    @Column({ name: "raw_collateral_amount" })
+    @Column("numeric", { ...uint256(), name: "raw_collateral_amount" })
     rawCollateralAmount!: bigint;
 
-    @Column({ name: "fee_accumulated_fiat" })
+    @Column("numeric", { ...uint256(), name: "fee_accumulated_fiat" })
     feeAccumulatedFiat!: bigint;
 
-    @Column({ name: "health_factor" })
+    @Column("numeric", { ...uint256(), name: "health_factor" })
     healthFactor!: bigint;
 
-    @Column({ name: "debt_amount_fiat" })
+    @Column("numeric", { ...uint256(), name: "debt_amount_fiat" })
     debtAmountFiat!: bigint;
 
     @Column({ name: "is_liquidated" })

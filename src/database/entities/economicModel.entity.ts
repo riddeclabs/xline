@@ -1,20 +1,21 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { uint256 } from "./utils";
 
 @Entity()
 export class EconomicModel {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ name: "apr" })
+    @Column("numeric", { ...uint256(), name: "apr" })
     apr!: bigint;
 
-    @Column({ name: "collateral_factor" })
+    @Column("numeric", { ...uint256(), name: "collateral_factor" })
     collateralFactor!: bigint;
 
-    @Column({ name: "liquidation_factor" })
+    @Column("numeric", { ...uint256(), name: "liquidation_factor" })
     liquidationFactor!: bigint;
 
-    @Column({ name: "liquidation_fee" })
+    @Column("numeric", { ...uint256(), name: "liquidation_fee" })
     liquidationFee!: bigint;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

@@ -1,4 +1,4 @@
-import { WithdrawRequestStatus } from "src/common";
+import { WithdrawRequestStatus } from "../../common";
 import {
     Column,
     CreateDateColumn,
@@ -9,13 +9,14 @@ import {
     UpdateDateColumn,
 } from "typeorm";
 import { CreditRequest } from "./creditRequest.entity";
+import { uint256 } from "./utils";
 
 @Entity()
 export class WithdrawRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @OneToOne(() => CreditRequest, creditRequest => creditRequest.withdrawRequest, { cascade: true })
+    @OneToOne(() => CreditRequest, creditRequest => creditRequest.withdrawRequest)
     @JoinColumn({ name: "credit_request_pk", referencedColumnName: "id" })
     creditRequestPk!: number;
 
@@ -30,10 +31,10 @@ export class WithdrawRequest {
     @Column({ name: "wallet_address_to_withdraw" })
     walletAddressToWithdraw!: string;
 
-    @Column({ name: "requested_withdraw_amount" })
+    @Column("numeric", { ...uint256(), name: "requested_withdraw_amount" })
     requestedWithdrawAmount!: bigint;
 
-    @Column({ name: "actual_withdraw_amount" })
+    @Column("numeric", { ...uint256(), name: "actual_withdraw_amount" })
     actualWithdrawAmount!: bigint;
 
     @Column({ name: "tx_hash" })

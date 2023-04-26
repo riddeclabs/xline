@@ -1,4 +1,4 @@
-import { CreditRequestStatus } from "src/common";
+import { CreditRequestStatus } from "../../common";
 import {
     Column,
     CreateDateColumn,
@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { CreditLineState } from "./creditLineState.entity";
 import { WithdrawRequest } from "./withdrawRequest.entity";
+import { uint256 } from "./utils";
 
 @Entity()
 export class CreditRequest {
@@ -33,31 +34,37 @@ export class CreditRequest {
     })
     creditRequestStatus!: CreditRequestStatus;
 
+    @Column({ name: "collateral_currency" })
+    collateralCurrency!: string;
+
+    @Column({ name: "user_id" })
+    userId!: string;
+
     @Column({ name: "wallet_address" })
     walletAddress!: string;
 
-    @Column({ name: "requested_coll_amount" })
+    @Column("numeric", { ...uint256(), name: "requested_coll_amount" })
     requestedCollAmount!: bigint;
 
-    @Column({ name: "actual_coll_amount" })
+    @Column("numeric", { ...uint256(), name: "actual_coll_amount", default: 0n })
     actualCollAmount!: bigint;
 
-    @Column({ name: "requested_credit_amount" })
+    @Column("numeric", { ...uint256(), name: "requested_credit_amount" })
     requestedCreditAmount!: bigint;
 
     @Column({ name: "iban" })
     iban!: string;
 
-    @Column({ name: "apr" })
+    @Column("numeric", { ...uint256(), name: "apr" })
     apr!: bigint;
 
-    @Column({ name: "collateral_factor" })
+    @Column("numeric", { ...uint256(), name: "collateral_factor" })
     collateralFactor!: bigint;
 
-    @Column({ name: "liquidation_factor" })
+    @Column("numeric", { ...uint256(), name: "liquidation_factor" })
     liquidationFactor!: bigint;
 
-    @Column({ name: "liquidation_fee" })
+    @Column("numeric", { ...uint256(), name: "liquidation_fee" })
     liquidationFee!: bigint;
 
     @Column({ name: "approve_status" })

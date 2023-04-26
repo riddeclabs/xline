@@ -1,11 +1,12 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { uint256 } from "./utils";
 
 @Entity()
 export class ProcessingSettings {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ name: "payment_timeout" })
+    @Column("numeric", { ...uint256(), name: "payment_timeout" })
     paymentTimeout!: bigint;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

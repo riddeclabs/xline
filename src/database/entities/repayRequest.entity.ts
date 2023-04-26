@@ -1,4 +1,4 @@
-import { RepayRequestStatus } from "src/common";
+import { RepayRequestStatus } from "../../common";
 import {
     Column,
     CreateDateColumn,
@@ -9,6 +9,7 @@ import {
     UpdateDateColumn,
 } from "typeorm";
 import { CreditLineState } from "./creditLineState.entity";
+import { uint256 } from "./utils";
 
 @Entity()
 export class RepayRequest {
@@ -23,11 +24,11 @@ export class RepayRequest {
     })
     repayRequestStatus!: RepayRequestStatus;
 
-    @OneToOne(() => CreditLineState, creditLineState => creditLineState.repayRequest, { cascade: true })
+    @OneToOne(() => CreditLineState, creditLineState => creditLineState.repayRequest)
     @JoinColumn({ name: "credit_line_state_pk", referencedColumnName: "id" })
     creditLineStatePk!: number;
 
-    @Column({ name: "actual_repay_request_amount" })
+    @Column("numeric", { ...uint256(), name: "actual_repay_request_amount" })
     actualRepayRequestAmount!: bigint;
 
     @Column({ name: "tx_hash" })
@@ -39,7 +40,7 @@ export class RepayRequest {
     @Column({ name: "requested_wallet_address" })
     requestedWalletAddress!: string;
 
-    @Column({ name: "requested_repay_amount" })
+    @Column("numeric", { ...uint256(), name: "requested_repay_amount" })
     requestedRepayAmount!: bigint;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

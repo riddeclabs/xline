@@ -7,6 +7,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { entities, migrations } from "./database";
 import { BotModule } from "./modules/bot/bot.module";
 import { TypeOrmModuleOptions } from "@nestjs/typeorm/dist/interfaces/typeorm-options.interface";
+import { DatabaseModule } from "./modules/database/database.module";
 
 @Module({
     imports: [
@@ -36,6 +37,7 @@ import { TypeOrmModuleOptions } from "@nestjs/typeorm/dist/interfaces/typeorm-op
                     migrations,
                 } as TypeOrmModuleOptions),
         }),
+        DatabaseModule,
     ],
     controllers: [],
     providers: [],
