@@ -97,8 +97,6 @@ export class UserSession {
         return async (ctx: Context & { session: TSessionData }, next: () => Promise<void>) => {
             const key = this.getSessionKey(ctx);
 
-            console.log("💋💋💋💋 MIDDLEWARE FUNCTION  💋💋💋💋");
-
             if (!key) {
                 return next();
             }
