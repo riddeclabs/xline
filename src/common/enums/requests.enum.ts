@@ -12,7 +12,7 @@ export enum WithdrawRequestStatus {
 }
 
 export enum ApproveStatus {
-    APPROWED = "APPROVED",
+    APPROVED = "APPROVED",
     REJECTED = "REJECTED",
     NOT_VERIFIED = "NOT_VERIFIED",
 }

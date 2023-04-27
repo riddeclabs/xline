@@ -7,17 +7,21 @@ import {
     ProcessingSettings,
     RepayRequest,
     WithdrawRequest,
-} from "src/database/entities";
+} from "../../database/entities";
+import { TypeOrmModule } from "@nestjs/typeorm";
 
 @Module({
     imports: [
-        CreditLineState,
-        CreditRequest,
-        EconomicModel,
-        ProcessingSettings,
-        RepayRequest,
-        WithdrawRequest,
+        TypeOrmModule.forFeature([
+            CreditLineState,
+            CreditRequest,
+            EconomicModel,
+            ProcessingSettings,
+            RepayRequest,
+            WithdrawRequest,
+        ]),
     ],
     providers: [DatabaseService],
+    exports: [DatabaseService],
 })
 export class DatabaseModule {}

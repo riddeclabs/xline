@@ -1,4 +1,4 @@
-import { CreditRequestStatus } from "../../common";
+import { ApproveStatus, CreditRequestStatus } from "../../common";
 import {
     Column,
     CreateDateColumn,
@@ -10,6 +10,7 @@ import {
 import { CreditLineState } from "./creditLineState.entity";
 import { WithdrawRequest } from "./withdrawRequest.entity";
 import { uint256 } from "./utils";
+import { Currency } from "../../common/database.type";
 
 @Entity()
 export class CreditRequest {
@@ -34,8 +35,12 @@ export class CreditRequest {
     })
     creditRequestStatus!: CreditRequestStatus;
 
-    @Column({ name: "collateral_currency" })
-    collateralCurrency!: string;
+    @Column({
+        type: "enum",
+        enum: Currency,
+        name: "collateral_currency",
+    })
+    collateralCurrency!: Currency;
 
     @Column({ name: "user_id" })
     userId!: string;
@@ -67,11 +72,16 @@ export class CreditRequest {
     @Column("numeric", { ...uint256(), name: "liquidation_fee" })
     liquidationFee!: bigint;
 
-    @Column({ name: "approve_status" })
-    approveStatus!: string;
+    @Column({
+        type: "enum",
+        enum: ApproveStatus,
+        default: ApproveStatus.NOT_VERIFIED,
+        name: "approve_status",
+    })
+    approveStatus!: ApproveStatus;
 
     @Column({ name: "rejected_reason" })
-    rejectedReason?: string;
+    rejectedReason!: string;
 
     @Column({ name: "is_fiat_sent" })
     isFiatSent!: boolean;

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CreditLineStateStatus } from "src/common";
-import { Currency, ExtendedCreditLineState, PlainCreditLineState } from "src/common/database.type";
+import { CreditLineStateStatus } from "../../common";
+import { Currency, ExtendedCreditLineState, PlainCreditLineState } from "../../common/database.type";
 import {
     CreditLineState,
     CreditRequest,
@@ -9,7 +9,7 @@ import {
     ProcessingSettings,
     RepayRequest,
     WithdrawRequest,
-} from "src/database/entities";
+} from "../../database/entities";
 import { Repository } from "typeorm";
 
 @Injectable()
@@ -105,7 +105,7 @@ export class DatabaseService {
         await this.repayRequestRepo.update(id, repayRequest);
     }
 
-    async getRepayRequestbyId(id: number): Promise<RepayRequest | null> {
+    async getRepayRequestById(id: number): Promise<RepayRequest | null> {
         return this.repayRequestRepo.findOne({ where: { id } });
     }
 
@@ -128,7 +128,7 @@ export class DatabaseService {
         await this.withdrawRequestRepo.update(id, withdrawRequest);
     }
 
-    async getWithdrawRequestbyId(id: number): Promise<WithdrawRequest | null> {
+    async getWithdrawRequestById(id: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo.findOne({ where: { id } });
     }
 
