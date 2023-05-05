@@ -1,14 +1,22 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { uint256 } from "./utils";
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    Index,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
+} from "typeorm";
+import { uint256 } from "../utils";
 
 class BaseCurrency {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @Column("varchar", { name: "symbol" })
     symbol!: string;
 
-    @Column({ ...uint256(), name: "decimals" })
+    @Column("numeric", { ...uint256(), name: "decimals" })
     decimals!: bigint;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

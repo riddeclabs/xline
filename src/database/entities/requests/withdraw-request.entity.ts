@@ -1,6 +1,8 @@
 import {
     Column,
     CreateDateColumn,
+    Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -8,17 +10,19 @@ import {
 } from "typeorm";
 import { CreditLine } from "../credit-line.entity";
 import { WithdrawRequestStatus } from "../../../common";
-import { uint256 } from "../utils";
+import { uint256 } from "../../utils";
 
+@Entity()
 export class WithdrawRequest {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => CreditLine)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     creditLineId!: number;
 
-    @Column("enum", { name: "withdraw_request_status", enum: WithdrawRequestStatus })
+    @Column({ name: "withdraw_request_status", type: "enum", enum: WithdrawRequestStatus })
     withdrawRequestStatus!: WithdrawRequestStatus;
 
     @Column("varchar", { name: "wallet_to_withdraw" })

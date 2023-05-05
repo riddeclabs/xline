@@ -2,27 +2,29 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
-import { uint256 } from "../utils";
+import { uint256 } from "../../utils";
 import { FiatTransactionStatus } from "../../../common";
 import { BorrowRequest } from "../requests/borrow-request.entity";
 import { RepayRequest } from "../requests/repay-request.entity";
 
 @Entity()
 export class FiatTransaction {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => BorrowRequest)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     borrowRequestId?: number;
 
     @ManyToOne(() => RepayRequest)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     repayRequestId?: number;
 
     @Column("varchar", { name: "iban_from" })
@@ -37,10 +39,10 @@ export class FiatTransaction {
     @Column("varchar", { name: "name_to" })
     nameTo!: string;
 
-    @Column({ ...uint256(), name: "raw_transfer_amount" })
+    @Column("numeric", { ...uint256(), name: "raw_transfer_amount" })
     rawTransferAmount!: bigint;
 
-    @Column("enum", { name: "status", enum: FiatTransactionStatus })
+    @Column({ name: "status", type: "enum", enum: FiatTransactionStatus })
     status!: FiatTransactionStatus;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

@@ -2,6 +2,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -11,11 +12,12 @@ import { DebtCurrency } from "./currencies.entity";
 
 @Entity()
 export class BuisinessPaymentRequisite {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     currencyId!: number;
 
     @Column("varchar", { name: "bank_name" })

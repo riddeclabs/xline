@@ -3,6 +3,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -13,15 +14,16 @@ import { BuisinessPaymentRequisite } from "../buisiness-payment-requisite.entity
 
 @Entity()
 export class RepayRequest {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => CreditLine)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     creditLineId!: number;
 
     @ManyToOne(() => BuisinessPaymentRequisite)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     buisinessPaymentRequisiteId!: number;
 
     @Column("enum", { name: "repay_request_status", enum: RepayRequestStatus })

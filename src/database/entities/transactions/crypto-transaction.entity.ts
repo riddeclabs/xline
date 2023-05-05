@@ -2,6 +2,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -9,19 +10,20 @@ import {
 } from "typeorm";
 import { WithdrawRequest } from "../requests/withdraw-request.entity";
 import { DepositRequest } from "../requests/deposit-request.entity";
-import { uint256 } from "../utils";
+import { uint256 } from "../../utils";
 
 @Entity()
 export class CryptoTransaction {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => WithdrawRequest)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     withdrawRequestId?: number;
 
     @ManyToOne(() => DepositRequest)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     depositRequestId?: number;
 
     @Column("varchar", { name: "from" })

@@ -2,13 +2,14 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { CreditLineStatus } from "../../common";
-import { uint256 } from "./utils";
+import { uint256 } from "../utils";
 import { User } from "./users/user.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { CollateralCurrency, DebtCurrency } from "./currencies.entity";
@@ -16,30 +17,31 @@ import { EconomicalParameters } from "./economical-parameters.entity";
 
 @Entity()
 export class CreditLine {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => UserPaymentRequisite)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     userPaymentRequisiteId!: UserPaymentRequisite;
 
     @ManyToOne(() => User)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     userId!: User;
 
     @ManyToOne(() => EconomicalParameters)
-    @JoinColumn({ name: "id" })
-    economicalParamId!: EconomicalParameters;
+    @JoinColumn({ referencedColumnName: "id" })
+    economicalParametersId!: EconomicalParameters;
 
     @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     debtCurrencyId!: DebtCurrency;
 
     @ManyToOne(() => CollateralCurrency)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     collateralCurrencyId!: CollateralCurrency;
 
-    @Column("enum", { name: "credit_line_status", enum: CreditLineStatus })
+    @Column({ name: "credit_line_status", type: "enum", enum: CreditLineStatus })
     creditLineStatus!: CreditLineStatus;
 
     @Column("numeric", { ...uint256(), name: "raw_collateral_amount" })

@@ -1,11 +1,19 @@
-export enum WithdrawRequestStatus {}
+export enum WithdrawRequestStatus {
+    PENDING = "PENDING",
+}
 //FIXME: add statuses
 
-export enum DepositRequestStatus {}
+export enum DepositRequestStatus {
+    PENDING = "PENDING",
+}
 //FIXME: add statuses
 
-export enum BorrowRequestStatus {}
+export enum BorrowRequestStatus {
+    PENDING = "PENDING",
+}
 //FIXME: add statuses
 
-export enum RepayRequestStatus {}
+export enum RepayRequestStatus {
+    PENDING = "PENDING",
+}
 //FIXME: add statuses

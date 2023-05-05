@@ -2,31 +2,33 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
-import { uint256 } from "../utils";
+import { uint256 } from "../../utils";
 import { BorrowRequestStatus } from "../../../common";
 import { CreditLine } from "../credit-line.entity";
 
 @Entity()
 export class BorrowRequest {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => CreditLine)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     creditLineId!: number;
 
-    @Column("enum", { name: "borrow_request_status", enum: BorrowRequestStatus })
+    @Column({ name: "borrow_request_status", type: "enum", enum: BorrowRequestStatus })
     borrowRequestStatus!: BorrowRequestStatus;
 
-    @Column({ ...uint256(), name: "borrow_fiat_amount" })
+    @Column("numeric", { ...uint256(), name: "borrow_fiat_amount" })
     borrowFiatAmount!: bigint | null;
 
-    @Column({ ...uint256(), name: "initial_risk_startegy" })
+    @Column("numeric", { ...uint256(), name: "initial_risk_startegy" })
     initialRiskStartegy?: bigint | null;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

@@ -9,35 +9,44 @@ import { User } from "./users/user.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { DebtCurrency } from "./currencies.entity";
 import { CollateralCurrency } from "./currencies.entity";
-import { CreditLineStatus } from "../../common";
+import { BuisinessPaymentRequisite } from "./buisiness-payment-requisite.entity";
+import { CryptoTransaction } from "./transactions/crypto-transaction.entity";
+import { FiatTransaction } from "./transactions/fiat-transactions.entity";
+import { EconomicalParameters } from "./economical-parameters.entity";
 
 const entities = [
-    Operator,
-    Session,
+    CryptoTransaction,
+    FiatTransaction,
     WithdrawRequest,
     DepositRequest,
     BorrowRequest,
     RepayRequest,
     CreditLine,
-    User,
+    EconomicalParameters,
     UserPaymentRequisite,
+    User,
     DebtCurrency,
     CollateralCurrency,
-    CreditLineStatus,
+    BuisinessPaymentRequisite,
+    Session,
+    Operator,
 ];
 
 export {
-    Operator,
-    Session,
+    CryptoTransaction,
+    FiatTransaction,
     WithdrawRequest,
     DepositRequest,
     BorrowRequest,
     RepayRequest,
     CreditLine,
-    User,
+    EconomicalParameters,
     UserPaymentRequisite,
+    User,
     DebtCurrency,
     CollateralCurrency,
-    CreditLineStatus,
+    BuisinessPaymentRequisite,
+    Operator,
+    Session,
 };
 export default entities;

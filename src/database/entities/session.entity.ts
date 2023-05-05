@@ -6,11 +6,13 @@ import {
     PrimaryColumn,
     OneToOne,
     JoinColumn,
+    Index,
 } from "typeorm";
 import { User } from "./users/user.entity";
 
 @Entity()
 export class Session {
+    @Index({ unique: true })
     @PrimaryColumn()
     id!: number;
 

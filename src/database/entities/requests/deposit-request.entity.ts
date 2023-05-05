@@ -2,6 +2,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -12,14 +13,15 @@ import { CreditLine } from "../credit-line.entity";
 
 @Entity()
 export class DepositRequest {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
     @ManyToOne(() => CreditLine)
-    @JoinColumn({ name: "id" })
+    @JoinColumn({ referencedColumnName: "id" })
     creditLineId!: number;
 
-    @Column("enum", { name: "deposit_request_status", enum: DepositRequestStatus })
+    @Column({ name: "deposit_request_status", type: "enum", enum: DepositRequestStatus })
     depositRequestStatus!: DepositRequestStatus;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

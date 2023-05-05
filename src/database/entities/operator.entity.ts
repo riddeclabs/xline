@@ -10,8 +10,8 @@ import {
 import { Role } from "../../common";
 
 @Entity()
-@Index(["id", "username"])
 export class Operator {
+    @Index({ unique: true })
     @PrimaryGeneratedColumn()
     id!: number;
 
