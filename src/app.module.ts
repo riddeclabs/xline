@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { TelegrafModule } from "nestjs-telegraf";
 import { BackOfficeModule } from "./modules/backoffice/backoffice.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { RouterModule } from "@nestjs/core";
@@ -20,9 +19,6 @@ import { TypeOrmModuleOptions } from "@nestjs/typeorm/dist/interfaces/typeorm-op
                 module: BackOfficeModule,
             },
         ]),
-        TelegrafModule.forRoot({
-            token: "6071673422:AAH6aJ9jIv6O1DnrQVwfv-yopHnr5ROJhQ8", //FIXME: add config service
-        }),
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

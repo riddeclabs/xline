@@ -1,12 +1,18 @@
-export enum EVENT_TYPES {
-    termAndCondition = "termAndCondition",
-    currentRates = "currentRates",
-    makeDeposit = "makeDeposit",
-    back = "back",
+export enum MAIN_MENU_OPTIONS {
+    TERM_AND_CONDITION = "termAndCondition",
+    CURRENT_RATES = "currentRates",
+    NEW_CREDIT_REQUEST = "newCreditRequest",
+    VIEW_ACTIVE_LINE = "viewActiveLine",
+    VIEW_REQUEST = "viewRequest",
+    BACK_MAIN_MENU = "back",
 }
 
-export const MAIN_MENU = [
-    EVENT_TYPES.termAndCondition,
-    EVENT_TYPES.currentRates,
-    EVENT_TYPES.makeDeposit,
-];
+export enum SUPPORTED_TOKENS {
+    BTC = "BTC",
+    ETH = "ETH",
+}
+
+export enum SignApplicationOptions {
+    APPROVE = "approve",
+    DISAPPROVE = "disapprove",
+}
