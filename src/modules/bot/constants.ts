@@ -1,13 +1,18 @@
 export enum MAIN_MENU_OPTIONS {
-    termAndCondition = "termAndCondition",
-    currentRates = "currentRates",
-    makeDeposit = "makeDeposit",
-    signApplication = "signApplication",
-    back = "back",
+    TERM_AND_CONDITION = "termAndCondition",
+    CURRENT_RATES = "currentRates",
+    NEW_CREDIT_REQUEST = "newCreditRequest",
+    VIEW_ACTIVE_LINE = "viewActiveLine",
+    VIEW_REQUEST = "viewRequest",
+    BACK_MAIN_MENU = "back",
 }
 
-export const MAIN_MENU = [
-    MAIN_MENU_OPTIONS.termAndCondition,
-    MAIN_MENU_OPTIONS.currentRates,
-    MAIN_MENU_OPTIONS.makeDeposit,
-];
+export enum SUPPORTED_TOKENS {
+    BTC = "BTC",
+    ETH = "ETH",
+}
+
+export enum SignApplicationOptions {
+    APPROVE = "approve",
+    DISAPPROVE = "disapprove",
+}

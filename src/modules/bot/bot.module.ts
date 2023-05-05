@@ -5,6 +5,12 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { UserSession } from "../../common/middlewares/session.middleware";
 import { entities } from "../../database";
 import { NewCreditRequestWizard } from "./scenes/new-credit-request.scene";
+import { ViewActiveCreditLineWizard } from "./scenes/view-active-line.scene";
+import { MainScene } from "./scenes/main.scene";
+import { RepayActionWizard } from "./scenes/repay.scene";
+import { WithdrawActionWizard } from "./scenes/withdraw.scene";
+import { ViewRequestWizard } from "./scenes/view-request.scene";
+import { BotCommonService } from "./bot-common.service";
 
 @Module({
     imports: [
@@ -27,6 +33,15 @@ import { NewCreditRequestWizard } from "./scenes/new-credit-request.scene";
             inject: [ConfigService],
         }),
     ],
-    providers: [BotService, NewCreditRequestWizard],
+    providers: [
+        BotService,
+        MainScene,
+        NewCreditRequestWizard,
+        ViewActiveCreditLineWizard,
+        RepayActionWizard,
+        WithdrawActionWizard,
+        ViewRequestWizard,
+        BotCommonService,
+    ],
 })
 export class BotModule {}
