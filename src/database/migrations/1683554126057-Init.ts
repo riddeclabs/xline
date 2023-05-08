@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Initial1683550896540 implements MigrationInterface {
-    name = "Initial1683550896540";
+export class Init1683554126057 implements MigrationInterface {
+    name = "Init1683554126057";
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(
@@ -10,15 +10,11 @@ export class Initial1683550896540 implements MigrationInterface {
         await queryRunner.query(
             `CREATE TABLE "operator" ("id" SERIAL NOT NULL, "username" character varying(40) NOT NULL, "password" character varying(80) NOT NULL, "role" "public"."operator_role_enum" NOT NULL DEFAULT 'ADMIN', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_62277fe2d2a98818e7c47cc9071" UNIQUE ("username"), CONSTRAINT "PK_8b950e1572745d9f69be7748ae8" PRIMARY KEY ("id"))`
         );
-        await queryRunner.query(`CREATE INDEX "IDX_8b950e1572745d9f69be7748ae" ON "operator" ("id") `);
         await queryRunner.query(
             `CREATE TYPE "public"."borrow_request_borrow_request_status_enum" AS ENUM('VERIFICATION_PENDING', 'MONEY_SENT', 'FINISHED', 'REJECTED')`
         );
         await queryRunner.query(
             `CREATE TABLE "borrow_request" ("id" SERIAL NOT NULL, "borrow_request_status" "public"."borrow_request_borrow_request_status_enum" NOT NULL DEFAULT 'VERIFICATION_PENDING', "borrow_fiat_amount" numeric(78) NOT NULL, "initial_risk_strategy" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, CONSTRAINT "PK_ead119ab91cdfd75fbde173c701" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_ead119ab91cdfd75fbde173c70" ON "borrow_request" ("id") `
         );
         await queryRunner.query(
             `CREATE TYPE "public"."fiat_transaction_status_enum" AS ENUM('PENDING', 'COMPLETED', 'REJECTED')`
@@ -27,70 +23,40 @@ export class Initial1683550896540 implements MigrationInterface {
             `CREATE TABLE "fiat_transaction" ("id" SERIAL NOT NULL, "iban_from" character varying NOT NULL, "iban_to" character varying NOT NULL, "name_from" character varying NOT NULL, "name_to" character varying NOT NULL, "raw_transfer_amount" numeric(78) NOT NULL, "status" "public"."fiat_transaction_status_enum" NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "borrow_request_id" integer, "repay_request_id" integer, CONSTRAINT "PK_1a9da62b254ccdd8681a9ab4bc0" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_1a9da62b254ccdd8681a9ab4bc" ON "fiat_transaction" ("id") `
+            `CREATE TYPE "public"."repay_request_repay_request_status_enum" AS ENUM('VERIFICATION_PENDING', 'FINISHED', 'REJECTED')`
         );
         await queryRunner.query(
-            `CREATE TYPE "public"."repay_request_repay_request_status_enum" AS ENUM('REPAY_PENDING', 'VERIFICATION_PENDING', 'FINISHED', 'REJECTED')`
-        );
-        await queryRunner.query(
-            `CREATE TABLE "repay_request" ("id" SERIAL NOT NULL, "repay_request_status" "public"."repay_request_repay_request_status_enum" NOT NULL DEFAULT 'REPAY_PENDING', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, "business_payment_requisite_id" integer, CONSTRAINT "PK_9d2f9f273ce084d1577149c5306" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_9d2f9f273ce084d1577149c530" ON "repay_request" ("id") `
+            `CREATE TABLE "repay_request" ("id" SERIAL NOT NULL, "repay_request_status" "public"."repay_request_repay_request_status_enum" NOT NULL DEFAULT 'VERIFICATION_PENDING', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, "business_payment_requisite_id" integer, CONSTRAINT "PK_9d2f9f273ce084d1577149c5306" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
             `CREATE TABLE "business_payment_requisite" ("id" SERIAL NOT NULL, "bank_name" character varying NOT NULL, "iban" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "debt_currency_id" integer, CONSTRAINT "PK_bc2d7821476409a0e1b4b5aff94" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_bc2d7821476409a0e1b4b5aff9" ON "business_payment_requisite" ("id") `
-        );
-        await queryRunner.query(
             `CREATE TABLE "economical_parameters" ("id" SERIAL NOT NULL, "apr" numeric(78) NOT NULL, "liquidation_fee" numeric(78) NOT NULL, "collateral_factor" numeric(78) NOT NULL, "liquidation_Factor" numeric(78) NOT NULL, "fiat_processing_fee" numeric(78) NOT NULL, "crypto_processing_fee" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "collateral_currency_id" integer, "debt_currency_id" integer, CONSTRAINT "PK_bdc29d32c7917a436a1becf275e" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_bdc29d32c7917a436a1becf275" ON "economical_parameters" ("id") `
+            `CREATE TABLE "debt_currency" ("id" SERIAL NOT NULL, "symbol" character varying NOT NULL, "decimals" integer NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_8860676b38b769d61ecbe796aa0" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE TABLE "debt_currency" ("id" SERIAL NOT NULL, "symbol" character varying NOT NULL, "decimals" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_8860676b38b769d61ecbe796aa0" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_8860676b38b769d61ecbe796aa" ON "debt_currency" ("id") `
-        );
-        await queryRunner.query(
-            `CREATE TABLE "collateral_currency" ("id" SERIAL NOT NULL, "symbol" character varying NOT NULL, "decimals" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_2b8b2813e4473dad6090c333b73" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_2b8b2813e4473dad6090c333b7" ON "collateral_currency" ("id") `
+            `CREATE TABLE "collateral_currency" ("id" SERIAL NOT NULL, "symbol" character varying NOT NULL, "decimals" integer NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_2b8b2813e4473dad6090c333b73" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
             `CREATE TABLE "user_payment_requisite" ("id" SERIAL NOT NULL, "iban" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "user_id" integer, "debt_currency_id" integer, CONSTRAINT "PK_6b8457544d481e8189a01c220ba" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_6b8457544d481e8189a01c220b" ON "user_payment_requisite" ("id") `
+            `CREATE TYPE "public"."deposit_request_deposit_request_status_enum" AS ENUM('PENDING', 'FINISHED', 'REJECTED')`
         );
         await queryRunner.query(
-            `CREATE TYPE "public"."deposit_request_deposit_request_status_enum" AS ENUM('DEPOSIT_PENDING', 'VERIFICATION_PENDING', 'FINISHED', 'REJECTED')`
-        );
-        await queryRunner.query(
-            `CREATE TABLE "deposit_request" ("id" SERIAL NOT NULL, "deposit_request_status" "public"."deposit_request_deposit_request_status_enum" NOT NULL DEFAULT 'DEPOSIT_PENDING', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, CONSTRAINT "PK_0a98eb3dce48bdbd881be8e0dfe" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_0a98eb3dce48bdbd881be8e0df" ON "deposit_request" ("id") `
+            `CREATE TABLE "deposit_request" ("id" SERIAL NOT NULL, "deposit_request_status" "public"."deposit_request_deposit_request_status_enum" NOT NULL DEFAULT 'PENDING', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, CONSTRAINT "PK_0a98eb3dce48bdbd881be8e0dfe" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
             `CREATE TABLE "crypto_transaction" ("id" SERIAL NOT NULL, "from" character varying NOT NULL, "to" character varying NOT NULL, "raw_transfer_amount" numeric(78) NOT NULL, "usd_transfer_amount" numeric(78) NOT NULL, "tx_hash" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "withdraw_request_id" integer, "deposit_request_id" integer, CONSTRAINT "PK_7107601dbf52f2f9d52d8890467" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_7107601dbf52f2f9d52d889046" ON "crypto_transaction" ("id") `
+            `CREATE TYPE "public"."withdraw_request_withdraw_request_status_enum" AS ENUM('PENDING', 'FINISHED', 'REJECTED')`
         );
         await queryRunner.query(
-            `CREATE TYPE "public"."withdraw_request_withdraw_request_status_enum" AS ENUM('VERIFICATION_PENDING', 'FINISHED', 'REJECTED')`
-        );
-        await queryRunner.query(
-            `CREATE TABLE "withdraw_request" ("id" SERIAL NOT NULL, "withdraw_request_status" "public"."withdraw_request_withdraw_request_status_enum" NOT NULL DEFAULT 'VERIFICATION_PENDING', "wallet_to_withdraw" character varying NOT NULL, "withdraw_amount" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, CONSTRAINT "PK_02e70a169eff16575401fe2239a" PRIMARY KEY ("id"))`
-        );
-        await queryRunner.query(
-            `CREATE INDEX "IDX_02e70a169eff16575401fe2239" ON "withdraw_request" ("id") `
+            `CREATE TABLE "withdraw_request" ("id" SERIAL NOT NULL, "withdraw_request_status" "public"."withdraw_request_withdraw_request_status_enum" NOT NULL DEFAULT 'PENDING', "wallet_to_withdraw" character varying NOT NULL, "withdraw_amount" numeric(78) NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "credit_line_id" integer, CONSTRAINT "PK_02e70a169eff16575401fe2239a" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
             `CREATE TYPE "public"."credit_line_credit_line_status_enum" AS ENUM('INITIALIZED', 'ACTIVE', 'CLOSED')`
@@ -99,16 +65,11 @@ export class Initial1683550896540 implements MigrationInterface {
             `CREATE TABLE "credit_line" ("id" SERIAL NOT NULL, "gateway_user_id" character varying NOT NULL, "credit_line_status" "public"."credit_line_credit_line_status_enum" NOT NULL DEFAULT 'INITIALIZED', "raw_collateral_amount" numeric(78) NOT NULL, "debt_amount" numeric(78) NOT NULL, "fee_accumulated_fiat_amount" numeric(78) NOT NULL, "healthy_factor" numeric(78) NOT NULL, "is_liquidated" boolean NOT NULL, "ref_number" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "user_payment_requisite_id" integer, "user_id" integer, "economical_parameters_id" integer, "debt_currency_id" integer, "collateral_currency_id" integer, CONSTRAINT "PK_18a28cc8a224fc38c84c53e95bd" PRIMARY KEY ("id"))`
         );
         await queryRunner.query(
-            `CREATE INDEX "IDX_18a28cc8a224fc38c84c53e95b" ON "credit_line" ("id") `
-        );
-        await queryRunner.query(
             `CREATE TABLE "user" ("id" SERIAL NOT NULL, "chat_id" integer NOT NULL, "name" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_c43d9c7669f5c12f23686e1b891" UNIQUE ("chat_id"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`
         );
-        await queryRunner.query(`CREATE INDEX "IDX_cace4a159ff9f2512dd4237376" ON "user" ("id") `);
         await queryRunner.query(
             `CREATE TABLE "session" ("id" integer NOT NULL, "data" jsonb NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "user_id" integer, CONSTRAINT "REL_30e98e8746699fb9af235410af" UNIQUE ("user_id"), CONSTRAINT "PK_f55da76ac1c3ac420f444d2ff11" PRIMARY KEY ("id"))`
         );
-        await queryRunner.query(`CREATE INDEX "IDX_f55da76ac1c3ac420f444d2ff1" ON "session" ("id") `);
         await queryRunner.query(
             `CREATE TABLE "payment_processing" ("id" SERIAL NOT NULL, "url" character varying NOT NULL, "origin_name" character varying NOT NULL, "callback_auth" character varying NOT NULL, "gateway_auth" character varying NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_f92510a73cf6240c1c5df6e1d27" PRIMARY KEY ("id"))`
         );
@@ -236,41 +197,26 @@ export class Initial1683550896540 implements MigrationInterface {
             `ALTER TABLE "borrow_request" DROP CONSTRAINT "FK_1ab6832b92a92477ca30192a480"`
         );
         await queryRunner.query(`DROP TABLE "payment_processing"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f55da76ac1c3ac420f444d2ff1"`);
         await queryRunner.query(`DROP TABLE "session"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_cace4a159ff9f2512dd4237376"`);
         await queryRunner.query(`DROP TABLE "user"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_18a28cc8a224fc38c84c53e95b"`);
         await queryRunner.query(`DROP TABLE "credit_line"`);
         await queryRunner.query(`DROP TYPE "public"."credit_line_credit_line_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_02e70a169eff16575401fe2239"`);
         await queryRunner.query(`DROP TABLE "withdraw_request"`);
         await queryRunner.query(`DROP TYPE "public"."withdraw_request_withdraw_request_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_7107601dbf52f2f9d52d889046"`);
         await queryRunner.query(`DROP TABLE "crypto_transaction"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0a98eb3dce48bdbd881be8e0df"`);
         await queryRunner.query(`DROP TABLE "deposit_request"`);
         await queryRunner.query(`DROP TYPE "public"."deposit_request_deposit_request_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6b8457544d481e8189a01c220b"`);
         await queryRunner.query(`DROP TABLE "user_payment_requisite"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_2b8b2813e4473dad6090c333b7"`);
         await queryRunner.query(`DROP TABLE "collateral_currency"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8860676b38b769d61ecbe796aa"`);
         await queryRunner.query(`DROP TABLE "debt_currency"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_bdc29d32c7917a436a1becf275"`);
         await queryRunner.query(`DROP TABLE "economical_parameters"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_bc2d7821476409a0e1b4b5aff9"`);
         await queryRunner.query(`DROP TABLE "business_payment_requisite"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_9d2f9f273ce084d1577149c530"`);
         await queryRunner.query(`DROP TABLE "repay_request"`);
         await queryRunner.query(`DROP TYPE "public"."repay_request_repay_request_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1a9da62b254ccdd8681a9ab4bc"`);
         await queryRunner.query(`DROP TABLE "fiat_transaction"`);
         await queryRunner.query(`DROP TYPE "public"."fiat_transaction_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_ead119ab91cdfd75fbde173c70"`);
         await queryRunner.query(`DROP TABLE "borrow_request"`);
         await queryRunner.query(`DROP TYPE "public"."borrow_request_borrow_request_status_enum"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_8b950e1572745d9f69be7748ae"`);
         await queryRunner.query(`DROP TABLE "operator"`);
         await queryRunner.query(`DROP TYPE "public"."operator_role_enum"`);
     }

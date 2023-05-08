@@ -1,5 +1,7 @@
-import { Init1683552755925 } from "./1683552755925-Init";
+import { MixedList } from "typeorm";
+import { Init1683554126057 } from "./1683554126057-Init";
 
-const migrations = [Init1683552755925];
+// eslint-disable-next-line @typescript-eslint/ban-types
+const migrations: MixedList<string | Function> = [Init1683554126057];
 
 export default migrations;

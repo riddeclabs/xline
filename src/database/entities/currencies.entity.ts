@@ -6,7 +6,6 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
-import { uint256 } from "../utils";
 import { CreditLine } from "./credit-line.entity";
 import { BusinessPaymentRequisite } from "./business-payment-requisite.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
@@ -19,8 +18,8 @@ class BaseCurrency {
     @Column("varchar", { name: "symbol" })
     symbol!: string;
 
-    @Column("numeric", { ...uint256(), name: "decimals" })
-    decimals!: bigint;
+    @Column("int", { name: "decimals" })
+    decimals!: number;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })
     createdAt!: Date;
