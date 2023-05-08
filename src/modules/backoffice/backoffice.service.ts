@@ -37,7 +37,7 @@ export class BackOfficeService {
         role?: Role
     ): Promise<[Operator[], number]> {
         const sortOrders: Record<OperatorsListColumns, FindOptionsOrder<Operator>> = {
-            updated: { updated_at: "DESC" },
+            updated: { updatedAt: "DESC" },
             role: { role: "ASC" },
         };
 
