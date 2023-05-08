@@ -15,7 +15,7 @@ import { CreditLine } from "../credit-line.entity";
 
 @Entity()
 export class UserPaymentRequisite {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -26,8 +26,8 @@ export class UserPaymentRequisite {
     @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.userPaymentRequisites, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "currency_id", referencedColumnName: "id" })
-    currencyId!: number;
+    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
+    debtCurrencyId!: number;
 
     @OneToMany(() => CreditLine, creditLine => creditLine.userPaymentRequisiteId)
     creditLines!: CreditLine[];

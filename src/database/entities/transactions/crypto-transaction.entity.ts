@@ -14,7 +14,7 @@ import { uint256 } from "../../utils";
 
 @Entity()
 export class CryptoTransaction {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -22,13 +22,13 @@ export class CryptoTransaction {
         onDelete: "CASCADE",
     })
     @JoinColumn({ name: "withdraw_request_id", referencedColumnName: "id" })
-    withdrawRequestId?: number;
+    withdrawRequestId!: number | null;
 
     @ManyToOne(() => DepositRequest, depositRequest => depositRequest.cryptoTransactions, {
         onDelete: "CASCADE",
     })
     @JoinColumn({ name: "deposit_request_id", referencedColumnName: "id" })
-    depositRequestId?: number;
+    depositRequestId!: number | null;
 
     @Column("varchar", { name: "from" })
     from!: string;

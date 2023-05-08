@@ -1,13 +1,5 @@
-import { InitialInitital1682080804841 } from "./1682080804841-InitialInitital";
-import { CreateEntities1683302066206 } from "./1683302066206-CreateEntities";
-import { PaymentProcessing1683535222004 } from "./1683535222004-PaymentProcessing";
-import { TwoWayRelations1683543977593 } from "./1683543977593-TwoWayRelations";
+import { Initial1683550896540 } from "./1683550896540-Initial";
 
-const migrations = [
-    InitialInitital1682080804841,
-    CreateEntities1683302066206,
-    PaymentProcessing1683535222004,
-    TwoWayRelations1683543977593,
-];
+const migrations = [Initial1683550896540];
 
 export default migrations;

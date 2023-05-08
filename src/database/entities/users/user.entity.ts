@@ -14,7 +14,7 @@ import { Session } from "../session.entity";
 
 @Entity()
 export class User {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -24,11 +24,11 @@ export class User {
     @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.userId)
     userPaymentRequisites!: UserPaymentRequisite[];
 
-    @OneToOne(() => Session, session => session.chatId, { onDelete: "CASCADE" })
+    @OneToOne(() => Session, session => session.userId, { onDelete: "CASCADE" })
     session?: Session;
 
     @Column("int", { name: "chat_id", unique: true })
-    chat_id!: number;
+    chatId!: number;
 
     @Column("varchar", { name: "name" })
     name!: string;

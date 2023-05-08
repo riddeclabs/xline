@@ -15,7 +15,7 @@ import { CreditLine } from "./credit-line.entity";
 
 @Entity()
 export class EconomicalParameters {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

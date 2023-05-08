@@ -15,7 +15,7 @@ import { RepayRequest } from "../requests/repay-request.entity";
 
 @Entity()
 export class FiatTransaction {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -23,13 +23,13 @@ export class FiatTransaction {
         onDelete: "CASCADE",
     })
     @JoinColumn({ name: "borrow_request_id", referencedColumnName: "id" })
-    borrowRequestId?: number;
+    borrowRequestId!: number | null;
 
     @ManyToOne(() => RepayRequest, repayRequest => repayRequest.fiatTransactions, {
         onDelete: "CASCADE",
     })
     @JoinColumn({ name: "repay_request_id", referencedColumnName: "id" })
-    repayRequestId?: number;
+    repayRequestId!: number | null;
 
     @Column("varchar", { name: "iban_from" })
     ibanFrom!: string;

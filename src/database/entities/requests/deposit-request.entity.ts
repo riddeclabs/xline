@@ -15,7 +15,7 @@ import { CryptoTransaction } from "../transactions/crypto-transaction.entity";
 
 @Entity()
 export class DepositRequest {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -26,7 +26,12 @@ export class DepositRequest {
     @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.depositRequestId)
     cryptoTransactions!: CryptoTransaction[];
 
-    @Column({ name: "deposit_request_status", type: "enum", enum: DepositRequestStatus })
+    @Column({
+        name: "deposit_request_status",
+        type: "enum",
+        enum: DepositRequestStatus,
+        default: DepositRequestStatus.DEPOSIT_PENDING,
+    })
     depositRequestStatus!: DepositRequestStatus;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

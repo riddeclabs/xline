@@ -70,7 +70,7 @@ export class BackOfficeController {
         // some code here
     }
 
-    @Roles(Role.admin, Role.operator)
+    @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("dashboard")
     @Render("backoffice/dashboard")
@@ -80,7 +80,7 @@ export class BackOfficeController {
         };
     }
 
-    @Roles(Role.admin)
+    @Roles(Role.ADMIN)
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("operators")
     @Render("backoffice/operators")

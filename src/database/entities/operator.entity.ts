@@ -11,7 +11,7 @@ import { Role } from "../../common";
 
 @Entity()
 export class Operator {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -33,7 +33,7 @@ export class Operator {
     @Column({
         type: "enum",
         enum: Role,
-        default: Role.admin,
+        default: Role.ADMIN,
     })
     role!: Role;
 

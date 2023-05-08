@@ -9,12 +9,12 @@ import {
 } from "typeorm";
 import { uint256 } from "../utils";
 import { CreditLine } from "./credit-line.entity";
-import { BuisinessPaymentRequisite } from "./buisiness-payment-requisite.entity";
+import { BusinessPaymentRequisite } from "./business-payment-requisite.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
 
 class BaseCurrency {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -37,12 +37,12 @@ export class DebtCurrency extends BaseCurrency {
     creditLines!: CreditLine[];
 
     @OneToMany(
-        () => BuisinessPaymentRequisite,
-        buisinessPaymentRequisite => buisinessPaymentRequisite.currencyId
+        () => BusinessPaymentRequisite,
+        businessPaymentRequisite => businessPaymentRequisite.debtCurrencyId
     )
-    buisinessPaymentRequisites!: BuisinessPaymentRequisite[];
+    businessPaymentRequisites!: BusinessPaymentRequisite[];
 
-    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.currencyId)
+    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.debtCurrencyId)
     userPaymentRequisites!: UserPaymentRequisite[];
 
     @OneToMany(() => EconomicalParameters, economicalParameters => economicalParameters.debtCurrencyId)

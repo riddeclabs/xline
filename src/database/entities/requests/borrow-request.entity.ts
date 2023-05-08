@@ -16,7 +16,7 @@ import { FiatTransaction } from "../transactions/fiat-transactions.entity";
 
 @Entity()
 export class BorrowRequest {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -27,14 +27,19 @@ export class BorrowRequest {
     @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.borrowRequestId)
     fiatTransactions!: FiatTransaction[];
 
-    @Column({ name: "borrow_request_status", type: "enum", enum: BorrowRequestStatus })
+    @Column({
+        name: "borrow_request_status",
+        type: "enum",
+        enum: BorrowRequestStatus,
+        default: BorrowRequestStatus.VERIFICATION_PENDING,
+    })
     borrowRequestStatus!: BorrowRequestStatus;
 
     @Column("numeric", { ...uint256(), name: "borrow_fiat_amount" })
     borrowFiatAmount!: bigint | null;
 
-    @Column("numeric", { ...uint256(), name: "initial_risk_startegy" })
-    initialRiskStartegy?: bigint | null;
+    @Column("numeric", { ...uint256(), name: "initial_risk_strategy" })
+    initialRiskStrategy!: bigint | null;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })
     createdAt!: Date;

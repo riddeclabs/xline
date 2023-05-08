@@ -9,7 +9,7 @@ import { User } from "./users/user.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { DebtCurrency } from "./currencies.entity";
 import { CollateralCurrency } from "./currencies.entity";
-import { BuisinessPaymentRequisite } from "./buisiness-payment-requisite.entity";
+import { BusinessPaymentRequisite } from "./business-payment-requisite.entity";
 import { CryptoTransaction } from "./transactions/crypto-transaction.entity";
 import { FiatTransaction } from "./transactions/fiat-transactions.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
@@ -28,7 +28,7 @@ const entities = [
     User,
     DebtCurrency,
     CollateralCurrency,
-    BuisinessPaymentRequisite,
+    BusinessPaymentRequisite,
     Session,
     Operator,
     PaymentProcessing,
@@ -47,7 +47,7 @@ export {
     User,
     DebtCurrency,
     CollateralCurrency,
-    BuisinessPaymentRequisite,
+    BusinessPaymentRequisite,
     Operator,
     Session,
     PaymentProcessing,

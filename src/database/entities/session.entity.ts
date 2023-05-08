@@ -12,13 +12,13 @@ import { User } from "./users/user.entity";
 
 @Entity()
 export class Session {
-    @Index({ unique: true })
+    @Index()
     @PrimaryColumn()
     id!: number;
 
     @OneToOne(() => User, user => user.session, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "chat_id", referencedColumnName: "chat_id" })
-    chatId!: number;
+    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
+    userId!: number;
 
     @Column("jsonb")
     data!: Record<string, unknown>;

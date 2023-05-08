@@ -13,18 +13,18 @@ import { DebtCurrency } from "./currencies.entity";
 import { RepayRequest } from "./requests/repay-request.entity";
 
 @Entity()
-export class BuisinessPaymentRequisite {
-    @Index({ unique: true })
+export class BusinessPaymentRequisite {
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.buisinessPaymentRequisites, {
+    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.businessPaymentRequisites, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "currency_id", referencedColumnName: "id" })
-    currencyId!: number;
+    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
+    debtCurrencyId!: number;
 
-    @OneToMany(() => RepayRequest, repayRequest => repayRequest.buisinessPaymentRequisiteId)
+    @OneToMany(() => RepayRequest, repayRequest => repayRequest.businessPaymentRequisiteId)
     repayRequests!: RepayRequest[];
 
     @Column("varchar", { name: "bank_name" })

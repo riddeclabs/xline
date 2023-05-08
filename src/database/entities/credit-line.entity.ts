@@ -22,7 +22,7 @@ import { RepayRequest } from "./requests/repay-request.entity";
 
 @Entity()
 export class CreditLine {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -65,20 +65,25 @@ export class CreditLine {
     @Column("varchar", { name: "gateway_user_id" })
     gatewayUserId!: string;
 
-    @Column({ name: "credit_line_status", type: "enum", enum: CreditLineStatus })
+    @Column({
+        name: "credit_line_status",
+        type: "enum",
+        enum: CreditLineStatus,
+        default: CreditLineStatus.INITIALIZED,
+    })
     creditLineStatus!: CreditLineStatus;
 
     @Column("numeric", { ...uint256(), name: "raw_collateral_amount" })
-    rawCollateralAmount!: bigint;
+    rawCollateralAmount = 0n;
 
     @Column("numeric", { ...uint256(), name: "debt_amount" })
-    debtAmount!: bigint;
+    debtAmount = 0n;
 
     @Column("numeric", { ...uint256(), name: "fee_accumulated_fiat_amount" })
-    feeAccumulatedFiatAmount!: bigint;
+    feeAccumulatedFiatAmount = 0n;
 
     @Column("numeric", { ...uint256(), name: "healthy_factor" })
-    healthyFactor!: bigint;
+    healthyFactor = 0n;
 
     @Column("boolean", { name: "is_liquidated" })
     isLiquidated!: boolean;

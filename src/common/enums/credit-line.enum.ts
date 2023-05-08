@@ -1,4 +1,5 @@
 export enum CreditLineStatus {
-    PENDING = "PENDING",
+    INITIALIZED = "INITIALIZED",
+    ACTIVE = "ACTIVE",
+    CLOSED = "CLOSED",
 }
-// FIXME: add statuses

@@ -16,7 +16,7 @@ import { CryptoTransaction } from "../transactions/crypto-transaction.entity";
 
 @Entity()
 export class WithdrawRequest {
-    @Index({ unique: true })
+    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -27,7 +27,12 @@ export class WithdrawRequest {
     @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.withdrawRequestId)
     cryptoTransactions!: CryptoTransaction[];
 
-    @Column({ name: "withdraw_request_status", type: "enum", enum: WithdrawRequestStatus })
+    @Column({
+        name: "withdraw_request_status",
+        type: "enum",
+        enum: WithdrawRequestStatus,
+        default: WithdrawRequestStatus.VERIFICATION_PENDING,
+    })
     withdrawRequestStatus!: WithdrawRequestStatus;
 
     @Column("varchar", { name: "wallet_to_withdraw" })

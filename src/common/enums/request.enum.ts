@@ -1,19 +1,26 @@
 export enum WithdrawRequestStatus {
-    PENDING = "PENDING",
+    VERIFICATION_PENDING = "VERIFICATION_PENDING",
+    FINISHED = "FINISHED",
+    REJECTED = "REJECTED",
 }
-//FIXME: add statuses
 
 export enum DepositRequestStatus {
-    PENDING = "PENDING",
+    DEPOSIT_PENDING = "DEPOSIT_PENDING",
+    VERIFICATION_PENDING = "VERIFICATION_PENDING",
+    FINISHED = "FINISHED",
+    REJECTED = "REJECTED",
 }
-//FIXME: add statuses
 
 export enum BorrowRequestStatus {
-    PENDING = "PENDING",
+    VERIFICATION_PENDING = "VERIFICATION_PENDING",
+    MONEY_SENT = "MONEY_SENT",
+    FINISHED = "FINISHED",
+    REJECTED = "REJECTED",
 }
-//FIXME: add statuses
 
 export enum RepayRequestStatus {
-    PENDING = "PENDING",
+    REPAY_PENDING = "REPAY_PENDING",
+    VERIFICATION_PENDING = "VERIFICATION_PENDING",
+    FINISHED = "FINISHED",
+    REJECTED = "REJECTED",
 }
-//FIXME: add statuses
