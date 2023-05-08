@@ -13,6 +13,7 @@ import { BuisinessPaymentRequisite } from "./buisiness-payment-requisite.entity"
 import { CryptoTransaction } from "./transactions/crypto-transaction.entity";
 import { FiatTransaction } from "./transactions/fiat-transactions.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
+import { PaymentProcessing } from "./payment-processing.entity";
 
 const entities = [
     CryptoTransaction,
@@ -30,6 +31,7 @@ const entities = [
     BuisinessPaymentRequisite,
     Session,
     Operator,
+    PaymentProcessing,
 ];
 
 export {
@@ -48,5 +50,6 @@ export {
     BuisinessPaymentRequisite,
     Operator,
     Session,
+    PaymentProcessing,
 };
 export default entities;
