@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -15,7 +14,6 @@ import { RepayRequest } from "../requests/repay-request.entity";
 
 @Entity()
 export class FiatTransaction {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

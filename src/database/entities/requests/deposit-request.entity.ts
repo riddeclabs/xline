@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     OneToMany,
@@ -15,7 +14,6 @@ import { CryptoTransaction } from "../transactions/crypto-transaction.entity";
 
 @Entity()
 export class DepositRequest {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -30,7 +28,7 @@ export class DepositRequest {
         name: "deposit_request_status",
         type: "enum",
         enum: DepositRequestStatus,
-        default: DepositRequestStatus.DEPOSIT_PENDING,
+        default: DepositRequestStatus.PENDING,
     })
     depositRequestStatus!: DepositRequestStatus;
 

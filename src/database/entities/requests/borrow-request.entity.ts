@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     OneToMany,
@@ -16,7 +15,6 @@ import { FiatTransaction } from "../transactions/fiat-transactions.entity";
 
 @Entity()
 export class BorrowRequest {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

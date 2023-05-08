@@ -1,5 +1,5 @@
-import { Initial1683550896540 } from "./1683550896540-Initial";
+import { Init1683552755925 } from "./1683552755925-Init";
 
-const migrations = [Initial1683550896540];
+const migrations = [Init1683552755925];
 
 export default migrations;

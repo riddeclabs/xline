@@ -3,7 +3,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     OneToMany,
@@ -16,7 +15,6 @@ import { FiatTransaction } from "../transactions/fiat-transactions.entity";
 
 @Entity()
 export class RepayRequest {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -38,7 +36,7 @@ export class RepayRequest {
     @Column("enum", {
         name: "repay_request_status",
         enum: RepayRequestStatus,
-        default: RepayRequestStatus.REPAY_PENDING,
+        default: RepayRequestStatus.VERIFICATION_PENDING,
     })
     repayRequestStatus!: RepayRequestStatus;
 

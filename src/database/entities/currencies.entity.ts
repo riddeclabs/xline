@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
@@ -14,7 +13,6 @@ import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
 
 class BaseCurrency {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

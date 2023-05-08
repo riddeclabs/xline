@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     OneToMany,
@@ -16,7 +15,6 @@ import { CryptoTransaction } from "../transactions/crypto-transaction.entity";
 
 @Entity()
 export class WithdrawRequest {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -31,7 +29,7 @@ export class WithdrawRequest {
         name: "withdraw_request_status",
         type: "enum",
         enum: WithdrawRequestStatus,
-        default: WithdrawRequestStatus.VERIFICATION_PENDING,
+        default: WithdrawRequestStatus.PENDING,
     })
     withdrawRequestStatus!: WithdrawRequestStatus;
 

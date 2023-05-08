@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     OneToMany,
@@ -15,7 +14,6 @@ import { CreditLine } from "../credit-line.entity";
 
 @Entity()
 export class UserPaymentRequisite {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

@@ -1,17 +1,9 @@
-import {
-    Column,
-    Index,
-    Entity,
-    PrimaryGeneratedColumn,
-    CreateDateColumn,
-    UpdateDateColumn,
-} from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 import { Role } from "../../common";
 
 @Entity()
 export class Operator {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

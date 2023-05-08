@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
@@ -14,7 +13,6 @@ import { uint256 } from "../../utils";
 
 @Entity()
 export class CryptoTransaction {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 

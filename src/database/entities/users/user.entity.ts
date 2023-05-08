@@ -2,7 +2,6 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    Index,
     OneToMany,
     OneToOne,
     PrimaryGeneratedColumn,
@@ -14,7 +13,6 @@ import { Session } from "../session.entity";
 
 @Entity()
 export class User {
-    @Index()
     @PrimaryGeneratedColumn()
     id!: number;
 
