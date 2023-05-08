@@ -6,11 +6,13 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { CreditLine } from "../credit-line.entity";
 import { BuisinessPaymentRequisite } from "../buisiness-payment-requisite.entity";
+import { FiatTransaction } from "../transactions/fiat-transactions.entity";
 
 @Entity()
 export class RepayRequest {
@@ -18,13 +20,20 @@ export class RepayRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => CreditLine, creditLine => creditLine.repayRequests, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
     creditLineId!: number;
 
-    @ManyToOne(() => BuisinessPaymentRequisite)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(
+        () => BuisinessPaymentRequisite,
+        buisinessPaymentRequisite => buisinessPaymentRequisite.repayRequests,
+        { onDelete: "CASCADE" }
+    )
+    @JoinColumn({ name: "buisiness_payment_requisite_id", referencedColumnName: "id" })
     buisinessPaymentRequisiteId!: number;
+
+    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.repayRequestId)
+    fiatTransactions!: FiatTransaction[];
 
     @Column("enum", { name: "repay_request_status", enum: RepayRequestStatus })
     repayReyuestStatus!: RepayRequestStatus;

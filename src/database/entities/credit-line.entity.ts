@@ -5,6 +5,7 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
@@ -14,6 +15,10 @@ import { User } from "./users/user.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { CollateralCurrency, DebtCurrency } from "./currencies.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
+import { WithdrawRequest } from "./requests/withdraw-request.entity";
+import { DepositRequest } from "./requests/deposit-request.entity";
+import { BorrowRequest } from "./requests/borrow-request.entity";
+import { RepayRequest } from "./requests/repay-request.entity";
 
 @Entity()
 export class CreditLine {
@@ -21,25 +26,44 @@ export class CreditLine {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => UserPaymentRequisite)
-    @JoinColumn({ referencedColumnName: "id" })
-    userPaymentRequisiteId!: UserPaymentRequisite;
+    @ManyToOne(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.creditLines, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "user_payment_requisite_id", referencedColumnName: "id" })
+    userPaymentRequisiteId!: number;
 
-    @ManyToOne(() => User)
-    @JoinColumn({ referencedColumnName: "id" })
-    userId!: User;
+    @ManyToOne(() => User, user => user.creditLines, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
+    userId!: number;
 
-    @ManyToOne(() => EconomicalParameters)
-    @JoinColumn({ referencedColumnName: "id" })
-    economicalParametersId!: EconomicalParameters;
+    @ManyToOne(() => EconomicalParameters, economicalParameters => economicalParameters.creditLines)
+    @JoinColumn({ name: "economical_parameters_id", referencedColumnName: "id" })
+    economicalParametersId!: number;
 
-    @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
-    debtCurrencyId!: DebtCurrency;
+    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.creditLines, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
+    debtCurrencyId!: number;
 
-    @ManyToOne(() => CollateralCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
-    collateralCurrencyId!: CollateralCurrency;
+    @ManyToOne(() => CollateralCurrency, collateralCurrency => collateralCurrency.creditLines, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "collateral_currency_id", referencedColumnName: "id" })
+    collateralCurrencyId!: number;
+
+    @OneToMany(() => WithdrawRequest, withdrawRequest => withdrawRequest.creditLineId)
+    withdrawRequests!: WithdrawRequest[];
+
+    @OneToMany(() => DepositRequest, depositRequest => depositRequest.creditLineId)
+    depositRequests!: DepositRequest[];
+
+    @OneToMany(() => BorrowRequest, borrowRequest => borrowRequest.creditLineId)
+    borrowRequests!: BorrowRequest[];
+
+    @OneToMany(() => RepayRequest, repayRequest => repayRequest.creditLineId)
+    repayRequests!: RepayRequest[];
+
+    @Column("varchar", { name: "gateway_user_id" })
+    gatewayUserId!: string;
 
     @Column({ name: "credit_line_status", type: "enum", enum: CreditLineStatus })
     creditLineStatus!: CreditLineStatus;

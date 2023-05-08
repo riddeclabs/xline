@@ -5,11 +5,13 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { User } from "./user.entity";
 import { DebtCurrency } from "../currencies.entity";
+import { CreditLine } from "../credit-line.entity";
 
 @Entity()
 export class UserPaymentRequisite {
@@ -17,13 +19,18 @@ export class UserPaymentRequisite {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => User)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => User, user => user.userPaymentRequisites, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
     userId!: number;
 
-    @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.userPaymentRequisites, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "currency_id", referencedColumnName: "id" })
     currencyId!: number;
+
+    @OneToMany(() => CreditLine, creditLine => creditLine.userPaymentRequisiteId)
+    creditLines!: CreditLine[];
 
     @Column("varchar", { name: "iban" })
     iban!: string;

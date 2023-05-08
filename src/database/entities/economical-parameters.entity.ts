@@ -5,11 +5,13 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { CollateralCurrency, DebtCurrency } from "./currencies.entity";
 import { uint256 } from "../utils";
+import { CreditLine } from "./credit-line.entity";
 
 @Entity()
 export class EconomicalParameters {
@@ -17,13 +19,22 @@ export class EconomicalParameters {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CollateralCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => CollateralCurrency, collateralCurrency => collateralCurrency.economicalParameters, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "collateral_currency_id", referencedColumnName: "id" })
     collateralCurrencyId!: number;
 
-    @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.economicalParameters, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
     debtCurrencyId!: number;
+
+    @OneToMany(() => CreditLine, creditLine => creditLine.economicalParametersId, {
+        onDelete: "CASCADE",
+    })
+    creditLines!: CreditLine[];
 
     @Column("numeric", { ...uint256(), name: "apr" })
     apr!: bigint;

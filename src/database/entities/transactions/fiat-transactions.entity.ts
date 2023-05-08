@@ -19,12 +19,16 @@ export class FiatTransaction {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => BorrowRequest)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => BorrowRequest, borrowRequest => borrowRequest.fiatTransactions, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "borrow_request_id", referencedColumnName: "id" })
     borrowRequestId?: number;
 
-    @ManyToOne(() => RepayRequest)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => RepayRequest, repayRequest => repayRequest.fiatTransactions, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "repay_request_id", referencedColumnName: "id" })
     repayRequestId?: number;
 
     @Column("varchar", { name: "iban_from" })

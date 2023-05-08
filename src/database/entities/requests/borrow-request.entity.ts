@@ -5,12 +5,14 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { uint256 } from "../../utils";
 import { BorrowRequestStatus } from "../../../common";
 import { CreditLine } from "../credit-line.entity";
+import { FiatTransaction } from "../transactions/fiat-transactions.entity";
 
 @Entity()
 export class BorrowRequest {
@@ -18,9 +20,12 @@ export class BorrowRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => CreditLine, creditLine => creditLine.borrowRequests, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
     creditLineId!: number;
+
+    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.borrowRequestId)
+    fiatTransactions!: FiatTransaction[];
 
     @Column({ name: "borrow_request_status", type: "enum", enum: BorrowRequestStatus })
     borrowRequestStatus!: BorrowRequestStatus;

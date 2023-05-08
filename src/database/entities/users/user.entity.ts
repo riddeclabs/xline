@@ -3,9 +3,14 @@ import {
     CreateDateColumn,
     Entity,
     Index,
+    OneToMany,
+    OneToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
+import { CreditLine } from "../credit-line.entity";
+import { UserPaymentRequisite } from "./user-payment-requisite.entity";
+import { Session } from "../session.entity";
 
 @Entity()
 export class User {
@@ -13,7 +18,16 @@ export class User {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column("int", { name: "chat_id" })
+    @OneToMany(() => CreditLine, creditLine => creditLine.userId)
+    creditLines!: CreditLine[];
+
+    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.userId)
+    userPaymentRequisites!: UserPaymentRequisite[];
+
+    @OneToOne(() => Session, session => session.chatId, { onDelete: "CASCADE" })
+    session?: Session;
+
+    @Column("int", { name: "chat_id", unique: true })
     chat_id!: number;
 
     @Column("varchar", { name: "name" })

@@ -5,10 +5,12 @@ import {
     Index,
     JoinColumn,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
 import { DebtCurrency } from "./currencies.entity";
+import { RepayRequest } from "./requests/repay-request.entity";
 
 @Entity()
 export class BuisinessPaymentRequisite {
@@ -16,9 +18,14 @@ export class BuisinessPaymentRequisite {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => DebtCurrency)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.buisinessPaymentRequisites, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "currency_id", referencedColumnName: "id" })
     currencyId!: number;
+
+    @OneToMany(() => RepayRequest, repayRequest => repayRequest.buisinessPaymentRequisiteId)
+    repayRequests!: RepayRequest[];
 
     @Column("varchar", { name: "bank_name" })
     bankName!: string;

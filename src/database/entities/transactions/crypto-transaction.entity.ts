@@ -18,12 +18,16 @@ export class CryptoTransaction {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => WithdrawRequest)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => WithdrawRequest, withdrawRequest => withdrawRequest.cryptoTransactions, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "withdraw_request_id", referencedColumnName: "id" })
     withdrawRequestId?: number;
 
-    @ManyToOne(() => DepositRequest)
-    @JoinColumn({ referencedColumnName: "id" })
+    @ManyToOne(() => DepositRequest, depositRequest => depositRequest.cryptoTransactions, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "deposit_request_id", referencedColumnName: "id" })
     depositRequestId?: number;
 
     @Column("varchar", { name: "from" })

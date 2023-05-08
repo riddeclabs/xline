@@ -16,8 +16,8 @@ export class Session {
     @PrimaryColumn()
     id!: number;
 
-    @OneToOne(() => User)
-    @JoinColumn({ name: "chat_id" })
+    @OneToOne(() => User, user => user.session, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "chat_id", referencedColumnName: "chat_id" })
     chatId!: number;
 
     @Column("jsonb")
