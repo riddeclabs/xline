@@ -7,12 +7,25 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { entities, migrations } from "./database";
 import { BotModule } from "./modules/bot/bot.module";
 import { TypeOrmModuleOptions } from "@nestjs/typeorm/dist/interfaces/typeorm-options.interface";
+import { PaymentProcessingModule } from "./modules/payment-processing/payment-processing.module";
+import { RequestResolverModule } from "./modules/request-resolver/request-resolver.module";
+import { CurrencyModule } from "./modules/currency/currency.module";
+import { PaymentRequisiteModule } from "./modules/payment-requisite/payment-requisite.module";
+import { PriceOracleModule } from "./modules/price-oracle/price-oracle.module";
+import { RiskEngineModule } from "./modules/risk-engine/risk-engine.module";
+import { UserModule } from "./modules/user/user.module";
+import { RequestHandlerModule } from "./modules/request-handler/request-handler.module";
+import { CreditLineModule } from "./modules/credit-line/credit-line.module";
+import { TransactionModule } from "./modules/transaction/transaction.module";
+import { EconomicalParametersModule } from "./modules/economical-parameters/economical-parameters.module";
+import { DatabaseMockerModule } from "./modules/database-mocker/database-mocker.module";
 
 @Module({
     imports: [
         BotModule,
         AuthModule,
         BackOfficeModule,
+        PaymentProcessingModule,
         RouterModule.register([
             {
                 path: "/",
@@ -36,6 +49,17 @@ import { TypeOrmModuleOptions } from "@nestjs/typeorm/dist/interfaces/typeorm-op
                     migrations,
                 } as TypeOrmModuleOptions),
         }),
+        RequestResolverModule,
+        CurrencyModule,
+        PaymentRequisiteModule,
+        PriceOracleModule,
+        RiskEngineModule,
+        UserModule,
+        RequestHandlerModule,
+        CreditLineModule,
+        TransactionModule,
+        EconomicalParametersModule,
+        DatabaseMockerModule,
     ],
     controllers: [],
     providers: [],
