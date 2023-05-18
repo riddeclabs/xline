@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from "@nestjs/common";
+import {Controller, Get, Post, Body, Param, UsePipes, ValidationPipe} from "@nestjs/common";
 import { PaymentRequisiteService } from "./payment-requisite.service";
 import { CreateBusinessPaymentRequisiteDto } from "./dto/create-payment-requisite.dto";
 import { ApiTags } from "@nestjs/swagger";
@@ -19,6 +19,7 @@ export class PaymentRequisiteController {
     }
 
     @Post("business")
+    @UsePipes(ValidationPipe)
     saveBusinessRequisite(@Body() dto: CreateBusinessPaymentRequisiteDto) {
         return this.paymentRequisiteService.saveNewBusinessRequisite(dto);
     }

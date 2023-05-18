@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import {Body, Controller, Get, Param, Post, UsePipes, ValidationPipe} from "@nestjs/common";
 import { CurrencyService } from "./currency.service";
 import { ApiTags } from "@nestjs/swagger";
 import { CreateCurrencyDto } from "./dto/create-currency.dto";
@@ -9,6 +9,7 @@ export class CurrencyController {
     constructor(private readonly currencyService: CurrencyService) {}
 
     @Post("collateral")
+    @UsePipes(ValidationPipe)
     createCollateralCurrency(@Body() dto: CreateCurrencyDto) {
         return this.currencyService.createCollateralCurrency(dto);
     }
@@ -24,6 +25,7 @@ export class CurrencyController {
     }
 
     @Post("debt")
+    @UsePipes(ValidationPipe)
     createDebtCurrency(@Body() dto: CreateCurrencyDto) {
         return this.currencyService.createDebtCurrency(dto);
     }

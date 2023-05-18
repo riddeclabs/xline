@@ -2,7 +2,7 @@ import { IsNumber, IsString } from "class-validator";
 
 export class CreateBusinessPaymentRequisiteDto {
     @IsNumber()
-    readonly currencyId!: number;
+    readonly debtCurrencyId!: number;
     @IsString()
     readonly bankName!: string;
     @IsString()
@@ -10,9 +10,9 @@ export class CreateBusinessPaymentRequisiteDto {
 }
 export class CreateUserPaymentRequisiteDto {
     @IsNumber()
-    readonly chatId!: number;
+    readonly userId!: number;
     @IsNumber()
-    readonly currencyId!: number;
+    readonly debtCurrencyId!: number;
     @IsNumber()
-    readonly userIban!: string;
+    readonly iban!: string;
 }

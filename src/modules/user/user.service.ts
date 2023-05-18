@@ -9,13 +9,11 @@ export class UserService {
     constructor(@InjectRepository(User) private userRepo: Repository<User>) {}
 
     async getAllUsers() {
-        return this.userRepo.findAndCount();
+        return this.userRepo.find();
     }
 
     async getUserByChatId(chatId: number) {
-        return this.userRepo.findOne({
-            where: { chat_id: chatId },
-        });
+        return this.userRepo.findOneBy({ chatId });
     }
 
     async createUser(createUserDto: CreateUserDto) {

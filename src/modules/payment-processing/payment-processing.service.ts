@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { ResolveCryptoBasedRequestDto } from "../request-resolver/dto/resolve-request.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { PaymentProcessing } from "../../database/entities/payment-processing.entity";
+import { PaymentProcessing } from "../../database/entities";
 import { Repository } from "typeorm";
 import axios from "axios";
 import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";

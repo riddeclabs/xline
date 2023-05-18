@@ -1,5 +1,4 @@
 import { IsBoolean, IsNumber, IsString } from "class-validator";
-import { CreditLineStatus } from "../../../common/enums/credit-line.enum";
 
 export class CreateCreditLineDto {
     @IsNumber()
@@ -16,5 +15,4 @@ export class CreateCreditLineDto {
     readonly refNumber!: string;
     @IsBoolean()
     readonly isLiquidated!: boolean;
-    readonly creditLineStatus!: CreditLineStatus;
 }

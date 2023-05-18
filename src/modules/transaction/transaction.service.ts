@@ -12,27 +12,26 @@ export class TransactionService {
     ) {}
 
     async getAllTxsByLineId(creditLineId: number) {
-        // FIXME: double check the requests FK (camelCase vs snake_case)
         const cryptoTxs = await this.cryptoTransactionRepo
             .createQueryBuilder("ct")
             // FIXME: mb without `AndSelect` ?
-            .leftJoinAndSelect("ct.withdrawRequestId", "wr")
-            .leftJoinAndSelect("ct.depositRequestId", "dr")
-            .where("wr.creditLineId = :creditLineId", { creditLineId })
-            .orWhere("dr.creditLineId = :creditLineId", { creditLineId })
+            .leftJoinAndSelect("ct.withdraw_request_id", "wr")
+            .leftJoinAndSelect("ct.deposit_request_id", "dr")
+            .where("wr.credit_line_id = :creditLineId", { creditLineId })
+            .orWhere("dr.credit_line_id = :creditLineId", { creditLineId })
             .getMany();
 
         const fiatTxs = await this.fiatTransactionRepo
             .createQueryBuilder("ft")
-            .leftJoinAndSelect("ft.borrowRequestId", "br")
-            .leftJoinAndSelect("ft.repayRequestId", "rr")
-            .where("br.creditLineId = :creditLineId", { creditLineId })
-            .orWhere("rr.creditLineId = :creditLineId", { creditLineId })
+            .leftJoinAndSelect("ft.borrow_request_id", "br")
+            .leftJoinAndSelect("ft.repay_request_id", "rr")
+            .where("br.credit_line_id = :creditLineId", { creditLineId })
+            .orWhere("rr.credit_line_id = :creditLineId", { creditLineId })
             .getMany();
 
         return {
-            cryptoTxs: cryptoTxs,
-            fiatTxs: fiatTxs,
+            cryptoTxs,
+            fiatTxs,
         };
     }
 

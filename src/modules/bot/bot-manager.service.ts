@@ -9,11 +9,10 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import { generateReferenceNumber } from "../../common";
+import {CreditLineStatus, generateReferenceNumber} from "../../common";
 import { formatUnits, parseUnits } from "../../common/fixed-number";
-import { EconomicalParameters } from "../../database/entities";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
-import { CreditLineStatus } from "../../common/enums/credit-line.enum";
+import {EconomicalParameters} from "../../database/entities";
 
 @Injectable()
 export class BotManagerService {
@@ -33,7 +32,7 @@ export class BotManagerService {
     // Scene handlers
 
     async finishNewCreditLine(
-        chatId: number,
+        userId: number,
         debtCurrencyId: number,
         userIban: string,
         userName: string,
@@ -44,13 +43,13 @@ export class BotManagerService {
         // TODO: handle case when user select already existed one
         // save user IBAN
         const userPaymentRequisite = await this.paymentRequisiteService.saveNewUserRequisite({
-            chatId,
-            currencyId: debtCurrencyId,
-            userIban,
+            userId,
+            debtCurrencyId,
+            iban: userIban,
         });
 
         // save user BANK ACCOUNT NAME
-        const user = await this.userService.updateUserName(chatId, userName);
+        await this.userService.updateUserName(userId, userName);
 
         // generate new ref number
         const refNumber = generateReferenceNumber();
@@ -58,13 +57,11 @@ export class BotManagerService {
         // save new credit line
         const newCreditLine: CreateCreditLineDto = {
             userPaymentRequisiteId: userPaymentRequisite.id,
-            userId: user.id,
+            userId,
             economicalParametersId: economicalParamsId,
             debtCurrencyId,
             collateralCurrencyId,
             refNumber,
-            ///
-            creditLineStatus: CreditLineStatus.PENDING,
             isLiquidated: false,
         };
         const creditLine = await this.creditLineService.saveNewCreditLine(newCreditLine);

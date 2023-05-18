@@ -4,7 +4,7 @@ import {
     CreateUserPaymentRequisiteDto,
 } from "./dto/create-payment-requisite.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { BuisinessPaymentRequisite, UserPaymentRequisite } from "../../database/entities";
+import {BusinessPaymentRequisite, UserPaymentRequisite} from "../../database/entities";
 import { Repository } from "typeorm";
 
 @Injectable()
@@ -12,22 +12,18 @@ export class PaymentRequisiteService {
     constructor(
         @InjectRepository(UserPaymentRequisite)
         private userPaymentRepo: Repository<UserPaymentRequisite>,
-        @InjectRepository(BuisinessPaymentRequisite)
-        private businessPaymentRepo: Repository<BuisinessPaymentRequisite>
+        @InjectRepository(BusinessPaymentRequisite)
+        private businessPaymentRepo: Repository<BusinessPaymentRequisite>
     ) {}
 
     // User requisite handlers
 
     getAllPayReqByUser(userId: number) {
-        return this.userPaymentRepo.findAndCount({
-            where: { userId },
-        });
+        return this.userPaymentRepo.findBy({ userId });
     }
 
     getUserPaymentRequisite(paymentReqId: number) {
-        return this.userPaymentRepo.findOne({
-            where: { id: paymentReqId },
-        });
+        return this.userPaymentRepo.findOneBy({ id: paymentReqId });
     }
 
     saveNewUserRequisite(dto: CreateUserPaymentRequisiteDto) {
@@ -42,9 +38,7 @@ export class PaymentRequisiteService {
     }
 
     getBusinessPayReqByCurrency(debtCurrencyId: number) {
-        return this.businessPaymentRepo.findOne({
-            where: { currencyId: debtCurrencyId },
-        });
+        return this.businessPaymentRepo.findOneBy({ debtCurrencyId });
     }
 
     saveNewBusinessRequisite(dto: CreateBusinessPaymentRequisiteDto) {

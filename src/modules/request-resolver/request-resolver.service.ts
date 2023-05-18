@@ -9,7 +9,7 @@ import {
     DepositRequestStatus,
     RepayRequestStatus,
     WithdrawRequestStatus,
-} from "../../common/enums/request.enum";
+} from "../../common";
 import { TransactionService } from "../transaction/transaction.service";
 import { CurrencyService } from "../currency/currency.service";
 import { BorrowRequest, DepositRequest, RepayRequest, WithdrawRequest } from "../../database/entities";
@@ -259,13 +259,13 @@ export class RequestResolverService {
     ) {
         let requestedBorrowAmount: bigint;
 
-        if (!request.borrowFiatAmount && request.initialRiskStartegy) {
+        if (!request.borrowFiatAmount && request.initialRiskStrategy) {
             requestedBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
                 collateralSymbol,
                 rawSupplyAmount,
-                request.initialRiskStartegy
+                request.initialRiskStrategy
             );
-        } else if (!request.initialRiskStartegy && request.borrowFiatAmount) {
+        } else if (!request.initialRiskStrategy && request.borrowFiatAmount) {
             requestedBorrowAmount = request.borrowFiatAmount;
         } else {
             throw new Error("ResolveBorrowRequest: incorrect borrow request");

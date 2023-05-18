@@ -18,7 +18,6 @@ import { RequestHandlerModule } from "./modules/request-handler/request-handler.
 import { CreditLineModule } from "./modules/credit-line/credit-line.module";
 import { TransactionModule } from "./modules/transaction/transaction.module";
 import { EconomicalParametersModule } from "./modules/economical-parameters/economical-parameters.module";
-import { DatabaseMockerModule } from "./modules/database-mocker/database-mocker.module";
 
 @Module({
     imports: [
@@ -59,7 +58,6 @@ import { DatabaseMockerModule } from "./modules/database-mocker/database-mocker.
         CreditLineModule,
         TransactionModule,
         EconomicalParametersModule,
-        DatabaseMockerModule,
     ],
     controllers: [],
     providers: [],

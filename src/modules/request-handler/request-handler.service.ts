@@ -13,7 +13,7 @@ import {
     DepositRequestStatus,
     RepayRequestStatus,
     WithdrawRequestStatus,
-} from "../../common/enums/request.enum";
+} from "../../common";
 
 @Injectable()
 export class RequestHandlerService {
@@ -102,7 +102,7 @@ export class RequestHandlerService {
 
     async getOldestPendingBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo.findOne({
-            where: { creditLineId, borrowRequestStatus: BorrowRequestStatus.PENDING },
+            where: { creditLineId, borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING },
             order: {
                 createdAt: "ASC",
             },
@@ -133,7 +133,7 @@ export class RequestHandlerService {
 
     async getOldestPendingRepayReq(creditLineId: number) {
         return this.repayRequestRepo.findOne({
-            where: { creditLineId, repayReyuestStatus: RepayRequestStatus.PENDING },
+            where: { creditLineId, repayRequestStatus: RepayRequestStatus.VERIFICATION_PENDING },
             order: {
                 createdAt: "ASC",
             },
@@ -142,7 +142,7 @@ export class RequestHandlerService {
 
     async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {
         const req = await this.repayRequestRepo.findOneByOrFail({ id: reqId });
-        req.repayReyuestStatus = newStatus;
+        req.repayRequestStatus = newStatus;
 
         return this.repayRequestRepo.save(req);
     }

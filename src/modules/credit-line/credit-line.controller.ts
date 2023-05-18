@@ -7,6 +7,7 @@ import { CreditLine } from "../../database/entities";
 @Controller("credit-line")
 export class CreditLineController {
     constructor(private readonly creditLineService: CreditLineService) {}
+
     @Get()
     async getAllCreditLines() {
         const allCreditLines = await this.creditLineService.getAllCreditLines();
