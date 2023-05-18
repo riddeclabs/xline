@@ -1,4 +1,4 @@
-import {Controller, Get, Post, Body, Param, UsePipes, ValidationPipe} from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, UsePipes, ValidationPipe } from "@nestjs/common";
 import { PaymentRequisiteService } from "./payment-requisite.service";
 import { CreateBusinessPaymentRequisiteDto } from "./dto/create-payment-requisite.dto";
 import { ApiTags } from "@nestjs/swagger";

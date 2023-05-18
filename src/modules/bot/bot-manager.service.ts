@@ -9,10 +9,10 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import {CreditLineStatus, generateReferenceNumber} from "../../common";
+import { generateReferenceNumber } from "../../common";
 import { formatUnits, parseUnits } from "../../common/fixed-number";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
-import {EconomicalParameters} from "../../database/entities";
+import { EconomicalParameters } from "../../database/entities";
 
 @Injectable()
 export class BotManagerService {

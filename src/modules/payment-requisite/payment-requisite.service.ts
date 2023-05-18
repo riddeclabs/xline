@@ -4,7 +4,7 @@ import {
     CreateUserPaymentRequisiteDto,
 } from "./dto/create-payment-requisite.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import {BusinessPaymentRequisite, UserPaymentRequisite} from "../../database/entities";
+import { BusinessPaymentRequisite, UserPaymentRequisite } from "../../database/entities";
 import { Repository } from "typeorm";
 
 @Injectable()

@@ -1,4 +1,4 @@
-import {Body, Controller, Get, Param, Post, UsePipes, ValidationPipe} from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UsePipes, ValidationPipe } from "@nestjs/common";
 import { CurrencyService } from "./currency.service";
 import { ApiTags } from "@nestjs/swagger";
 import { CreateCurrencyDto } from "./dto/create-currency.dto";

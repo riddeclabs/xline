@@ -1,9 +1,9 @@
-import {Controller, Get, Post, Body, Patch, Param, UsePipes, ValidationPipe} from "@nestjs/common";
+import { Controller, Get, Post, Body, Patch, Param, UsePipes, ValidationPipe } from "@nestjs/common";
 import { PaymentProcessingService } from "./payment-processing.service";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import {DepositCallbackDto, WithdrawCallbackDto} from "./dto/callback.dto";
+import { DepositCallbackDto, WithdrawCallbackDto } from "./dto/callback.dto";
 
 @ApiTags("Payment processing operator")
 @Controller("payment-processing")
