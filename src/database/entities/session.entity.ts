@@ -3,31 +3,27 @@ import {
     Entity,
     CreateDateColumn,
     UpdateDateColumn,
-    DeleteDateColumn,
     PrimaryColumn,
+    OneToOne,
+    JoinColumn,
 } from "typeorm";
+import { User } from "./users/user.entity";
 
 @Entity()
 export class Session {
     @PrimaryColumn()
     id!: number;
 
+    @OneToOne(() => User, user => user.session, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
+    userId!: number;
+
     @Column("jsonb")
     data!: Record<string, unknown>;
 
-    @CreateDateColumn({
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-    })
-    created_at!: Date;
+    @CreateDateColumn({ type: "timestamptz", name: "created_at" })
+    createdAt!: Date;
 
-    @UpdateDateColumn({
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-        onUpdate: "CURRENT_TIMESTAMP(6)",
-    })
-    updated_at!: Date;
-
-    @DeleteDateColumn()
-    deleted_at?: Date;
+    @UpdateDateColumn({ type: "timestamptz", name: "updated_at" })
+    updatedAt!: Date;
 }

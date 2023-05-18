@@ -1,17 +1,8 @@
-import {
-    Column,
-    Index,
-    Entity,
-    PrimaryGeneratedColumn,
-    CreateDateColumn,
-    UpdateDateColumn,
-    DeleteDateColumn,
-} from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 import { Role } from "../../common";
 
 @Entity()
-@Index(["id", "username"])
 export class Operator {
     @PrimaryGeneratedColumn()
     id!: number;
@@ -34,23 +25,13 @@ export class Operator {
     @Column({
         type: "enum",
         enum: Role,
-        default: Role.admin,
+        default: Role.ADMIN,
     })
     role!: Role;
 
-    @CreateDateColumn({
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-    })
-    created_at!: Date;
+    @CreateDateColumn({ type: "timestamptz", name: "created_at" })
+    createdAt!: Date;
 
-    @UpdateDateColumn({
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP(6)",
-        onUpdate: "CURRENT_TIMESTAMP(6)",
-    })
-    updated_at!: Date;
-
-    @DeleteDateColumn()
-    deleted_at?: Date;
+    @UpdateDateColumn({ type: "timestamptz", name: "updated_at" })
+    updatedAt!: Date;
 }
