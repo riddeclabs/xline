@@ -11,7 +11,7 @@ import { BusinessPaymentRequisite } from "./business-payment-requisite.entity";
 import { UserPaymentRequisite } from "./users/user-payment-requisite.entity";
 import { EconomicalParameters } from "./economical-parameters.entity";
 
-class BaseCurrency {
+export class BaseCurrency {
     @PrimaryGeneratedColumn()
     id!: number;
 
