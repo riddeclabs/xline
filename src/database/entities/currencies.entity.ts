@@ -15,7 +15,7 @@ export class BaseCurrency {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column("varchar", { name: "symbol" })
+    @Column("varchar", { name: "symbol", unique: true })
     symbol!: string;
 
     @Column("int", { name: "decimals" })
