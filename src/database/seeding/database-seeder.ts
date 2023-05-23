@@ -31,6 +31,10 @@ import { Role } from "../../common";
             symbol: "ETH",
             decimals: 18,
         })
+        .addCollateralCurrency({
+            symbol: "BTC",
+            decimals: 8,
+        })
         .addDebtCurrency({
             symbol: "USD",
             decimals: 18,
@@ -45,14 +49,14 @@ import { Role } from "../../common";
             fiatProcessingFee: 0.01,
             cryptoProcessingFee: 0.01,
         })
-        .addBusinessBusinessPaymentRequisites({
+        .addBusinessPaymentRequisites({
             debtCurrency: "USD",
             bankName: "Mad Dogs, Skipper and Seagull Inc.",
             iban: "SO061000001123123456789",
         })
         .addPaymentProcessing({
-            url: "https://api.sandbox.com/v2",
-            originName: "sandbox",
+            url: "https://api.xgateway.dev/api/v1",
+            originName: "xgateway",
             callbackAuth: "12345",
             gatewayAuth: "12345",
         })
@@ -68,7 +72,7 @@ import { Role } from "../../common";
 
 class DatabaseSeeder {
     private dataSource: DataSource;
-    private collaterlCurrencies: Partial<CollateralCurrency>[] = [];
+    private collateralCurrencies: Partial<CollateralCurrency>[] = [];
     private debtCurrencies: Partial<BaseCurrency>[] = [];
     private economicalParameters: Partial<EconomicalParameters>[] = [];
     private businessPaymentRequisites: Partial<BusinessPaymentRequisite>[] = [];
@@ -80,7 +84,7 @@ class DatabaseSeeder {
     }
 
     addCollateralCurrency(params: { symbol: string; decimals: number }): DatabaseSeeder {
-        this.collaterlCurrencies.push(params);
+        this.collateralCurrencies.push(params);
         return this;
     }
 
@@ -101,7 +105,7 @@ class DatabaseSeeder {
     }): DatabaseSeeder {
         const collateralCurrencyId = this.getCurrencyId(
             params.collateralCurrency,
-            this.collaterlCurrencies
+            this.collateralCurrencies
         );
         const debtCurrencyId = this.getCurrencyId(params.debtCurrency, this.debtCurrencies);
 
@@ -118,7 +122,7 @@ class DatabaseSeeder {
         return this;
     }
 
-    addBusinessBusinessPaymentRequisites(params: {
+    addBusinessPaymentRequisites(params: {
         debtCurrency: string;
         bankName: string;
         iban: string;
@@ -149,7 +153,7 @@ class DatabaseSeeder {
     }
 
     async seed() {
-        for (const cc of this.collaterlCurrencies) {
+        for (const cc of this.collateralCurrencies) {
             await this.dataSource.getRepository(CollateralCurrency).save(cc);
         }
 
@@ -172,6 +176,7 @@ class DatabaseSeeder {
         for (const op of this.operators) {
             await this.dataSource.getRepository(Operator).save(op);
         }
+        console.log("Database seeding finished");
     }
 
     private getCurrencyId<T extends BaseCurrency>(symbol: string, currencies: Partial<T>[]): number {
