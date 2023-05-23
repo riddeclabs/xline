@@ -52,12 +52,12 @@ import { Role } from "../../common";
         .addEconomicalParameters({
             collateralCurrency: "BTC",
             debtCurrency: "USD",
-            apr: 0.1,
-            liquidationFee: 0.05,
-            collateralFactor: 0.5,
-            liquidationFactor: 0.5,
-            fiatProcessingFee: 0.01,
-            cryptoProcessingFee: 0.01,
+            apr: 0.2,
+            liquidationFee: 0.02,
+            collateralFactor: 0.2,
+            liquidationFactor: 0.2,
+            fiatProcessingFee: 0.02,
+            cryptoProcessingFee: 0.02,
         })
         .addBusinessPaymentRequisites({
             debtCurrency: "USD",
