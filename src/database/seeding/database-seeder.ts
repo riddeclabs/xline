@@ -49,6 +49,16 @@ import { Role } from "../../common";
             fiatProcessingFee: 0.01,
             cryptoProcessingFee: 0.01,
         })
+        .addEconomicalParameters({
+            collateralCurrency: "BTC",
+            debtCurrency: "USD",
+            apr: 0.1,
+            liquidationFee: 0.05,
+            collateralFactor: 0.5,
+            liquidationFactor: 0.5,
+            fiatProcessingFee: 0.01,
+            cryptoProcessingFee: 0.01,
+        })
         .addBusinessPaymentRequisites({
             debtCurrency: "USD",
             bankName: "Mad Dogs, Skipper and Seagull Inc.",
