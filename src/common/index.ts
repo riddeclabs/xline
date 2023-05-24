@@ -5,4 +5,5 @@ export * from "./enums/credit-line.enum";
 export * from "./middlewares/locals.middleware";
 export * from "./query-mutator";
 export * from "./pagination";
+export * from "./fixed-number";
 export * from "./helper-function";

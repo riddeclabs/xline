@@ -43,7 +43,7 @@ export class EconomicalParameters {
     @Column("numeric", { ...uint256(), name: "collateral_factor" })
     collateralFactor!: bigint;
 
-    @Column("numeric", { ...uint256(), name: "liquidation_Factor" })
+    @Column("numeric", { ...uint256(), name: "liquidation_factor" })
     liquidationFactor!: bigint;
 
     @Column("numeric", { ...uint256(), name: "fiat_processing_fee" })
