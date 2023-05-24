@@ -22,3 +22,10 @@ export enum RepayRequestStatus {
     FINISHED = "FINISHED",
     REJECTED = "REJECTED",
 }
+
+export enum ActionTypes {
+    DEPOSIT,
+    WITHDRAW,
+    BORROW,
+    REPAY,
+}

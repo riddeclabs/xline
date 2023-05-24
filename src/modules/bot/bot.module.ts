@@ -11,6 +11,17 @@ import { RepayActionWizard } from "./scenes/repay.scene";
 import { WithdrawActionWizard } from "./scenes/withdraw.scene";
 import { ViewRequestWizard } from "./scenes/view-request.scene";
 import { BotCommonService } from "./bot-common.service";
+import { BotManagerService } from "./bot-manager.service";
+import { RiskEngineModule } from "../risk-engine/risk-engine.module";
+import { PriceOracleModule } from "../price-oracle/price-oracle.module";
+import { PaymentRequisiteModule } from "../payment-requisite/payment-requisite.module";
+import { PaymentProcessingModule } from "../payment-processing/payment-processing.module";
+import { CurrencyModule } from "../currency/currency.module";
+import { RequestHandlerModule } from "../request-handler/request-handler.module";
+import { EconomicalParametersModule } from "../economical-parameters/economical-parameters.module";
+import { UserModule } from "../user/user.module";
+import { CreditLineModule } from "../credit-line/credit-line.module";
+import { RequestResolverModule } from "../request-resolver/request-resolver.module";
 
 @Module({
     imports: [
@@ -32,9 +43,20 @@ import { BotCommonService } from "./bot-common.service";
             }),
             inject: [ConfigService],
         }),
+        CurrencyModule,
+        PaymentProcessingModule,
+        PaymentRequisiteModule,
+        PriceOracleModule,
+        RiskEngineModule,
+        RequestHandlerModule,
+        EconomicalParametersModule,
+        UserModule,
+        CreditLineModule,
+        RequestResolverModule,
     ],
     providers: [
         BotService,
+        BotManagerService,
         MainScene,
         NewCreditRequestWizard,
         ViewActiveCreditLineWizard,

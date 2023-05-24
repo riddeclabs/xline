@@ -5,6 +5,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { join } from "path";
 import { Liquid } from "liquidjs";
 import * as session from "express-session";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import * as passport from "passport";
 import flash = require("connect-flash");
 import { bootstrapLocals } from "./common";
@@ -25,6 +26,13 @@ async function bootstrap() {
     app.engine("liquid", liquid.express());
     app.set("views", join(__dirname, "views")); // specify the views directory
     app.set("view engine", "liquid"); // set liquid to default
+
+    const config = new DocumentBuilder()
+        .setTitle("Exchange Bot API")
+        .setVersion("<VERSION>") // Is replaced with the actual version during the docker build process
+        .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("docs", app, document);
 
     app.enableShutdownHooks();
 
