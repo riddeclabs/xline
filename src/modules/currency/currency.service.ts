@@ -17,7 +17,7 @@ export class CurrencyService {
     }
 
     async getDebtCurrency(debtCurrencyId: number) {
-        return this.debtCurrencyRepo.findOneBy({ id: debtCurrencyId });
+        return this.debtCurrencyRepo.findOneByOrFail({ id: debtCurrencyId });
     }
 
     async getAllCollateralCurrency() {
