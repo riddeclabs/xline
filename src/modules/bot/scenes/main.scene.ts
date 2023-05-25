@@ -10,6 +10,8 @@ import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
+import { EconomicalParametersService } from "src/modules/economical-parameters/economical-parameters.service";
+import { CurrencyService } from "src/modules/currency/currency.service";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
 
@@ -22,7 +24,11 @@ type MainSceneContext = ExtendedWizardContext<MainSessionData>;
 export class MainScene {
     public static readonly ID = "MAIN";
 
-    constructor(private readonly botCommon: BotCommonService) {}
+    constructor(
+        private readonly botCommon: BotCommonService,
+        private readonly economicalParametersService: EconomicalParametersService,
+        private readonly currencyService: CurrencyService
+    ) {}
 
     @SceneEnter()
     async onEnter(@Ctx() ctx: MainSceneContext) {
@@ -77,15 +83,27 @@ export class MainScene {
 
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.CURRENT_RATES))
     async onCurrentRates(@Ctx() ctx: MainSceneContext) {
-        // TODO: get real data from the database
-        await ctx.editMessageText(
-            "🍤 Currently the following rate applies: \n" +
-                "APR: 2% \n" +
-                "APY: 0% \n" +
-                "feeSource: Crypto collateral \n" +
-                "LiquidationFee BTC: 6% \n" +
-                "LiquidationFee ETH: 5% \n"
-        );
+        const debtCurrencies = await this.currencyService.getAllDebtCurrency();
+        const collateralCurrencies = await this.currencyService.getAllCollateralCurrency();
+
+        let text = "Currently the following rates applies: \n\n";
+
+        for (const dc of debtCurrencies) {
+            for (const cc of collateralCurrencies) {
+                const economicalParameters =
+                    await this.economicalParametersService.getFreshEconomicalParams(dc.id, cc.id);
+                text += "Debt: " + dc.symbol + " Collateral: " + cc.symbol + "\n";
+                text += `APR: ${economicalParameters.apr} \n`;
+                text += `collateralFactor: ${economicalParameters.collateralFactor} \n`;
+                text += `liquidationFactor: ${economicalParameters.liquidationFactor} \n`;
+                text += `liquidationFee: ${economicalParameters.liquidationFee} \n`;
+                text += `fiatProcessingFee: ${economicalParameters.fiatProcessingFee} \n`;
+                text += `cryptoProcessingFee: ${economicalParameters.cryptoProcessingFee} \n`;
+                text += "\n\n\n";
+            }
+        }
+
+        await ctx.editMessageText(text);
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {

@@ -10,7 +10,10 @@ export class EconomicalParametersService {
         private economicalParamsRepo: Repository<EconomicalParameters>
     ) {}
 
-    async getFreshEconomicalParams(collateralCurrencyId: number, debtCurrencyId: number) {
+    async getFreshEconomicalParams(
+        collateralCurrencyId: number,
+        debtCurrencyId: number
+    ): Promise<EconomicalParameters> {
         return this.economicalParamsRepo.findOneOrFail({
             where: {
                 collateralCurrencyId,
@@ -22,7 +25,7 @@ export class EconomicalParametersService {
         });
     }
 
-    async getEconomicalParamsByLineId(creditLineId: number) {
+    async getEconomicalParamsByLineId(creditLineId: number): Promise<EconomicalParameters> {
         return this.economicalParamsRepo
             .createQueryBuilder("ep")
             .leftJoin("ep.creditLines", "cl")
@@ -30,11 +33,11 @@ export class EconomicalParametersService {
             .getOneOrFail();
     }
 
-    async getParamsById(economicalParamsId: number) {
+    async getParamsById(economicalParamsId: number): Promise<EconomicalParameters> {
         return this.economicalParamsRepo.findOneByOrFail({ id: economicalParamsId });
     }
 
-    async getAllParams() {
+    async getAllParams(): Promise<EconomicalParameters[]> {
         return this.economicalParamsRepo.find();
     }
 }
