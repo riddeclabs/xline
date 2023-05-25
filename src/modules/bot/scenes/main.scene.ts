@@ -12,6 +12,7 @@ import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
 import { EconomicalParametersService } from "src/modules/economical-parameters/economical-parameters.service";
 import { CurrencyService } from "src/modules/currency/currency.service";
+import { bigintToFormattedPercent } from "src/common";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
 
@@ -86,24 +87,55 @@ export class MainScene {
         const debtCurrencies = await this.currencyService.getAllDebtCurrency();
         const collateralCurrencies = await this.currencyService.getAllCollateralCurrency();
 
-        let text = "Currently the following rates applies: \n\n";
+        let text = "📊 Currently the following rates applies: \n\n";
+        text +=
+            "‼️ *Rates below are for reference only and may differ from the values at the time of opening a credit line*\n\n";
 
         for (const dc of debtCurrencies) {
             for (const cc of collateralCurrencies) {
                 const economicalParameters =
                     await this.economicalParametersService.getFreshEconomicalParams(dc.id, cc.id);
-                text += "Debt: " + dc.symbol + " Collateral: " + cc.symbol + "\n";
-                text += `APR: ${economicalParameters.apr} \n`;
-                text += `collateralFactor: ${economicalParameters.collateralFactor} \n`;
-                text += `liquidationFactor: ${economicalParameters.liquidationFactor} \n`;
-                text += `liquidationFee: ${economicalParameters.liquidationFee} \n`;
-                text += `fiatProcessingFee: ${economicalParameters.fiatProcessingFee} \n`;
-                text += `cryptoProcessingFee: ${economicalParameters.cryptoProcessingFee} \n`;
-                text += "\n\n\n";
+                text += `🪙 ` + cc.symbol + ` \\/ ` + dc.symbol + `\n`;
+                text +=
+                    `APR:                              ` +
+                    bigintToFormattedPercent(economicalParameters.apr).replace(".", "\\.") +
+                    `\\%\n`;
+                text +=
+                    `Collateral Factor:        ` +
+                    bigintToFormattedPercent(economicalParameters.collateralFactor).replace(".", "\\.") +
+                    `\\%\n`;
+                text +=
+                    `Liquidation Factor:     ` +
+                    bigintToFormattedPercent(economicalParameters.liquidationFactor).replace(
+                        ".",
+                        "\\."
+                    ) +
+                    `\\%\n`;
+                text +=
+                    `Liquidation Fee:          ` +
+                    bigintToFormattedPercent(economicalParameters.liquidationFee).replace(".", "\\.") +
+                    `\\%\n`;
+                text +=
+                    dc.symbol +
+                    ` Processing Fee:  ` +
+                    bigintToFormattedPercent(economicalParameters.fiatProcessingFee).replace(
+                        ".",
+                        "\\."
+                    ) +
+                    `\\%\n`;
+                text +=
+                    cc.symbol +
+                    ` Processing Fee:  ` +
+                    bigintToFormattedPercent(economicalParameters.cryptoProcessingFee).replace(
+                        ".",
+                        "\\."
+                    ) +
+                    `\\%\n`;
+                text += `\n`;
             }
         }
 
-        await ctx.editMessageText(text);
+        await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {

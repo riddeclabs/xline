@@ -107,3 +107,31 @@ function getMultiplier(decimals: number): string {
 
     throw new Error(`Incorrect decimal value. decimals: ${decimals}`);
 }
+
+export function bigintToFormattedPercent(value: bigint, decimals = 18): string {
+    if (decimals < 2) throw new Error("Decimals must be greater than 2");
+
+    let res = formatUnits(value, decimals - 2);
+
+    if (res.includes(".")) {
+        const [integer, fraction] = res.split(".");
+
+        if (!integer) throw new Error("Integer part is empty");
+        if (!fraction) throw new Error("Fraction part is empty");
+
+        if (fraction.length > 1) {
+            if (fraction.slice(0, 2) === "00") {
+                res = integer;
+            } else {
+                res = integer + "." + fraction.slice(0, 2);
+            }
+        } else {
+            if (fraction === "0") {
+                res = integer;
+            } else {
+                res = integer + "." + fraction;
+            }
+        }
+    }
+    return res;
+}
