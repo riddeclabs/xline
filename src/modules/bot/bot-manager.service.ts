@@ -110,7 +110,7 @@ export class BotManagerService {
 
         return {
             economicalParameters,
-            openCreditLineData,
+            openCreditLineData
         };
     }
 

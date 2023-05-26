@@ -68,6 +68,7 @@ import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-req
         ManagePortfolioWizard,
         BotCommonService,
         NewCreditRequestText,
+        ConfigService,
     ],
 })
 export class BotModule {}

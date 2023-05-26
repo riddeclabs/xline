@@ -13,7 +13,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "database:seed": "ts-node src/database/seeding/database-seeder.ts"
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",

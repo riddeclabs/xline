@@ -1,4 +1,4 @@
-export function parseUnits(value: string | number, decimals = 18) {
+export function parseUnits(value: string | number, decimals = 18): bigint {
     if (typeof value === "number") {
         value = value.toString();
     }
@@ -58,11 +58,11 @@ export function parseUnits(value: string | number, decimals = 18) {
     return wei;
 }
 
-export function formatUnitsNumber(value: bigint, decimals = 18) {
+export function formatUnitsNumber(value: bigint, decimals = 18): number {
     return Number(formatUnits(value, decimals));
 }
 
-export function formatUnits(value: bigint, decimals = 18) {
+export function formatUnits(value: bigint, decimals = 18): string {
     if (decimals == null) {
         decimals = 0;
     }
@@ -99,7 +99,7 @@ export function formatUnits(value: bigint, decimals = 18) {
     return res;
 }
 
-function getMultiplier(decimals: number) {
+function getMultiplier(decimals: number): string {
     let zeros = "";
     if (decimals >= 0 && decimals <= 256 && !(decimals % 1)) {
         while (decimals > 0) {
