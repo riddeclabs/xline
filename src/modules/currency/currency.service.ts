@@ -37,4 +37,12 @@ export class CurrencyService {
         const currency = this.debtCurrencyRepo.create(createDebtCurrencyDto);
         return this.debtCurrencyRepo.save(currency);
     }
+
+    async getCollateralTokenBySymbol(tokenSymbol: string) {
+        return this.collateralCurrencyRepo.findOneByOrFail({ symbol: tokenSymbol });
+    }
+
+    async getDebtTokenBySymbol(tokenSymbol: string) {
+        return this.debtCurrencyRepo.findOneByOrFail({ symbol: tokenSymbol });
+    }
 }
