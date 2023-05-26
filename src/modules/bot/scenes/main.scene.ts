@@ -10,6 +10,7 @@ import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
+import { ConfigService } from "@nestjs/config";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
 
@@ -22,7 +23,10 @@ type MainSceneContext = ExtendedWizardContext<MainSessionData>;
 export class MainScene {
     public static readonly ID = "MAIN";
 
-    constructor(private readonly botCommon: BotCommonService) {}
+    constructor(
+        private readonly botCommon: BotCommonService,
+        private readonly configService: ConfigService
+    ) {}
 
     @SceneEnter()
     async onEnter(@Ctx() ctx: MainSceneContext) {
@@ -55,11 +59,31 @@ export class MainScene {
                         text: "🦈 View your requests",
                         callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_REQUEST}`,
                     },
+                    {
+                        text: "👩‍💼 Contact support",
+                        callback_data: MAIN_MENU_OPTIONS.CONTACT_SUPPORT,
+                    },
                 ],
                 { columns: 1 }
             )
         );
         this.botCommon.tryToSaveSceneMessage(ctx, msg);
+    }
+
+    @Action(buildTypeExp(MAIN_MENU_OPTIONS.CONTACT_SUPPORT))
+    async onContactSupport(@Ctx() ctx: MainSceneContext) {
+        const op = this.configService.get<string>("SUPPORT_USERNAME");
+        const text =
+            `Here is your Reference number (click to copy): \`${ctx.chat?.id}\`\n\n` +
+            `Please send it to our [support](https://telegram.me/${op}) to get help\n`;
+
+        await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
+
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                columns: 1,
+            }).reply_markup
+        );
     }
 
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.TERM_AND_CONDITION))
