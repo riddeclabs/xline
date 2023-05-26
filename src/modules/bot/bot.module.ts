@@ -4,7 +4,7 @@ import { TelegrafModule } from "nestjs-telegraf";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { UserSession } from "../../common/middlewares/session.middleware";
 import { entities } from "../../database";
-import { NewCreditRequestWizard } from "./scenes/new-credit-request.scene";
+import { NewCreditRequestWizard } from "./scenes/new-credit-request/new-credit-request.scene";
 import { ViewActiveCreditLineWizard } from "./scenes/view-active-line.scene";
 import { MainScene } from "./scenes/main.scene";
 import { RepayActionWizard } from "./scenes/repay.scene";
@@ -22,6 +22,8 @@ import { EconomicalParametersModule } from "../economical-parameters/economical-
 import { UserModule } from "../user/user.module";
 import { CreditLineModule } from "../credit-line/credit-line.module";
 import { RequestResolverModule } from "../request-resolver/request-resolver.module";
+import { ManagePortfolioWizard } from "./scenes/manage-portfolio.scene";
+import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-request.text";
 
 @Module({
     imports: [
@@ -63,7 +65,9 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
         RepayActionWizard,
         WithdrawActionWizard,
         ViewRequestWizard,
+        ManagePortfolioWizard,
         BotCommonService,
+        NewCreditRequestText,
     ],
 })
 export class BotModule {}

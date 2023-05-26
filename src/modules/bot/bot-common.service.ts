@@ -1,14 +1,15 @@
 import { Injectable } from "@nestjs/common";
-import { MAIN_MENU_OPTIONS } from "./constants";
+import { LEFT_INDENT_BD_S, MAIN_MENU_OPTIONS, RIGHT_INDENT_BD_S } from "./constants";
 import { generateCBData } from "./helpers";
 import { Ctx } from "nestjs-telegraf";
-import { ExtendedWizardContext } from "./bot.types";
+import { CallbackButton, ExtendedWizardContext, UrlButton } from "./bot.types";
 import { Message } from "typegram";
-import { MiddlewareFn, MiddlewareObj } from "telegraf";
+import { Markup, MiddlewareFn, MiddlewareObj } from "telegraf";
+import { InlineKeyboardButton } from "typegram/markup";
 
 @Injectable()
 export class BotCommonService {
-    goBackButton() {
+    goBackButton(): CallbackButton {
         return {
             text: "↩ Go to main menu",
             callback_data: generateCBData(MAIN_MENU_OPTIONS.BACK_MAIN_MENU),
@@ -17,24 +18,62 @@ export class BotCommonService {
 
     async tryToDeleteMessages(@Ctx() ctx: ExtendedWizardContext) {
         const allMessageIds = ctx.scene.session.state.sceneMessageIds;
+        const allSkipMessageIds = ctx.scene.session.state.skipMsgRemovingOnce;
+
         if (allMessageIds && allMessageIds.length) {
             try {
-                await Promise.all(
-                    allMessageIds.map((message_id: number) => {
-                        return ctx.deleteMessage(message_id);
-                    })
-                );
+                if (allSkipMessageIds) {
+                    await Promise.all(
+                        allMessageIds.map((message_id: number) => {
+                            if (!allSkipMessageIds.includes(message_id)) {
+                                return ctx.deleteMessage(message_id);
+                            }
+                            return;
+                        })
+                    );
+                } else {
+                    await Promise.all(
+                        allMessageIds.map((message_id: number) => {
+                            return ctx.deleteMessage(message_id);
+                        })
+                    );
+                }
             } catch (e) {
                 // in case target message was deleted previously
             }
 
             // Clean up all messages
             ctx.scene.session.state.sceneMessageIds = [];
+            ctx.scene.session.state.skipMsgRemovingOnce = [];
+
+            if (allSkipMessageIds) ctx.scene.session.state.sceneMessageIds.push(...allSkipMessageIds);
         }
 
         try {
             await ctx.deleteMessage();
         } catch (e) {}
+    }
+
+    // Sends a new message and immediately remove all previous messages from chat
+    async clearAndReply(
+        ctx: ExtendedWizardContext,
+        msgText: string,
+        isMarkdown = false,
+        options = { columns: 1 },
+        buttons?: InlineKeyboardButton[]
+    ) {
+        let msg;
+        if (!isMarkdown) {
+            msg = ctx.reply(msgText, buttons ? Markup.inlineKeyboard(buttons, options) : undefined);
+        } else {
+            msg = ctx.replyWithMarkdownV2(
+                msgText,
+                buttons ? Markup.inlineKeyboard(buttons, options) : undefined
+            );
+        }
+        await this.tryToDeleteMessages(ctx);
+
+        return msg;
     }
 
     tryToSaveSceneMessage(ctx: ExtendedWizardContext, msg?: Message | Message[]) {
@@ -50,6 +89,18 @@ export class BotCommonService {
         }
     }
 
+    skipMessageRemoving(ctx: ExtendedWizardContext, msg?: Message | Message[]) {
+        if (ctx.scene.session.state.skipMsgRemovingOnce === undefined)
+            ctx.scene.session.state.skipMsgRemovingOnce = [];
+
+        if (msg) {
+            if (Array.isArray(msg))
+                ctx.scene.session.state.skipMsgRemovingOnce =
+                    ctx.scene.session.state.skipMsgRemovingOnce.concat(msg.map(x => x.message_id));
+            else ctx.scene.session.state.skipMsgRemovingOnce.push(msg.message_id);
+        }
+    }
+
     async executeCurrentStep<C extends ExtendedWizardContext>(ctx: C) {
         const step = ctx.wizard.step;
         if (!step) return;
@@ -59,5 +110,16 @@ export class BotCommonService {
                 ? (step as MiddlewareFn<C>)
                 : (step as MiddlewareObj<C>).middleware();
         await stepFn(ctx, () => Promise.resolve());
+    }
+
+    makeHeaderText(origText: string) {
+        return LEFT_INDENT_BD_S + `*${origText}*` + RIGHT_INDENT_BD_S;
+    }
+
+    getMetamaskWalletButton(wallet: string): UrlButton {
+        return {
+            text: "🦊 Open metamask wallet",
+            url: `https://metamask.app.link/send/pay-${wallet}`,
+        };
     }
 }
