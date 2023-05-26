@@ -6,6 +6,7 @@ export enum MAIN_MENU_OPTIONS {
     VIEW_REQUEST = "viewRequest",
     HOW_IT_WORKS = "howItWorks",
     BACK_MAIN_MENU = "back",
+    CONTACT_SUPPORT = "contactSupport",
 }
 
 export enum SUPPORTED_TOKENS {
