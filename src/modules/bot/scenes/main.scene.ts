@@ -89,7 +89,8 @@ export class MainScene {
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.TERM_AND_CONDITION))
     async onTermAndCondition(@Ctx() ctx: MainSceneContext) {
         await ctx.editMessageText(
-            "🍄 Fully trusted solution! \n" + "You give me money, I give you money"
+            `Terms & conditions could be found on our [website](https://xline.riddec.com/terms)\n`,
+            { parse_mode: "MarkdownV2" }
         );
 
         await ctx.editMessageReplyMarkup(
