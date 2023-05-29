@@ -64,6 +64,7 @@ export class BotManagerService {
             });
         }
 
+        // sanity check to make TS happy
         if (!user || !userPaymentRequisite) {
             throw new Error("Both User and UserPaymentRequisite entities must exits");
         }

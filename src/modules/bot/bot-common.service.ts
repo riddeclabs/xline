@@ -20,33 +20,24 @@ export class BotCommonService {
         const allMessageIds = ctx.scene.session.state.sceneMessageIds;
         const allSkipMessageIds = ctx.scene.session.state.skipMsgRemovingOnce;
 
-        if (allMessageIds && allMessageIds.length) {
+        if (allMessageIds) {
+            const deleteMessageIds = allSkipMessageIds
+                ? allMessageIds.filter(value => !allSkipMessageIds.includes(value))
+                : allMessageIds;
+
             try {
-                if (allSkipMessageIds) {
-                    await Promise.all(
-                        allMessageIds.map((message_id: number) => {
-                            if (!allSkipMessageIds.includes(message_id)) {
-                                return ctx.deleteMessage(message_id);
-                            }
-                            return;
-                        })
-                    );
-                } else {
-                    await Promise.all(
-                        allMessageIds.map((message_id: number) => {
-                            return ctx.deleteMessage(message_id);
-                        })
-                    );
-                }
+                await Promise.all(
+                    deleteMessageIds.map((message_id: number) => {
+                        return ctx.deleteMessage(message_id);
+                    })
+                );
             } catch (e) {
                 // in case target message was deleted previously
             }
 
             // Clean up all messages
-            ctx.scene.session.state.sceneMessageIds = [];
+            ctx.scene.session.state.sceneMessageIds = allSkipMessageIds ?? [];
             ctx.scene.session.state.skipMsgRemovingOnce = [];
-
-            if (allSkipMessageIds) ctx.scene.session.state.sceneMessageIds.push(...allSkipMessageIds);
         }
 
         try {
@@ -90,15 +81,12 @@ export class BotCommonService {
     }
 
     skipMessageRemoving(ctx: ExtendedWizardContext, msg?: Message | Message[]) {
-        if (ctx.scene.session.state.skipMsgRemovingOnce === undefined)
-            ctx.scene.session.state.skipMsgRemovingOnce = [];
-
+        let skipMsgs = ctx.scene.session.state.skipMsgRemovingOnce ?? [];
         if (msg) {
-            if (Array.isArray(msg))
-                ctx.scene.session.state.skipMsgRemovingOnce =
-                    ctx.scene.session.state.skipMsgRemovingOnce.concat(msg.map(x => x.message_id));
-            else ctx.scene.session.state.skipMsgRemovingOnce.push(msg.message_id);
+            const msgArray = Array.isArray(msg) ? msg : [msg];
+            skipMsgs = skipMsgs.concat(msgArray.map(x => x.message_id));
         }
+        ctx.scene.session.state.skipMsgRemovingOnce = skipMsgs;
     }
 
     async executeCurrentStep<C extends ExtendedWizardContext>(ctx: C) {
@@ -112,7 +100,7 @@ export class BotCommonService {
         await stepFn(ctx, () => Promise.resolve());
     }
 
-    makeHeaderText(origText: string) {
+    makeHeaderText(origText: string): string {
         return LEFT_INDENT_BD_S + `*${origText}*` + RIGHT_INDENT_BD_S;
     }
 
