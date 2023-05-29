@@ -46,4 +46,14 @@ export class CreditLineService {
         creditLine.rawCollateralAmount = creditLine.rawCollateralAmount - subAmount;
         return this.creditLineRepo.save(creditLine);
     }
+
+    async getCreditLineByChatIdAndColSymbol(chatId: number, collateralSymbol: string) {
+        return await this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoin("creditLine.userId", "user")
+            .innerJoin("creditLine.collateralCurrencyId", "cc")
+            .where("user.chat_id = :chatId", { chatId })
+            .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
+            .getOneOrFail();
+    }
 }

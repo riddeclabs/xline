@@ -40,18 +40,16 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
-        return this.depositRequestRepo.findOne({
+        return this.depositRequestRepo.findOneOrFail({
             where: { creditLineId, depositRequestStatus: DepositRequestStatus.PENDING },
             order: {
                 createdAt: "ASC",
             },
         });
     }
-    async updateDepositReqStatus(reqId: number, newStatus: DepositRequestStatus) {
-        const req = await this.depositRequestRepo.findOneByOrFail({ id: reqId });
-        req.depositRequestStatus = newStatus;
-
-        return this.depositRequestRepo.save(req);
+    async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
+        request.depositRequestStatus = newStatus;
+        return this.depositRequestRepo.save(request);
     }
 
     // WithdrawRequest block
@@ -70,7 +68,7 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number) {
-        return this.withdrawRequestRepo.findOne({
+        return this.withdrawRequestRepo.findOneOrFail({
             where: { creditLineId, withdrawRequestStatus: WithdrawRequestStatus.PENDING },
             order: {
                 createdAt: "ASC",
@@ -78,11 +76,9 @@ export class RequestHandlerService {
         });
     }
 
-    async updateWithdrawReqStatus(reqId: number, newStatus: WithdrawRequestStatus) {
-        const req = await this.withdrawRequestRepo.findOneByOrFail({ id: reqId });
-        req.withdrawRequestStatus = newStatus;
-
-        return this.withdrawRequestRepo.save(req);
+    async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
+        request.withdrawRequestStatus = newStatus;
+        return this.withdrawRequestRepo.save(request);
     }
 
     // BorrowRequest block
