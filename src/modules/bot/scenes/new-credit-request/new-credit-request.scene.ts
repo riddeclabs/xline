@@ -204,10 +204,7 @@ export class NewCreditRequestWizard {
         if (!viewDetails) {
             const msg1 = await this.botCommon.clearAndReply(
                 ctx,
-                this.msgSource.getSignApplicationMainMsg(
-                    economicalParameters,
-                    sceneData
-                ),
+                this.msgSource.getSignApplicationMainMsg(economicalParameters, sceneData),
                 true
             );
             const msg2 = await ctx.replyWithMarkdownV2(
