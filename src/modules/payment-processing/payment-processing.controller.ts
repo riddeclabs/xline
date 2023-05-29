@@ -1,9 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, UsePipes, ValidationPipe } from "@nestjs/common";
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    UsePipes,
+    ValidationPipe,
+    UseGuards,
+} from "@nestjs/common";
 import { PaymentProcessingService } from "./payment-processing.service";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { DepositCallbackDto, WithdrawCallbackDto } from "./dto/callback.dto";
+import { CryptoCallbackDto } from "./dto/callback.dto";
+import { HashGuard } from "../../guards/callback.guard";
 
 @ApiTags("Payment processing operator")
 @Controller("payment-processing")
@@ -48,31 +59,15 @@ export class PaymentProcessingController {
         return this.paymentProcessingService.getPaymentProcessingOperatorById(+id);
     }
 
-    @Post("deposit-callback")
+    @Post("payment-callback")
+    @UseGuards(HashGuard)
     @UsePipes(ValidationPipe)
-    @ApiOperation({ summary: "Gateway callback endpoint for the deposit action" })
-    @ApiBody({ description: "Deposit callback DTO description", type: DepositCallbackDto })
+    @ApiOperation({ summary: "Gateway callback endpoint" })
+    @ApiBody({ description: "Crypto callback DTO description", type: CryptoCallbackDto })
     depositCallback(
         @Body()
-        depositCallback: DepositCallbackDto
+        depositCallback: CryptoCallbackDto
     ) {
-        return this.paymentProcessingService.handleDepositCallback(depositCallback);
-    }
-
-    @Post("withdraw-callback")
-    @UsePipes(ValidationPipe)
-    @ApiOperation({ summary: "Gateway callback endpoint for the withdraw action" })
-    @ApiBody({ description: "Withdraw callback DTO description", type: WithdrawCallbackDto })
-    withdrawCallback(
-        @Body()
-        withdrawCallback: WithdrawCallbackDto
-    ) {
-        return this.paymentProcessingService.handleWithdrawCallback(withdrawCallback);
-    }
-
-    // FIXME: for test purposes only
-    @Post("wallet/address/:chatId")
-    async getWalletAddressByChatId(@Param("chatId") chatId: string) {
-        return this.paymentProcessingService.getUserWallet(chatId, "ETH");
+        return this.paymentProcessingService.handleCryptoCallback(depositCallback);
     }
 }
