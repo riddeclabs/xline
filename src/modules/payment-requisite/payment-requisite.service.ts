@@ -26,6 +26,14 @@ export class PaymentRequisiteService {
         return this.userPaymentRepo.findOneBy({ id: paymentReqId });
     }
 
+    getUserPaymentRequisiteByChatId(chatId: number) {
+        return this.userPaymentRepo
+            .createQueryBuilder("pr")
+            .leftJoin("pr.userId", "user")
+            .where("user.chat_id = :chatId", { chatId })
+            .getOne();
+    }
+
     saveNewUserRequisite(dto: CreateUserPaymentRequisiteDto) {
         const newReq = this.userPaymentRepo.create(dto);
         return this.userPaymentRepo.save(newReq);
