@@ -13,6 +13,7 @@ import { CustomExceptionFilter } from "../exception-filter";
 import { EconomicalParametersService } from "src/modules/economical-parameters/economical-parameters.service";
 import { CurrencyService } from "src/modules/currency/currency.service";
 import { bigintToFormattedPercent } from "src/common";
+import { ConfigService } from "@nestjs/config";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
 
@@ -27,6 +28,7 @@ export class MainScene {
 
     constructor(
         private readonly botCommon: BotCommonService,
+        private readonly configService: ConfigService,
         private readonly economicalParametersService: EconomicalParametersService,
         private readonly currencyService: CurrencyService
     ) {}
@@ -62,11 +64,61 @@ export class MainScene {
                         text: "🦈 View your requests",
                         callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_REQUEST}`,
                     },
+                    {
+                        text: "👩‍💼 Contact support",
+                        callback_data: MAIN_MENU_OPTIONS.CONTACT_SUPPORT,
+                    },
+                    {
+                        text: "⚙️ How it works",
+                        callback_data: MAIN_MENU_OPTIONS.HOW_IT_WORKS,
+                    },
                 ],
                 { columns: 1 }
             )
         );
         this.botCommon.tryToSaveSceneMessage(ctx, msg);
+    }
+
+    @Action(buildTypeExp(MAIN_MENU_OPTIONS.HOW_IT_WORKS))
+    async onHowItWorks(@Ctx() ctx: MainSceneContext) {
+        await ctx.editMessageText(
+            "*Choose Your Collateral*\n" +
+                "Select Bitcoin \\(BTC\\) or Ethereum \\(ETH\\) as the collateral for your credit line\\.\n\n" +
+                "*Provide your requisites*\n" +
+                "You will be asked to provide the necessary data: your name and IBAN you want to receive money\\.\n\n" +
+                "*Set Your Collateral Amount and choose utilization*\n" +
+                "Select one of 3 initial risk strategies to utilize our collateral: LOW \\(50\\%\\), MEDIUM \\(60\\%\\), HIGH \\(80\\%\\)\n" +
+                "Remember, higher utilization means a higher risk of liquidation\\.\n\n" +
+                "*Send crypto and receive USD*\n" +
+                "XLine will generate and provide you a wallet address, associated with your credit line\\.\n" +
+                "After you transfer crypto to this wallet, you will receive USD, based on the utilization rate you choose\\.\n\n" +
+                "*Monitor & Manage*\n" +
+                "Keep track of your collateral value and utilization to avoid liquidation\\. Make adjustments as needed to maintain a healthy balance\\.\n\n" +
+                "You could always check the statuses of your credit line and adjustment requests in the menu\\.\n",
+            { parse_mode: "MarkdownV2" }
+        );
+
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                columns: 1,
+            }).reply_markup
+        );
+    }
+
+    @Action(buildTypeExp(MAIN_MENU_OPTIONS.CONTACT_SUPPORT))
+    async onContactSupport(@Ctx() ctx: MainSceneContext) {
+        const op = this.configService.get<string>("SUPPORT_USERNAME");
+        const text =
+            `Here is your Reference number \\(click to copy\\): \`${ctx.chat?.id}\`\n\n` +
+            `Please send it to our [support](https://telegram.me/${op}) to get help\n`;
+
+        await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
+
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                columns: 1,
+            }).reply_markup
+        );
     }
 
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.TERM_AND_CONDITION))

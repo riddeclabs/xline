@@ -4,7 +4,9 @@ export enum MAIN_MENU_OPTIONS {
     NEW_CREDIT_REQUEST = "newCreditRequest",
     VIEW_ACTIVE_LINE = "viewActiveLine",
     VIEW_REQUEST = "viewRequest",
+    HOW_IT_WORKS = "howItWorks",
     BACK_MAIN_MENU = "back",
+    CONTACT_SUPPORT = "contactSupport",
 }
 
 export enum SUPPORTED_TOKENS {

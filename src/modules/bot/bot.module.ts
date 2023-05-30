@@ -64,6 +64,7 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
         WithdrawActionWizard,
         ViewRequestWizard,
         BotCommonService,
+        ConfigService,
     ],
 })
 export class BotModule {}
