@@ -30,7 +30,6 @@ export class BotCommonService {
             try {
                 await Promise.all(
                     deleteMessageIds.map((message_id: number) => {
-                        console.log("Actually delete msgId:", message_id);
                         return ctx.deleteMessage(message_id);
                     })
                 );
