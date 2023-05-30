@@ -13,6 +13,7 @@ import { CustomExceptionFilter } from "../exception-filter";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
 import { ManagePortfolioWizard } from "./manage-portfolio.scene";
+import { BotManagerService } from "../bot-manager.service";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest" | "managePortfolio";
 
