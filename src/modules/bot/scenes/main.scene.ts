@@ -84,7 +84,7 @@ export class MainScene {
                 "*Set Your Collateral Amount and choose utilization*\n" +
                 "Select one of 3 initial risk strategies to utilize our collateral: LOW \\(50\\%\\), MEDIUM \\(60\\%\\), HIGH \\(80\\%\\)\n" +
                 "Remember, higher utilization means a higher risk of liquidation\\.\n\n" +
-                "*Send crypto and receive*\n" +
+                "*Send crypto and receive USD*\n" +
                 "XLine will generate and provide you a wallet address, associated with your credit line\\.\n" +
                 "After you transfer crypto to this wallet, you will receive USD, based on the utilization rate you choose\\.\n\n" +
                 "*Monitor & Manage*\n" +
