@@ -10,10 +10,9 @@ import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
-import { EconomicalParametersService } from "src/modules/economical-parameters/economical-parameters.service";
-import { CurrencyService } from "src/modules/currency/currency.service";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
+import { BotManagerService } from "../bot-manager.service";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
 
@@ -29,8 +28,7 @@ export class MainScene {
     constructor(
         private readonly botCommon: BotCommonService,
         private readonly configService: ConfigService,
-        private readonly economicalParametersService: EconomicalParametersService,
-        private readonly currencyService: CurrencyService
+        private readonly botManagerService: BotManagerService
     ) {}
 
     @SceneEnter()
@@ -137,8 +135,9 @@ export class MainScene {
 
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.CURRENT_RATES))
     async onCurrentRates(@Ctx() ctx: MainSceneContext) {
-        const debtCurrencies = await this.currencyService.getAllDebtCurrency();
-        const collateralCurrencies = await this.currencyService.getAllCollateralCurrency();
+        const debtCurrencies = await this.botManagerService.currencyService.getAllDebtCurrency();
+        const collateralCurrencies =
+            await this.botManagerService.currencyService.getAllCollateralCurrency();
 
         let text = "📊 Currently the following rates applies:\n\n";
         text +=
@@ -147,7 +146,10 @@ export class MainScene {
         for (const dc of debtCurrencies) {
             for (const cc of collateralCurrencies) {
                 const economicalParameters =
-                    await this.economicalParametersService.getFreshEconomicalParams(dc.id, cc.id);
+                    await this.botManagerService.economicalParamsService.getFreshEconomicalParams(
+                        dc.id,
+                        cc.id
+                    );
                 // prettier-ignore
                 text += `🪙 ${cc.symbol} / ${dc.symbol}\n`                
                 + `APR:                              ${bigintToFormattedPercent(economicalParameters.apr)}%\n`
