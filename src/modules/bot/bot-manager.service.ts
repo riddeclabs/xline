@@ -9,8 +9,8 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import { createUserGatewayId, generateReferenceNumber } from "../../common";
-import { formatUnits, parseUnits } from "../../common/fixed-number";
+import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
+import { formatUnits, parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
 
@@ -45,24 +45,21 @@ export class BotManagerService {
             chatId
         );
 
-        if ((!user && userPaymentRequisite) || (!userPaymentRequisite && user)) {
+        // If only one of database values are defined, something went wrong
+        if (xor(user, userPaymentRequisite)) {
             throw new Error("Existing data is inconsistent");
-        }
+            // If both database values are undefined, we must have full user data set to create a new one
+        } else if (!user && !userPaymentRequisite) {
+            if (!userName || !userIban) throw new Error("Insufficient data to create user");
 
-        if (!user && !userPaymentRequisite && (!userName || !userIban)) {
-            throw new Error("Insufficient data to create user");
-        }
-
-        if (!user && !userPaymentRequisite && userName && userIban) {
             user = await this.userService.createUser({ chatId, name: userName });
-
             // save user IBAN
             userPaymentRequisite = await this.paymentRequisiteService.saveNewUserRequisite({
                 userId: user.id,
                 debtCurrencyId,
                 iban: userIban,
             });
-        }
+        } // else both are defined, do nothing
 
         // sanity check to make TS happy
         if (!user || !userPaymentRequisite) {

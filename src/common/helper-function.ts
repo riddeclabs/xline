@@ -18,3 +18,7 @@ export function generateReferenceNumber(): string {
 export function createUserGatewayId(chatId: number, currencyId: number) {
     return `${chatId}-${currencyId}`;
 }
+
+export function xor(a: any, b: any): boolean {
+    return !!a !== !!b;
+}

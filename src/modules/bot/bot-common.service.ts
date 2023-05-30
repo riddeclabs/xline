@@ -81,12 +81,14 @@ export class BotCommonService {
     }
 
     skipMessageRemoving(ctx: ExtendedWizardContext, msg?: Message | Message[]) {
-        let skipMsgs = ctx.scene.session.state.skipMsgRemovingOnce ?? [];
+        const skipMsgs = new Set<number>(ctx.scene.session.state.skipMsgRemovingOnce ?? []);
         if (msg) {
             const msgArray = Array.isArray(msg) ? msg : [msg];
-            skipMsgs = skipMsgs.concat(msgArray.map(x => x.message_id));
+            for (const msg of msgArray) {
+                skipMsgs.add(msg.message_id);
+            }
         }
-        ctx.scene.session.state.skipMsgRemovingOnce = skipMsgs;
+        ctx.scene.session.state.skipMsgRemovingOnce = Array.from(skipMsgs);
     }
 
     async executeCurrentStep<C extends ExtendedWizardContext>(ctx: C) {
