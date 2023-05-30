@@ -12,3 +12,31 @@ export function generateReferenceNumber(): string {
 
     return reference;
 }
+
+export function escapeSpecialCharacters(str: string): string {
+    const symbols = [
+        "_", // FIXME: add regexp to escape only if not used for italic text
+        " * ", // * without spaces is used for bold text in markdown
+        "[",
+        "]",
+        "(",
+        ")",
+        "~",
+        "`",
+        ">",
+        "#",
+        "+",
+        "-",
+        "=",
+        "|",
+        "{",
+        "}",
+        ".",
+        "!",
+    ];
+    let result = str;
+    symbols.forEach(symbol => {
+        result = result.replaceAll(symbol, `\\${symbol}`);
+    });
+    return result;
+}

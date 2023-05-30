@@ -12,7 +12,7 @@ import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
 import { EconomicalParametersService } from "src/modules/economical-parameters/economical-parameters.service";
 import { CurrencyService } from "src/modules/currency/currency.service";
-import { bigintToFormattedPercent } from "src/common";
+import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
@@ -81,22 +81,22 @@ export class MainScene {
 
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.HOW_IT_WORKS))
     async onHowItWorks(@Ctx() ctx: MainSceneContext) {
-        await ctx.editMessageText(
+        const text =
             "*Choose Your Collateral*\n" +
-                "Select Bitcoin \\(BTC\\) or Ethereum \\(ETH\\) as the collateral for your credit line\\.\n\n" +
-                "*Provide your requisites*\n" +
-                "You will be asked to provide the necessary data: your name and IBAN you want to receive money\\.\n\n" +
-                "*Set Your Collateral Amount and choose utilization*\n" +
-                "Select one of 3 initial risk strategies to utilize our collateral: LOW \\(50\\%\\), MEDIUM \\(60\\%\\), HIGH \\(80\\%\\)\n" +
-                "Remember, higher utilization means a higher risk of liquidation\\.\n\n" +
-                "*Send crypto and receive USD*\n" +
-                "XLine will generate and provide you a wallet address, associated with your credit line\\.\n" +
-                "After you transfer crypto to this wallet, you will receive USD, based on the utilization rate you choose\\.\n\n" +
-                "*Monitor & Manage*\n" +
-                "Keep track of your collateral value and utilization to avoid liquidation\\. Make adjustments as needed to maintain a healthy balance\\.\n\n" +
-                "You could always check the statuses of your credit line and adjustment requests in the menu\\.\n",
-            { parse_mode: "MarkdownV2" }
-        );
+            "Select Bitcoin (BTC) or Ethereum (ETH) as the collateral for your credit line.\n\n" +
+            "*Provide your requisites*\n" +
+            "You will be asked to provide the necessary data: your name and IBAN you want to receive money.\n\n" +
+            "*Set Your Collateral Amount and choose utilization*\n" +
+            "Select one of 3 initial risk strategies to utilize our collateral: LOW (50%), MEDIUM (60%), HIGH (80%)\n" +
+            "Remember, higher utilization means a higher risk of liquidation.\n\n" +
+            "*Send crypto and receive USD*\n" +
+            "XLine will generate and provide you a wallet address, associated with your credit line.\n" +
+            "After you transfer crypto to this wallet, you will receive USD, based on the utilization rate you choose.\n\n" +
+            "*Monitor & Manage*\n" +
+            "Keep track of your collateral value and utilization to avoid liquidation. Make adjustments as needed to maintain a healthy balance.\n\n" +
+            "You could always check the statuses of your credit line and adjustment requests in the menu.\n";
+
+        await ctx.editMessageText(escapeSpecialCharacters(text), { parse_mode: "MarkdownV2" });
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {
@@ -109,7 +109,8 @@ export class MainScene {
     async onContactSupport(@Ctx() ctx: MainSceneContext) {
         const op = this.configService.get<string>("SUPPORT_USERNAME");
         const text =
-            `Here is your Reference number \\(click to copy\\): \`${ctx.chat?.id}\`\n\n` +
+            escapeSpecialCharacters(`Here is your Reference number (click to copy):`) +
+            ` \`${ctx.chat?.id}\`\n\n` +
             `Please send it to our [support](https://telegram.me/${op}) to get help\n`;
 
         await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
@@ -139,7 +140,7 @@ export class MainScene {
         const debtCurrencies = await this.currencyService.getAllDebtCurrency();
         const collateralCurrencies = await this.currencyService.getAllCollateralCurrency();
 
-        let text = "📊 Currently the following rates applies: \n\n";
+        let text = "📊 Currently the following rates applies:\n\n";
         text +=
             "‼️ *Rates below are for reference only and may differ from the values at the time of opening a credit line*\n\n";
 
@@ -147,47 +148,18 @@ export class MainScene {
             for (const cc of collateralCurrencies) {
                 const economicalParameters =
                     await this.economicalParametersService.getFreshEconomicalParams(dc.id, cc.id);
-                text += `🪙 ` + cc.symbol + ` \\/ ` + dc.symbol + `\n`;
-                text +=
-                    `APR:                              ` +
-                    bigintToFormattedPercent(economicalParameters.apr).replace(".", "\\.") +
-                    `\\%\n`;
-                text +=
-                    `Collateral Factor:        ` +
-                    bigintToFormattedPercent(economicalParameters.collateralFactor).replace(".", "\\.") +
-                    `\\%\n`;
-                text +=
-                    `Liquidation Factor:     ` +
-                    bigintToFormattedPercent(economicalParameters.liquidationFactor).replace(
-                        ".",
-                        "\\."
-                    ) +
-                    `\\%\n`;
-                text +=
-                    `Liquidation Fee:          ` +
-                    bigintToFormattedPercent(economicalParameters.liquidationFee).replace(".", "\\.") +
-                    `\\%\n`;
-                text +=
-                    dc.symbol +
-                    ` Processing Fee:  ` +
-                    bigintToFormattedPercent(economicalParameters.fiatProcessingFee).replace(
-                        ".",
-                        "\\."
-                    ) +
-                    `\\%\n`;
-                text +=
-                    cc.symbol +
-                    ` Processing Fee:  ` +
-                    bigintToFormattedPercent(economicalParameters.cryptoProcessingFee).replace(
-                        ".",
-                        "\\."
-                    ) +
-                    `\\%\n`;
-                text += `\n`;
+                // prettier-ignore
+                text += `🪙 ${cc.symbol} / ${dc.symbol}\n`                
+                + `APR:                              ${bigintToFormattedPercent(economicalParameters.apr)}%\n`
+                + `Collateral Factor:        ${bigintToFormattedPercent(economicalParameters.collateralFactor)}%\n`
+                + `Liquidation Factor:     ${bigintToFormattedPercent(economicalParameters.liquidationFactor)}%\n`
+                + `Liquidation Fee:          ${bigintToFormattedPercent(economicalParameters.liquidationFee)}%\n`
+                + `${dc.symbol} Processing Fee:  ${bigintToFormattedPercent(economicalParameters.fiatProcessingFee)}%\n`
+                + `${cc.symbol} Processing Fee:  ${bigintToFormattedPercent(economicalParameters.cryptoProcessingFee)}%\n\n`;
             }
         }
 
-        await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
+        await ctx.editMessageText(escapeSpecialCharacters(text), { parse_mode: "MarkdownV2" });
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {
