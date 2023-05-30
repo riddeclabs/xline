@@ -16,18 +16,21 @@ export class BotCommonService {
         };
     }
 
-    async tryToDeleteMessages(@Ctx() ctx: ExtendedWizardContext) {
-        const allMessageIds = ctx.scene.session.state.sceneMessageIds;
-        const allSkipMessageIds = ctx.scene.session.state.skipMsgRemovingOnce;
+    async tryToDeleteMessages(@Ctx() ctx: ExtendedWizardContext, forceDelete = false) {
+        const csss = ctx.scene.session.state;
+        const allMessageIds = csss.sceneMessageIds;
+        const allSkipMessageIds = csss.skipMsgRemovingOnce;
 
         if (allMessageIds) {
-            const deleteMessageIds = allSkipMessageIds
-                ? allMessageIds.filter(value => !allSkipMessageIds.includes(value))
-                : allMessageIds;
+            const deleteMessageIds =
+                !forceDelete && allSkipMessageIds
+                    ? allMessageIds.filter(value => !allSkipMessageIds.includes(value))
+                    : allMessageIds;
 
             try {
                 await Promise.all(
                     deleteMessageIds.map((message_id: number) => {
+                        console.log("Actually delete msgId:", message_id);
                         return ctx.deleteMessage(message_id);
                     })
                 );
@@ -39,6 +42,11 @@ export class BotCommonService {
             ctx.scene.session.state.sceneMessageIds = allSkipMessageIds ?? [];
             ctx.scene.session.state.skipMsgRemovingOnce = [];
         }
+
+        if (forceDelete && csss.sceneEditMsgId)
+            try {
+                await ctx.deleteMessage(csss.sceneEditMsgId);
+            } catch (e) {}
 
         try {
             await ctx.deleteMessage();
