@@ -4,6 +4,7 @@ import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { EXP_SCALE } from "../../common/constants";
+import { OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common/fixed-number";
 
 @Injectable()
@@ -19,39 +20,67 @@ export class RiskEngineService {
         scaledRawSupplyAmount: bigint,
         riskStrategy: bigint,
         economicalParams: EconomicalParameters
-    ) {
-        const liquidationFactor = economicalParams.liquidationFactor;
-        const processingFee = economicalParams.fiatProcessingFee;
+    ): Promise<OpenCreditLineData> {
+        const supplyProcFee = economicalParams.fiatProcessingFee;
+        const borrowProcFee = economicalParams.cryptoProcessingFee;
 
-        const expectedBorrowAmountUsd = await this.calculateInitialBorrowAmount(
+        const userPortfolio = await this.calculateUserPortfolio(
             collateralTokenSymbol,
             scaledRawSupplyAmount,
+            economicalParams.collateralFactor,
             riskStrategy
         );
-
         const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(collateralTokenSymbol);
 
-        const collateralLimitPrice =
-            (((parseUnits(currentPrice) * EXP_SCALE) / liquidationFactor) * EXP_SCALE) /
-            scaledRawSupplyAmount;
+        const collateralLimitPrice = (userPortfolio.borrowUsd * EXP_SCALE) / scaledRawSupplyAmount;
 
-        const processingFeeUsd = (expectedBorrowAmountUsd * processingFee) / EXP_SCALE;
+        const supplyProcFeeUsd = (userPortfolio.supplyUsd * supplyProcFee) / EXP_SCALE;
+        const borrowProcFeeUsd = (userPortfolio.borrowUsd * borrowProcFee) / EXP_SCALE;
 
         return {
-            expectedBorrowAmountUsd,
+            expSupplyAmountUsd: userPortfolio.supplyUsd,
+            expBorrowAmountUsd: userPortfolio.borrowUsd,
+            expCollateralAmountUsd: userPortfolio.borrowUsd,
             collateralLimitPrice,
-            processingFeeUsd,
+            currentPrice: parseUnits(currentPrice),
+            supplyProcFeeUsd,
+            borrowProcFeeUsd,
+            totalProcFeeUsd: supplyProcFeeUsd + borrowProcFee,
         };
     }
 
     // scaledRawSupplyAmount - token Amount must be scaled by 1e18 to get correct USD value
+    private async calculateUserPortfolio(
+        collateralTokenSymbol: string,
+        scaledRawSupplyAmount: bigint,
+        collateralFactor: bigint,
+        riskStrategyRate: bigint
+    ) {
+        const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
+            collateralTokenSymbol,
+            scaledRawSupplyAmount
+        );
+        const borrowUsd = (supplyUsd * riskStrategyRate) / EXP_SCALE;
+        const collateralAmount = (supplyUsd * collateralFactor) / EXP_SCALE;
+
+        return {
+            supplyUsd,
+            borrowUsd,
+            // FIXME: add similar name collateralAmountUsd or change borrowAmountUsd
+            collateralAmount,
+        };
+    }
+
     async calculateInitialBorrowAmount(
         collateralTokenSymbol: string,
         scaledRawSupplyAmount: bigint,
         riskStrategyRate: bigint
     ) {
-        const supplyUtilizeShare = (scaledRawSupplyAmount * riskStrategyRate) / EXP_SCALE;
-        return this.priceOracleService.convertCryptoToUsd(collateralTokenSymbol, supplyUtilizeShare);
+        const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
+            collateralTokenSymbol,
+            scaledRawSupplyAmount
+        );
+        return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
     async verifyBorrowOrThrow(creditLine: CreditLine, collateralSymbol: string, borrowAmount: bigint) {

@@ -3,7 +3,7 @@ import { RequestResolverService } from "../request-resolver/request-resolver.ser
 import { ResolveCryptoBasedRequestDto } from "../request-resolver/dto/resolve-request.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PaymentProcessing } from "../../database/entities";
-import { Repository } from "typeorm";
+import { MoreThan, Repository } from "typeorm";
 import axios from "axios";
 import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
@@ -55,7 +55,10 @@ export class PaymentProcessingService {
     async getCurrentPaymentGateway() {
         return this.paymentProcessingRepo.findOne({
             order: {
-                createdAt: "desc",
+                createdAt: "DESC",
+            },
+            where: {
+                id: MoreThan(0),
             },
         });
     }

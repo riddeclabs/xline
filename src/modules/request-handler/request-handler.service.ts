@@ -93,7 +93,7 @@ export class RequestHandlerService {
     }
 
     async getAllBorrowReqByLineId(creditLineId: number) {
-        return this.depositRequestRepo.findOne({ where: { creditLineId } });
+        return this.borrowRequestRepo.find({ where: { creditLineId } });
     }
 
     async getOldestPendingBorrowReq(creditLineId: number) {
@@ -124,7 +124,7 @@ export class RequestHandlerService {
     }
 
     async getAllRepayReqByLineId(creditLineId: number) {
-        return this.depositRequestRepo.findAndCount({ where: { creditLineId } });
+        return this.repayRequestRepo.findAndCount({ where: { creditLineId } });
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {

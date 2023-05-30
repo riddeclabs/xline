@@ -9,10 +9,10 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import { generateReferenceNumber } from "../../common";
-import { formatUnits, parseUnits } from "../../common/fixed-number";
+import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
+import { formatUnits, parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
-import { EconomicalParameters } from "../../database/entities";
+import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
 
 @Injectable()
 export class BotManagerService {
@@ -32,24 +32,39 @@ export class BotManagerService {
     // Scene handlers
 
     async finishNewCreditLine(
-        userId: number,
+        chatId: number,
         debtCurrencyId: number,
-        userIban: string,
-        userName: string,
         economicalParamsId: number,
         collateralCurrencyId: number,
-        riskStrategy: bigint
+        riskStrategy: bigint,
+        userIban?: string,
+        userName?: string
     ) {
-        // TODO: handle case when user select already existed one
-        // save user IBAN
-        const userPaymentRequisite = await this.paymentRequisiteService.saveNewUserRequisite({
-            userId,
-            debtCurrencyId,
-            iban: userIban,
-        });
+        let user = await this.userService.getUserByChatId(chatId);
+        let userPaymentRequisite = await this.paymentRequisiteService.getUserPaymentRequisiteByChatId(
+            chatId
+        );
 
-        // save user BANK ACCOUNT NAME
-        await this.userService.updateUserName(userId, userName);
+        // If only one of database values are defined, something went wrong
+        if (xor(user, userPaymentRequisite)) {
+            throw new Error("Existing data is inconsistent");
+            // If both database values are undefined, we must have full user data set to create a new one
+        } else if (!user && !userPaymentRequisite) {
+            if (!userName || !userIban) throw new Error("Insufficient data to create user");
+
+            user = await this.userService.createUser({ chatId, name: userName });
+            // save user IBAN
+            userPaymentRequisite = await this.paymentRequisiteService.saveNewUserRequisite({
+                userId: user.id,
+                debtCurrencyId,
+                iban: userIban,
+            });
+        } // else both are defined, do nothing
+
+        // sanity check to make TS happy
+        if (!user || !userPaymentRequisite) {
+            throw new Error("Both User and UserPaymentRequisite entities must exits");
+        }
 
         // generate new ref number
         const refNumber = generateReferenceNumber();
@@ -57,12 +72,13 @@ export class BotManagerService {
         // save new credit line
         const newCreditLine: CreateCreditLineDto = {
             userPaymentRequisiteId: userPaymentRequisite.id,
-            userId,
+            userId: user.id,
             economicalParametersId: economicalParamsId,
             debtCurrencyId,
             collateralCurrencyId,
-            refNumber,
+            gatewayUserId: createUserGatewayId(user.chatId, collateralCurrencyId),
             isLiquidated: false,
+            refNumber,
         };
         const creditLine = await this.creditLineService.saveNewCreditLine(newCreditLine);
 
@@ -73,31 +89,26 @@ export class BotManagerService {
         await this.requestHandler.saveNewBorrowRequest({
             creditLineId: creditLine.id,
             borrowFiatAmount: null,
-            initRiskStrategy: riskStrategy,
+            initialRiskStrategy: riskStrategy,
         });
     }
 
-    async getNewCreditDetails(
-        collateralCurrencySymbol: string,
-        collateralCurrencyId: number,
-        debtCurrencyId: number,
-        hypDepositAmount: string,
-        riskStrategy: bigint
-    ) {
+    async getNewCreditDetails(sceneData: SignApplicationSceneData) {
         const economicalParameters = await this.getFreshEconomicalParams(
-            collateralCurrencyId,
-            debtCurrencyId
+            sceneData.colToken.id,
+            sceneData.debtToken.id
         );
-        const loanData = await this.calculateOpenCreditLineData(
-            collateralCurrencySymbol,
-            hypDepositAmount,
-            riskStrategy,
+
+        const openCreditLineData = await this.riskEngineService.calculateOpenCreditLineData(
+            sceneData.colToken.symbol,
+            parseUnits(sceneData.supplyAmount),
+            parseUnits(sceneData.riskStrategy),
             economicalParameters
         );
 
         return {
             economicalParameters,
-            loanData,
+            openCreditLineData,
         };
     }
 
@@ -111,26 +122,15 @@ export class BotManagerService {
         return this.paymentProcessingService.getUserWallet(chatId, collateralCurrencySymbol);
     }
 
-    // Risk engine
+    // User
 
-    private async calculateOpenCreditLineData(
-        currencySymbol: string,
-        hypDepositAmount: string,
-        riskStrategy: bigint,
-        economicalParams: EconomicalParameters
-    ) {
-        const scaledRawDepositAmount = parseUnits(hypDepositAmount);
-        return this.riskEngineService.calculateOpenCreditLineData(
-            currencySymbol,
-            scaledRawDepositAmount,
-            riskStrategy,
-            economicalParams
-        );
+    async getUserByChatId(chatId: number) {
+        return this.userService.getUserByChatId(chatId);
     }
 
     // Economical params
 
-    private async getFreshEconomicalParams(collateralCurrencyId: number, debtCurrencyId: number) {
+    async getFreshEconomicalParams(collateralCurrencyId: number, debtCurrencyId: number) {
         return this.economicalParamsService.getFreshEconomicalParams(
             collateralCurrencyId,
             debtCurrencyId
@@ -147,8 +147,8 @@ export class BotManagerService {
         return this.paymentRequisiteService.getBusinessPayReqByCurrency(debtCurrencyId);
     }
 
-    async getUserPaymentRequisite(paymentReqId: number) {
-        return this.paymentRequisiteService.getUserPaymentRequisite(paymentReqId);
+    async getUserPaymentRequisiteByChatId(paymentReqId: number) {
+        return this.paymentRequisiteService.getUserPaymentRequisiteByChatId(paymentReqId);
     }
 
     // Credit line
@@ -205,7 +205,7 @@ export class BotManagerService {
         await this.requestHandler.saveNewBorrowRequest({
             creditLineId,
             borrowFiatAmount,
-            initRiskStrategy: null,
+            initialRiskStrategy: null,
         });
     }
 
@@ -219,5 +219,13 @@ export class BotManagerService {
 
     async saveNewRepayRequest(creditLineId: number, paymentRequisiteId: number) {
         await this.requestHandler.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
+    }
+
+    async getCollateralTokenBySymbol(tokenSymbol: string) {
+        return await this.currencyService.getCollateralTokenBySymbol(tokenSymbol);
+    }
+
+    async getDebtTokenBySymbol(tokenSymbol: string) {
+        return await this.currencyService.getDebtTokenBySymbol(tokenSymbol);
     }
 }
