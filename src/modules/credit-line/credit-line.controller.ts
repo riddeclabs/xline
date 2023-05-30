@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from "@nestjs/common";
+import { Controller, Get, Param, Query } from "@nestjs/common";
 import { CreditLineService } from "./credit-line.service";
 import { ApiTags } from "@nestjs/swagger";
 import { CreditLine } from "../../database/entities";
@@ -8,7 +8,7 @@ import { CreditLine } from "../../database/entities";
 export class CreditLineController {
     constructor(private readonly creditLineService: CreditLineService) {}
 
-    @Get()
+    @Get("all")
     async getAllCreditLines() {
         const allCreditLines = await this.creditLineService.getAllCreditLines();
 
@@ -17,15 +17,18 @@ export class CreditLineController {
         });
     }
 
-    @Get(":id")
+    @Get("one/:id")
     async getCreditLineById(@Param("id") id: string) {
         const cl = await this.creditLineService.getCreditLineById(+id);
 
         return this.serializeEntity(cl);
     }
-    @Get("chatId/:chatId")
-    async getCreditLineByChatId(@Param("chatId") chatId: string) {
-        const cl = await this.creditLineService.getCreditLineByChatId(+chatId);
+    @Get("user")
+    async getCreditLineByChatIdAndColSymbol(
+        @Query("chatId") chatId: string,
+        @Query("colSymbol") colSymbol: string
+    ) {
+        const cl = await this.creditLineService.getCreditLineByChatIdAndColSymbol(+chatId, colSymbol);
         return this.serializeEntity(cl);
     }
 

@@ -1,8 +1,10 @@
 import { Scenes } from "telegraf";
 import { WizardSession, WizardSessionData } from "telegraf/typings/scenes";
+import { InlineKeyboardButton } from "typegram/markup";
 
 export type DefaultSessionState = {
     sceneMessageIds?: number[];
+    skipMsgRemovingOnce?: number[];
 };
 
 export type ExtendedSessionData = WizardSessionData & {
@@ -16,3 +18,6 @@ export type ExtendedWizardContext<D extends ExtendedSessionData = ExtendedSessio
             targetCurrency: string;
         };
     };
+
+export type CallbackButton = InlineKeyboardButton.CallbackButton;
+export type UrlButton = InlineKeyboardButton.UrlButton;

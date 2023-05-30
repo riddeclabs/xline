@@ -3,7 +3,7 @@ import { Action, Ctx, Hears, Scene, SceneEnter } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MAIN_MENU_OPTIONS } from "../constants";
-import { NewCreditRequestWizard } from "./new-credit-request.scene";
+import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
 import { ViewActiveCreditLineWizard } from "./view-active-line.scene";
 import { ViewRequestWizard } from "./view-request.scene";
 import { BotCommonService } from "../bot-common.service";
@@ -11,8 +11,9 @@ import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
 import { ConfigService } from "@nestjs/config";
+import { ManagePortfolioWizard } from "./manage-portfolio.scene";
 
-type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
+type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest" | "managePortfolio";
 
 type MainSessionData = ExtendedSessionData;
 type MainSceneContext = ExtendedWizardContext<MainSessionData>;
@@ -35,8 +36,8 @@ export class MainScene {
             await this.botCommon.tryToDeleteMessages(ctx);
         } catch {}
 
-        const msg = await ctx.reply(
-            "Hello dear friend!",
+        const msg = await ctx.replyWithMarkdownV2(
+            this.botCommon.makeHeaderText("Main menu"),
             Markup.inlineKeyboard(
                 [
                     {
@@ -44,19 +45,15 @@ export class MainScene {
                         callback_data: MAIN_MENU_OPTIONS.TERM_AND_CONDITION,
                     },
                     {
-                        text: "📊 Current rates",
+                        text: "📊 Current rates info",
                         callback_data: MAIN_MENU_OPTIONS.CURRENT_RATES,
                     },
                     {
-                        text: "🆕 Create new credit request",
-                        callback_data: `goto:${MAIN_MENU_OPTIONS.NEW_CREDIT_REQUEST}`,
+                        text: "💳 Manage my portfolio",
+                        callback_data: `goto:${MAIN_MENU_OPTIONS.MANAGE_PORTFOLIO}`,
                     },
                     {
-                        text: "💳 View active credit lines",
-                        callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_ACTIVE_LINE}`,
-                    },
-                    {
-                        text: "🦈 View your requests",
+                        text: "📔 View my requests",
                         callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_REQUEST}`,
                     },
                     {
@@ -163,6 +160,7 @@ export class MainScene {
             newCreditRequest: NewCreditRequestWizard.ID,
             viewActiveLine: ViewActiveCreditLineWizard.ID,
             viewRequest: ViewRequestWizard.ID,
+            managePortfolio: ManagePortfolioWizard.ID,
         };
 
         const targetSceneId = sceneIdMap[direction as GotoVariant];

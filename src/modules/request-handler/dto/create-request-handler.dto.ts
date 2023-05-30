@@ -15,7 +15,7 @@ export class CreateBorrowRequestHandlerDto {
     @IsNumber()
     readonly creditLineId!: number;
     readonly borrowFiatAmount!: bigint | null;
-    readonly initRiskStrategy!: bigint | null;
+    readonly initialRiskStrategy!: bigint | null;
 }
 export class CreateRepayRequestHandlerDto {
     @IsNumber()

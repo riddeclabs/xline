@@ -1,13 +1,14 @@
 import { Controller, Get, Param } from "@nestjs/common";
 import { RequestHandlerService } from "./request-handler.service";
 import { ApiTags } from "@nestjs/swagger";
+import { formatUnits } from "../../common/fixed-number";
 
 @ApiTags("Request handler")
 @Controller("request-handler")
 export class RequestHandlerController {
     constructor(private readonly requestHandlerService: RequestHandlerService) {}
 
-    @Get("deposit/:lineId")
+    @Get("deposit/all/:lineId")
     getAllDepositReqByLineId(@Param("lineId") creditLineId: string) {
         return this.requestHandlerService.getAllDepositReqByLineId(+creditLineId);
     }
@@ -16,7 +17,7 @@ export class RequestHandlerController {
         return this.requestHandlerService.getOldestPendingDepositReq(+creditLineId);
     }
 
-    @Get("withdraw/:lineId")
+    @Get("withdraw/all/:lineId")
     getAllWithdrawReqByLineId(@Param("lineId") creditLineId: string) {
         return this.requestHandlerService.getAllWithdrawReqByLineId(+creditLineId);
     }
@@ -26,16 +27,26 @@ export class RequestHandlerController {
         return this.requestHandlerService.getOldestPendingWithdrawReq(+creditLineId);
     }
 
-    @Get("borrow/:lineId")
-    getAllBorrowReqByLineId(@Param("lineId") creditLineId: string) {
-        return this.requestHandlerService.getAllBorrowReqByLineId(+creditLineId);
+    @Get("borrow/all/:lineId")
+    async getAllBorrowReqByLineId(@Param("lineId") creditLineId: string) {
+        const entities = await this.requestHandlerService.getAllBorrowReqByLineId(+creditLineId);
+
+        return entities.map(ent => {
+            return {
+                ...ent,
+                borrowFiatAmount: ent.borrowFiatAmount ? formatUnits(ent.borrowFiatAmount) : null,
+                initialRiskStrategy: ent.initialRiskStrategy
+                    ? formatUnits(ent.initialRiskStrategy)
+                    : null,
+            };
+        });
     }
     @Get("borrow/pending/:lineId")
     getOldestPendingBorrowReq(@Param("lineId") creditLineId: string) {
         return this.requestHandlerService.getOldestPendingBorrowReq(+creditLineId);
     }
 
-    @Get("repay/:lineId")
+    @Get("repay/all/:lineId")
     getAllRepayReqByLineId(@Param("lineId") creditLineId: string) {
         return this.requestHandlerService.getAllRepayReqByLineId(+creditLineId);
     }

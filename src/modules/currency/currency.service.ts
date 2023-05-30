@@ -17,7 +17,7 @@ export class CurrencyService {
     }
 
     async getDebtCurrency(debtCurrencyId: number) {
-        return this.debtCurrencyRepo.findOneByOrFail({ id: debtCurrencyId });
+        return this.debtCurrencyRepo.findOneBy({ id: debtCurrencyId });
     }
 
     async getAllCollateralCurrency() {
@@ -36,5 +36,13 @@ export class CurrencyService {
     async createDebtCurrency(createDebtCurrencyDto: CreateCurrencyDto) {
         const currency = this.debtCurrencyRepo.create(createDebtCurrencyDto);
         return this.debtCurrencyRepo.save(currency);
+    }
+
+    async getCollateralTokenBySymbol(tokenSymbol: string) {
+        return this.collateralCurrencyRepo.findOneByOrFail({ symbol: tokenSymbol });
+    }
+
+    async getDebtTokenBySymbol(tokenSymbol: string) {
+        return this.debtCurrencyRepo.findOneByOrFail({ symbol: tokenSymbol });
     }
 }

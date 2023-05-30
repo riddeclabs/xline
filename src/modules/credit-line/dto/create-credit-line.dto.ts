@@ -6,6 +6,8 @@ export class CreateCreditLineDto {
     @IsNumber()
     readonly userId!: number;
     @IsNumber()
+    readonly gatewayUserId!: string;
+    @IsNumber()
     readonly economicalParametersId!: number;
     @IsNumber()
     readonly debtCurrencyId!: number;
