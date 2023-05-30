@@ -8,7 +8,7 @@ import { BotCommonService } from "../../bot-common.service";
 import { SignApplicationOptions, SUPPORTED_TOKENS } from "../../constants";
 import { CustomExceptionFilter } from "../../exception-filter";
 import { BotManagerService } from "../../bot-manager.service";
-import { formatUnitsNumber, parseUnits } from "../../../../common/fixed-number";
+import { formatUnitsNumber, parseUnits } from "../../../../common";
 import { InlineKeyboardButton } from "typegram/markup";
 import { NewCreditRequestText } from "./new-credit-request.text";
 import {
@@ -19,6 +19,7 @@ import {
     RiskStrategyLevels,
     SignApplicationSceneData,
 } from "./new-credit-request.types";
+import { Message } from "typegram";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -34,8 +35,10 @@ export class NewCreditRequestWizard {
 
     @WizardStep(NewCreditRequestSteps.SIGN_GENERAL_TERMS)
     async onBasicInfo(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = await ctx.replyWithMarkdownV2(
-            this.msgSource.getSignGeneralTermsMsg(),
+        const msg = (await ctx.editMessageText(this.msgSource.getSignGeneralTermsMsg(), {
+            parse_mode: "MarkdownV2",
+        })) as Message;
+        await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
                 [
                     {
@@ -47,10 +50,10 @@ export class NewCreditRequestWizard {
                 {
                     columns: 1,
                 }
-            )
+            ).reply_markup
         );
 
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
+        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
@@ -66,47 +69,48 @@ export class NewCreditRequestWizard {
         });
         buttons.push(this.botCommon.goBackButton());
 
-        const msg = await this.botCommon.clearAndReply(
-            ctx,
-            this.msgSource.getChooseCollateralMsg(),
-            true,
-            { columns: 1 },
-            buttons
+        await ctx.editMessageText(this.msgSource.getChooseCollateralMsg(), { parse_mode: "MarkdownV2" });
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard(buttons, {
+                columns: 1,
+            }).reply_markup
         );
 
-        this.botCommon.tryToSaveSceneMessage(ctx, msg);
         ctx.wizard.next();
     }
 
     @WizardStep(NewCreditRequestSteps.ENTER_IBAN)
     async enterIban(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = await this.botCommon.clearAndReply(ctx, this.msgSource.getEnterIbanMsg(), true);
+        await ctx.editMessageText(this.msgSource.getEnterIbanMsg(), {
+            parse_mode: "MarkdownV2",
+        });
 
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
         ctx.wizard.next();
     }
 
     @WizardStep(NewCreditRequestSteps.ENTER_ACCOUNT_NAME)
     async enterBankAccountName(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = await this.botCommon.clearAndReply(
-            ctx,
+        await ctx.telegram.editMessageText(
+            ctx.chat?.id,
+            ctx.scene.session.state.sceneEditMsgId,
+            undefined,
             this.msgSource.getEnterBankAccountNameMsg(),
-            true
+            { parse_mode: "MarkdownV2" }
         );
 
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
         ctx.wizard.next();
     }
 
     @WizardStep(NewCreditRequestSteps.ENTER_CRYPTO_AMOUNT)
     async enterCryptoAmount(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = await this.botCommon.clearAndReply(
-            ctx,
+        await ctx.telegram.editMessageText(
+            ctx.chat?.id,
+            ctx.scene.session.state.sceneEditMsgId,
+            undefined,
             this.msgSource.getEnterCryptoAmountMsg(ctx),
-            true
+            { parse_mode: "MarkdownV2" }
         );
 
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
         ctx.wizard.next();
     }
 
@@ -125,28 +129,38 @@ export class NewCreditRequestWizard {
         );
         const convertedCF = formatUnitsNumber(economicalParams.collateralFactor);
 
-        const msg = await this.botCommon.clearAndReply(
-            ctx,
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+
+        await ctx.telegram.editMessageText(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
             this.msgSource.getChoseRiskStrategyMsg(convertedCF),
-            true,
-            { columns: 3 },
-            [
-                {
-                    text: `🟢 LOW`,
-                    callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${RiskStrategyLevels.LOW}`,
-                },
-                {
-                    text: `🟠 MEDIUM`,
-                    callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${RiskStrategyLevels.MEDIUM}`,
-                },
-                {
-                    text: `🔴 HIGH`,
-                    callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${convertedCF}`,
-                },
-            ]
+            { parse_mode: "MarkdownV2" }
+        );
+        await ctx.telegram.editMessageReplyMarkup(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            Markup.inlineKeyboard(
+                [
+                    {
+                        text: `🟢 LOW`,
+                        callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${RiskStrategyLevels.LOW}`,
+                    },
+                    {
+                        text: `🟠 MEDIUM`,
+                        callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${RiskStrategyLevels.MEDIUM}`,
+                    },
+                    {
+                        text: `🔴 HIGH`,
+                        callback_data: `${NewCreditReqCallbacks.RISK_STRATEGY}:${convertedCF}`,
+                    },
+                ],
+                { columns: 3 }
+            ).reply_markup
         );
 
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
         ctx.wizard.next();
     }
 
@@ -184,7 +198,6 @@ export class NewCreditRequestWizard {
         );
         csss.economicalParamsId = economicalParameters.id;
 
-        const msgs = [];
         const buttonText = this.msgSource.getSignApplicationButtonMsg();
         const buttons = [
             {
@@ -202,18 +215,18 @@ export class NewCreditRequestWizard {
         ];
 
         if (!viewDetails) {
-            const msg1 = await this.botCommon.clearAndReply(
-                ctx,
+            await ctx.editMessageText(
                 this.msgSource.getSignApplicationMainMsg(economicalParameters, sceneData),
-                true
+                { parse_mode: "MarkdownV2" }
             );
-            const msg2 = await ctx.replyWithMarkdownV2(
+
+            const msg1 = await ctx.replyWithMarkdownV2(
                 buttonText,
                 Markup.inlineKeyboard(buttons, { columns: 1 })
             );
 
-            msgs.push(msg1, msg2);
-            this.botCommon.skipMessageRemoving(ctx, [msg1]);
+            this.botCommon.tryToSaveSceneMessage(ctx, msg1);
+            this.botCommon.skipMessageRemoving(ctx, msg1);
         } else {
             // Remove `details` button from the button list
             buttons.shift();
@@ -223,18 +236,15 @@ export class NewCreditRequestWizard {
                 openCreditLineData,
                 sceneData
             );
-            const msg = await this.botCommon.clearAndReply(
-                ctx,
-                detailsText + buttonText,
-                true,
-                { columns: 1 },
-                buttons
-            );
 
-            msgs.push(msg);
+            // Last sent message should be edited.
+            // Note! Last sent msgId is not equal to sceneEditMsgId
+            await ctx.editMessageText(detailsText + buttonText, { parse_mode: "MarkdownV2" });
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard(buttons, { columns: 1 }).reply_markup
+            );
         }
 
-        this.botCommon.tryToSaveSceneMessage(ctx, msgs);
         ctx.wizard.next();
     }
 
@@ -272,7 +282,7 @@ export class NewCreditRequestWizard {
                 await this.signApplicationHandler(ctx, value);
                 break;
             case NewCreditReqCallbacks.BACK_TO_MAIN_MENU:
-                await this.botCommon.tryToDeleteMessages(ctx);
+                await this.botCommon.tryToDeleteMessages(ctx, true);
                 await ctx.scene.enter(MainScene.ID);
                 break;
             default:
@@ -284,8 +294,9 @@ export class NewCreditRequestWizard {
     async userMessageHandler(@Ctx() ctx: NewCreditRequestContext) {
         // Catch user input to remove it with step message
         if (!ctx.has(filters.message("text"))) return;
-        this.botCommon.tryToSaveSceneMessage(ctx, ctx.message);
-        await this.botCommon.tryToDeleteMessages(ctx);
+        try {
+            await ctx.deleteMessage(ctx.message.message_id);
+        } catch {}
 
         const userMessageText = ctx.message.text;
         const currentCursor = ctx.scene.session.cursor;
@@ -353,16 +364,12 @@ export class NewCreditRequestWizard {
 
     private async signApplicationHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
         // TODO: verify user input based on current scene step
-        const msgs = [];
         const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
 
         const csss = ctx.scene.session.state;
-
         if (
             !csss.debtCurrency ||
             !csss.collateralCurrency ||
-            // !csss.iban ||
-            // !csss.bankAccountName ||
             !csss.economicalParamsId ||
             !csss.riskStrategyLevel
         ) {
@@ -374,8 +381,11 @@ export class NewCreditRequestWizard {
             await this.signApplication(ctx, true);
             return;
         } else {
+            // Force unlock skipped message
             ctx.scene.session.state.skipMsgRemovingOnce = [];
         }
+
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId!;
 
         if (callbackValue === SignApplicationOptions.APPROVE) {
             const wallet = await this.botManager.getUserWallet(
@@ -399,38 +409,43 @@ export class NewCreditRequestWizard {
             }
 
             const replyMsgs = this.msgSource.getSignApplicationHandlerMsg(callbackValue, wallet);
-
             if (typeof replyMsgs === "string") {
                 throw new Error("Incorrect message structure");
             }
 
-            const msg = await this.botCommon.clearAndReply(ctx, replyMsgs.msg, true);
-            const msg1 = await ctx.replyWithPhoto(replyMsgs.msg1);
+            // Remove all stored msgs except sceneEditMsgId directly before editing main msg to avoid interface lag
+            await this.botCommon.tryToDeleteMessages(ctx);
 
+            await ctx.telegram.editMessageText(ctx.chat!.id, editMsgId, undefined, replyMsgs.msg, {
+                parse_mode: "MarkdownV2",
+            });
+            const msg1 = await ctx.replyWithPhoto(replyMsgs.msg1);
             const msg2 = await ctx.replyWithMarkdownV2(
                 replyMsgs.msg2,
                 Markup.inlineKeyboard(buttons, { columns: 1 })
             );
 
-            msgs.push(msg, msg1, msg2);
+            this.botCommon.tryToSaveSceneMessage(ctx, [msg1, msg2]);
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
             const replyMsg = this.msgSource.getSignApplicationHandlerMsg(callbackValue);
             if (!(typeof replyMsg === "string")) {
                 throw new Error("Incorrect message structure");
             }
 
-            const rejectMsg = await this.botCommon.clearAndReply(
-                ctx,
-                replyMsg,
-                true,
-                { columns: 1 },
-                buttons
+            // Remove all stored msgs except sceneEditMsgId directly before editing main msg to avoid interface lag
+            await this.botCommon.tryToDeleteMessages(ctx);
+
+            await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, replyMsg, {
+                parse_mode: "MarkdownV2",
+            });
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                Markup.inlineKeyboard(buttons, { columns: 1 }).reply_markup
             );
-            msgs.push(rejectMsg);
         } else {
             throw new Error("Incorrect sign application option");
         }
-
-        this.botCommon.tryToSaveSceneMessage(ctx, msgs);
     }
 }
