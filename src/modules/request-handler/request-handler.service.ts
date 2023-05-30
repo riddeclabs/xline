@@ -40,7 +40,7 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
-        return this.depositRequestRepo.findOne({
+        return this.depositRequestRepo.findOneOrFail({
             where: { creditLineId, depositRequestStatus: DepositRequestStatus.PENDING },
             order: {
                 createdAt: "ASC",
@@ -70,7 +70,7 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number) {
-        return this.withdrawRequestRepo.findOne({
+        return this.withdrawRequestRepo.findOneOrFail({
             where: { creditLineId, withdrawRequestStatus: WithdrawRequestStatus.PENDING },
             order: {
                 createdAt: "ASC",
@@ -97,7 +97,7 @@ export class RequestHandlerService {
     }
 
     async getAllBorrowReqByLineId(creditLineId: number) {
-        return this.depositRequestRepo.findOne({ where: { creditLineId } });
+        return this.borrowRequestRepo.find({ where: { creditLineId } });
     }
 
     async getOldestPendingBorrowReq(creditLineId: number) {
@@ -128,7 +128,7 @@ export class RequestHandlerService {
     }
 
     async getAllRepayReqByLineId(creditLineId: number) {
-        return this.depositRequestRepo.findAndCount({ where: { creditLineId } });
+        return this.repayRequestRepo.findAndCount({ where: { creditLineId } });
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {

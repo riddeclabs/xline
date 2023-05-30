@@ -49,8 +49,6 @@ export class RepayActionWizard {
 
     @WizardStep(RepayActionSteps.SIGN_TERMS)
     async onSignTerms(@Ctx() ctx: RepayContext) {
-        console.log("🍋🍋🍋<<<<<<<<<< HELLO. I AM INSIDE THE onSignTerms POINT OF REPAY SCENE >>>>>>>");
-
         const targetWallet = ctx.scene.session.state.userWallet;
         // Get targetCurrency from `ViewActiveCreditLineWizard` scene
         const targetToken = ctx.session.targetCurrency;

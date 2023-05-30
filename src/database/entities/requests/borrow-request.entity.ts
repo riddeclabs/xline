@@ -8,7 +8,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
-import { uint256 } from "../../utils";
+import { uint256OrNull } from "../../utils";
 import { BorrowRequestStatus } from "../../../common";
 import { CreditLine } from "../credit-line.entity";
 import { FiatTransaction } from "../transactions/fiat-transactions.entity";
@@ -33,10 +33,10 @@ export class BorrowRequest {
     })
     borrowRequestStatus!: BorrowRequestStatus;
 
-    @Column("numeric", { ...uint256(), name: "borrow_fiat_amount" })
+    @Column("numeric", { ...uint256OrNull(), name: "borrow_fiat_amount", nullable: true })
     borrowFiatAmount!: bigint | null;
 
-    @Column("numeric", { ...uint256(), name: "initial_risk_strategy" })
+    @Column("numeric", { ...uint256OrNull, name: "initial_risk_strategy", nullable: true })
     initialRiskStrategy!: bigint | null;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

@@ -3,7 +3,7 @@ import { Action, Ctx, Hears, Scene, SceneEnter } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MAIN_MENU_OPTIONS } from "../constants";
-import { NewCreditRequestWizard } from "./new-credit-request.scene";
+import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
 import { ViewActiveCreditLineWizard } from "./view-active-line.scene";
 import { ViewRequestWizard } from "./view-request.scene";
 import { BotCommonService } from "../bot-common.service";
@@ -12,9 +12,9 @@ import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
-import { BotManagerService } from "../bot-manager.service";
+import { ManagePortfolioWizard } from "./manage-portfolio.scene";
 
-type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest";
+type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest" | "managePortfolio";
 
 type MainSessionData = ExtendedSessionData;
 type MainSceneContext = ExtendedWizardContext<MainSessionData>;
@@ -38,8 +38,8 @@ export class MainScene {
             await this.botCommon.tryToDeleteMessages(ctx);
         } catch {}
 
-        const msg = await ctx.reply(
-            "Hello dear friend!",
+        const msg = await ctx.replyWithMarkdownV2(
+            this.botCommon.makeHeaderText("Main menu"),
             Markup.inlineKeyboard(
                 [
                     {
@@ -47,19 +47,15 @@ export class MainScene {
                         callback_data: MAIN_MENU_OPTIONS.TERM_AND_CONDITION,
                     },
                     {
-                        text: "📊 Current rates",
+                        text: "📊 Current rates info",
                         callback_data: MAIN_MENU_OPTIONS.CURRENT_RATES,
                     },
                     {
-                        text: "🆕 Create new credit request",
-                        callback_data: `goto:${MAIN_MENU_OPTIONS.NEW_CREDIT_REQUEST}`,
+                        text: "💳 Manage my portfolio",
+                        callback_data: `goto:${MAIN_MENU_OPTIONS.MANAGE_PORTFOLIO}`,
                     },
                     {
-                        text: "💳 View active credit lines",
-                        callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_ACTIVE_LINE}`,
-                    },
-                    {
-                        text: "🦈 View your requests",
+                        text: "📔 View my requests",
                         callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_REQUEST}`,
                     },
                     {
@@ -123,7 +119,8 @@ export class MainScene {
     @Action(buildTypeExp(MAIN_MENU_OPTIONS.TERM_AND_CONDITION))
     async onTermAndCondition(@Ctx() ctx: MainSceneContext) {
         await ctx.editMessageText(
-            "🍄 Fully trusted solution! \n" + "You give me money, I give you money"
+            `Terms & conditions could be found on our [website](https://xline.riddec.com/terms)\n`,
+            { parse_mode: "MarkdownV2" }
         );
 
         await ctx.editMessageReplyMarkup(
@@ -185,6 +182,7 @@ export class MainScene {
             newCreditRequest: NewCreditRequestWizard.ID,
             viewActiveLine: ViewActiveCreditLineWizard.ID,
             viewRequest: ViewRequestWizard.ID,
+            managePortfolio: ManagePortfolioWizard.ID,
         };
 
         const targetSceneId = sceneIdMap[direction as GotoVariant];

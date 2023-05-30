@@ -1,5 +1,6 @@
 import { formatUnits } from "./fixed-number";
-
+// FIXME: MOCK IMPLEMENTATION.
+//      function returns random 8 symbol length string
 export function generateReferenceNumber(): string {
     // Desired length of the reference number
     const length = 8;
@@ -69,4 +70,12 @@ export function bigintToFormattedPercent(value: bigint, decimals = 18): string {
         }
     }
     return res;
+}
+
+export function createUserGatewayId(chatId: number, currencyId: number) {
+    return `${chatId}-${currencyId}`;
+}
+
+export function xor(a: any, b: any): boolean {
+    return !!a !== !!b;
 }

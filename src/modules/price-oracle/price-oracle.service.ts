@@ -24,7 +24,7 @@ export class PriceOracleService {
 
     // Returns raw token price in float format
     private async getTokenPriceByPair(tokenPair: string) {
-        let tokenPrice: number;
+        let tokenPrice: string;
         try {
             const params = {
                 symbol: tokenPair,

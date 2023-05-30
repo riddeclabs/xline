@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, UsePipes, ValidationPipe } from "@nestjs/common";
 import { EconomicalParametersService } from "./economical-parameters.service";
 import { ApiTags } from "@nestjs/swagger";
 import { formatUnits } from "../../common/fixed-number";
 import { EconomicalParameters } from "../../database/entities";
+import { CreateEconomicalParameterDto } from "./dto/create-economical-parameter.dto";
 
 @ApiTags("Economical parameters")
 @Controller("economical-parameters")
@@ -20,6 +21,12 @@ export class EconomicalParametersController {
         const allParameters = await this.economicalParametersService.getAllParams();
         return allParameters.map(ep => this.serializeEntity(ep));
     }
+    @Post()
+    @UsePipes(ValidationPipe)
+    async createEconomicalParams(@Body() createParamsDto: CreateEconomicalParameterDto) {
+        const entity = await this.economicalParametersService.createEconomicalParams(createParamsDto);
+        return this.serializeEntity(entity);
+    }
 
     @Get("credit-line-id/:creditLineId")
     async getEconomicalParamsByLineId(@Param("creditLineId") creditLineId: number) {
@@ -27,7 +34,7 @@ export class EconomicalParametersController {
         return this.serializeEntity(ep);
     }
 
-    @Get("fresh-params")
+    @Get("/fresh-params/currency")
     async getFreshEconomicalParams(
         @Query("collateralCurrencyId") collateralCurrencyId: string,
         @Query("debtCollateralCurrencyId") debtCollateralCurrencyId: string
@@ -42,6 +49,8 @@ export class EconomicalParametersController {
     serializeEntity(ep: EconomicalParameters) {
         return {
             ...ep,
+            collateralCurrencyId: ep.collateralCurrencyId,
+            debtCurrencyId: ep.debtCurrencyId,
             apr: formatUnits(ep.apr),
             liquidationFee: formatUnits(ep.liquidationFee),
             collateralFactor: formatUnits(ep.collateralFactor),

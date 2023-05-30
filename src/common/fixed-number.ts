@@ -58,6 +58,10 @@ export function parseUnits(value: string | number, decimals = 18): bigint {
     return wei;
 }
 
+export function formatUnitsNumber(value: bigint, decimals = 18): number {
+    return Number(formatUnits(value, decimals));
+}
+
 export function formatUnits(value: bigint, decimals = 18): string {
     if (decimals == null) {
         decimals = 0;
