@@ -1,38 +1,62 @@
-import { IsString } from "class-validator";
+import { IsNumber, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
-abstract class CallbackDto {
+export class CryptoCallbackDto {
     @IsString()
     @ApiProperty({
-        description: "Address tx has been sent from",
-        example: "0xF9a46555cbd3bc5461BD09c2E77e24B630476Dc3",
+        description: "Amount of the transaction. 1e18 is equivalent 1 ETH",
+        example: "1.000000000000000001",
     })
-    readonly from!: string;
-    @IsString()
-    @ApiProperty({
-        description: "Address tx has been sent to",
-        example: "0x60A1b4ECfd1390F4c318774899D19f907aa91aca",
-    })
-    readonly to!: string;
-    @IsString()
-    @ApiProperty({
-        description: "Hash of the transaction",
-        example: "0x05138d05766f42db89491979737e902fa1172e94aa7802330bc9c9a69b90974e",
-    })
-    readonly txHash!: string;
-    @IsString()
-    @ApiProperty({
-        description: "Actually transferred amount in original accuracy. 1 ETH -> 1 * 10^18",
-        example: "1000000000000000000",
-    })
-    readonly rawAmount!: string;
-    @IsString()
-    @ApiProperty({
-        description: "Actually transferred amount in usd. Scaled by 1e18. 100 USD -> 100 * 10^18",
-        example: "1000000000000000000",
-    })
-    readonly usdAmount!: string;
-}
+    readonly amount!: string;
 
-export class DepositCallbackDto extends CallbackDto {}
-export class WithdrawCallbackDto extends CallbackDto {}
+    @IsString()
+    @ApiProperty({
+        description: "Currency of the transaction",
+        example: "ETH",
+    })
+    readonly currency!: string;
+
+    @IsString()
+    @ApiProperty({
+        description: "A unique ID you have for the customer who made the deposit",
+        example: "9548724848",
+    })
+    readonly customerId!: string;
+
+    @IsString()
+    @ApiProperty({
+        description: `"DEPOSIT" or "WITHDRAWAL"`,
+        example: "DEPOSIT",
+    })
+    readonly type!: string;
+
+    @IsNumber()
+    @ApiProperty({
+        description: "Amount converted to EUR (at the time of transaction confirmation)",
+        example: 1245.2587,
+    })
+    readonly eur!: number;
+
+    @IsNumber()
+    @ApiProperty({
+        description: "Amount converted to USD (at the time of transaction confirmation)",
+        example: 1145.2914,
+    })
+    readonly usd!: number;
+
+    @IsString()
+    @ApiProperty({
+        description:
+            "Generated using sha512 algorithm hash that includes transaction ID, customer ID, amount, currency, and secret key",
+        example:
+            "EpeN4GbIzzgWDbs58meGmTKTCCWdB8VrDfaWdodWarF8IeVQrFg7sdY8b6mzOCklswQWusMXumzJ/kcJsV5OUQ==",
+    })
+    readonly hash!: string;
+
+    @IsString()
+    @ApiProperty({
+        description: "A unique transaction ID",
+        example: "6c1846a5-d941-4842-af2d-969d342facc3",
+    })
+    readonly id!: string;
+}

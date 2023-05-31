@@ -1,8 +1,12 @@
 import { IsNumber, IsString } from "class-validator";
 
 export class ResolveCryptoBasedRequestDto {
-    @IsNumber()
-    requestId!: number;
+    @IsString()
+    chatId!: string;
+    @IsString()
+    collateralSymbol!: string;
+    @IsString()
+    callbackType!: string;
     @IsString()
     from!: string;
     @IsString()

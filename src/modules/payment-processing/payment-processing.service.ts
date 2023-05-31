@@ -9,6 +9,7 @@ import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
+import { CryptoCallbackDto } from "./dto/callback.dto";
 
 interface XGateWayAddressResponse {
     data: {
@@ -141,26 +142,21 @@ export class PaymentProcessingService {
     }
 
     // Callback handler for the deposit action
-    async handleDepositCallback(depositCallback: {
-        from: string;
-        to: string;
-        txHash: string;
-        rawAmount: string;
-        usdAmount: string;
-    }) {
-        const depositReqDto = Object.assign(new ResolveCryptoBasedRequestDto(), depositCallback);
-        await this.requestResolver.resolveDepositRequest(depositReqDto);
-    }
+    async handleCryptoCallback(dto: CryptoCallbackDto) {
+        const depositReqDto = Object.assign(new ResolveCryptoBasedRequestDto(), {
+            from: "0x0",
+            to: "0x0",
+            txHash: dto.id,
+            rawTransferAmount: dto.amount,
+            usdTransferAmount: dto.usd.toString(),
+            collateralSymbol: dto.currency,
+            chatId: dto.customerId,
+            callbackType: dto.type,
+        });
+        await this.requestResolver.resolveCryptoRequest(depositReqDto);
 
-    // Callback handler for the withdrawal action
-    async handleWithdrawCallback(depositCallback: {
-        from: string;
-        to: string;
-        txHash: string;
-        rawAmount: string;
-        usdAmount: string;
-    }) {
-        const withdrawReqDto = Object.assign(new ResolveCryptoBasedRequestDto(), depositCallback);
-        await this.requestResolver.resolveWithdrawRequest(withdrawReqDto);
+        return {
+            success: true,
+        };
     }
 }

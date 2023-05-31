@@ -7,12 +7,21 @@ import {
     ActionTypes,
     BorrowRequestStatus,
     DepositRequestStatus,
+    parseUnits,
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
 import { TransactionService } from "../transaction/transaction.service";
 import { CurrencyService } from "../currency/currency.service";
-import { BorrowRequest, DepositRequest, RepayRequest, WithdrawRequest } from "../../database/entities";
+import {
+    BorrowRequest,
+    CollateralCurrency,
+    CreditLine,
+    DepositRequest,
+    RepayRequest,
+    WithdrawRequest,
+} from "../../database/entities";
+import { CallbackTypes } from "../payment-processing/constants";
 
 @Injectable()
 export class RequestResolverService {
@@ -174,78 +183,50 @@ export class RequestResolverService {
         };
     }
 
-    // Used by payment processing module to resolve pending deposit request after user's payment has been received
-    async resolveDepositRequest(resolveDepositRequestDto: ResolveCryptoBasedRequestDto) {
+    // FIXME: If there is no any Deposit/Withdraw requests, but we received a callback, store it somehow
+    // TODO: Add transaction mechanism ( increaseSupplyAmountById, update<X>ReqStatus, createCryptoTransaction )
+    // Used by payment processing module to resolve pending crypto based request
+    async resolveCryptoRequest(resolveDto: ResolveCryptoBasedRequestDto) {
         // Accrue interest
         // FIXME: add risk engine call
 
-        const { request, creditLine } = await this.getRequestAndCreditLine(
-            resolveDepositRequestDto.requestId,
-            ActionTypes.DEPOSIT
+        const creditLine = await this.creditLineService.getCreditLineByChatIdAndColSymbol(
+            Number(resolveDto.chatId),
+            resolveDto.collateralSymbol
+        );
+        const collateralToken = await this.currencyService.getCollateralCurrency(
+            creditLine.collateralCurrencyId
         );
 
-        // Increase supply amount for credit line
-        await this.creditLineService.increaseSupplyAmountById(
-            creditLine,
-            BigInt(resolveDepositRequestDto.rawTransferAmount)
-        );
+        let depositRequestId;
+        let withdrawRequestId;
+        if (resolveDto.callbackType === CallbackTypes.DEPOSIT) {
+            ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
+                creditLine,
+                collateralToken,
+                resolveDto.rawTransferAmount
+            ));
+        } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
+            ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
+                creditLine,
+                collateralToken,
+                resolveDto.rawTransferAmount
+            ));
+        } else {
+            throw new Error("Incorrect callback type");
+        }
 
-        // Update status for borrow req
-        const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
-            request.id,
-            DepositRequestStatus.FINISHED
-        );
-
-        // Create new FiatTransaction
-        const transaction = await this.transactionService.createCryptoTransaction({
-            ...resolveDepositRequestDto,
-            depositRequestId: request.id,
-            withdrawRequestId: null,
-            rawTransferAmount: BigInt(resolveDepositRequestDto.rawTransferAmount),
-            usdTransferAmount: BigInt(resolveDepositRequestDto.usdTransferAmount),
+        // Create new CryptoTransaction
+        await this.transactionService.createCryptoTransaction({
+            depositRequestId,
+            withdrawRequestId,
+            rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralToken.decimals),
+            // FIXME: maybe calculate usd amount by us?
+            usdTransferAmount: parseUnits(resolveDto.usdTransferAmount),
+            txHash: resolveDto.txHash,
+            from: resolveDto.from,
+            to: resolveDto.to,
         });
-
-        return {
-            updatedRequest,
-            transaction,
-        };
-    }
-
-    // Used by payment processing module to resolve pending withdraw request after user's payment has been received
-    async resolveWithdrawRequest(resolveWithdrawRequestDto: ResolveCryptoBasedRequestDto) {
-        // Accrue interest
-        // FIXME: add risk engine call
-
-        const { request, creditLine } = await this.getRequestAndCreditLine(
-            resolveWithdrawRequestDto.requestId,
-            ActionTypes.WITHDRAW
-        );
-
-        // Increase supply amount for credit line
-        await this.creditLineService.decreaseSupplyAmountById(
-            creditLine,
-            BigInt(resolveWithdrawRequestDto.rawTransferAmount)
-        );
-
-        // Update status for borrow req
-        const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
-            request.id,
-            WithdrawRequestStatus.FINISHED
-        );
-
-        // Create new FiatTransaction
-        const transaction = await this.transactionService.createCryptoTransaction({
-            ...resolveWithdrawRequestDto,
-            depositRequestId: request.id,
-            withdrawRequestId: null,
-            rawTransferAmount: BigInt(resolveWithdrawRequestDto.rawTransferAmount),
-            usdTransferAmount: BigInt(resolveWithdrawRequestDto.usdTransferAmount),
-        });
-
-        return {
-            updatedRequest,
-            transaction,
-        };
     }
 
     // // // Internal fns
@@ -303,6 +284,78 @@ export class RequestResolverService {
                 return this.requestHandlerService.getRepayRequest;
             default:
                 throw new Error("Unexpected action type");
+        }
+    }
+
+    // Resolves a deposit request by updating the request status
+    // and increasing the supply amount for the associated credit line.
+    private async resolveDepositRequest(
+        creditLine: CreditLine,
+        collateralToken: CollateralCurrency,
+        rawTransferAmount: string
+    ) {
+        const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
+            creditLine.id
+        );
+        const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
+            pendingRequest,
+            DepositRequestStatus.FINISHED
+        );
+
+        // Increase supply amount for credit line
+        await this.creditLineService.increaseSupplyAmountById(
+            creditLine,
+            parseUnits(rawTransferAmount, collateralToken.decimals)
+        );
+
+        return {
+            updatedRequest,
+            depositRequestId: updatedRequest.id,
+            withdrawRequestId: null,
+        };
+    }
+
+    // Resolves a withdrawal request by verifying the withdrawal amount, updating the request status,
+    // and decreasing the supply amount for the associated credit line.
+    private async resolveWithdrawRequest(
+        creditLine: CreditLine,
+        collateralToken: CollateralCurrency,
+        rawTransferAmount: string
+    ) {
+        const pendingRequest = await this.requestHandlerService.getOldestPendingWithdrawReq(
+            creditLine.id
+        );
+
+        this.verifyWithdrawAmount(pendingRequest, collateralToken, rawTransferAmount);
+
+        const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
+            pendingRequest,
+            WithdrawRequestStatus.FINISHED
+        );
+
+        // Decrease supply amount for credit line
+        await this.creditLineService.decreaseSupplyAmountById(
+            creditLine,
+            parseUnits(rawTransferAmount, collateralToken.decimals)
+        );
+
+        return {
+            updatedRequest,
+            depositRequestId: null,
+            withdrawRequestId: updatedRequest.id,
+        };
+    }
+
+    // Verifies if the actual withdraw amount matches the expected withdrawal amount specified in the withdrawal request.
+    private verifyWithdrawAmount(
+        request: WithdrawRequest,
+        collateralToken: CollateralCurrency,
+        rawTransferAmount: string
+    ) {
+        const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+
+        if (!(request.withdrawAmount === actualWithdrawAmount)) {
+            throw new Error("Incorrect withdraw amount received");
         }
     }
 }
