@@ -8,7 +8,7 @@ import { BotCommonService } from "../../bot-common.service";
 import { SignApplicationOptions, SUPPORTED_TOKENS } from "../../constants";
 import { CustomExceptionFilter } from "../../exception-filter";
 import { BotManagerService } from "../../bot-manager.service";
-import { formatUnitsNumber, parseUnits } from "../../../../common";
+import { formatUnitsNumber, parseUnits } from "../../../../common/fixed-number";
 import { InlineKeyboardButton } from "typegram/markup";
 import { NewCreditRequestText } from "./new-credit-request.text";
 import {
@@ -19,7 +19,8 @@ import {
     RiskStrategyLevels,
     SignApplicationSceneData,
 } from "./new-credit-request.types";
-import { Message } from "typegram";
+import { validateIban } from "src/common/input-validation";
+import { Message } from "telegraf/typings/core/types/typegram";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -281,6 +282,8 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
+            // TODO: ENTER_IBAN handler
+            // ibanHandler: try again
             case NewCreditReqCallbacks.BACK_TO_MAIN_MENU:
                 await this.botCommon.tryToDeleteMessages(ctx, true);
                 await ctx.scene.enter(MainScene.ID);
@@ -338,9 +341,48 @@ export class NewCreditRequestWizard {
     }
 
     private async enterIbanHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.iban = userInput.toUpperCase();
-        await this.botCommon.executeCurrentStep(ctx);
+        const input = userInput.toUpperCase();
+        const ibanValidity = validateIban(input);
+        if (!ibanValidity.valid) {
+            //throw new Error("Incorrect IBAN, ErrorCode: " + ibanValidity.errorCodes);
+            const buttons = [
+               {
+                    text: "Incorrect IBAN, ErrorCode: " + ibanValidity.errorCodes,
+                    callback_data: `${NewCreditReqCallbacks.ENTER_IBAN}:ololo` //FIXME: add correct callback
+               },
+               {
+                text: "To the main menu",
+                callback_data: `${NewCreditReqCallbacks.BACK_TO_MAIN_MENU}:ololo` //FIXME: add correct callback
+               }
+
+            ];
+
+            await ctx.editMessageText(
+                "Bad luck, try again",
+                { parse_mode: "MarkdownV2" }
+            );
+
+            const msg1 = await ctx.replyWithMarkdownV2(
+                "Meh...",
+                Markup.inlineKeyboard(buttons, { columns: 1 })
+            );
+
+            this.botCommon.tryToSaveSceneMessage(ctx, msg1);
+            this.botCommon.skipMessageRemoving(ctx, msg1);
+
+            //Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }));
+
+            // msg Erroro
+            // button 1  -1 cursor back()
+            //
+            //
+
+            // button 2 - return to main menu  Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 })
+        } else {
+            ctx.scene.session.state.iban = input;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
+        
     }
 
     private async enterAccountNameHandler(ctx: NewCreditRequestContext, userInput: string) {

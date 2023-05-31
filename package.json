@@ -37,6 +37,7 @@
     "connect-flash": "^0.1.1",
     "dotenv": "^16.0.3",
     "express-session": "^1.17.3",
+    "ibantools": "^4.3.3",
     "liquidjs": "^10.6.2",
     "nestjs-telegraf": "^2.6.3",
     "passport": "^0.6.0",
