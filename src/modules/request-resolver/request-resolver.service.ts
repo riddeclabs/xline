@@ -198,18 +198,16 @@ export class RequestResolverService {
             creditLine.collateralCurrencyId
         );
 
-        let updatedRequest;
         let depositRequestId;
         let withdrawRequestId;
-
         if (resolveDto.callbackType === CallbackTypes.DEPOSIT) {
-            ({ updatedRequest, depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
+            ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
                 creditLine,
                 collateralToken,
                 resolveDto.rawTransferAmount
             ));
         } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
-            ({ updatedRequest, depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
+            ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
                 creditLine,
                 collateralToken,
                 resolveDto.rawTransferAmount
@@ -219,7 +217,7 @@ export class RequestResolverService {
         }
 
         // Create new CryptoTransaction
-        const transaction = await this.transactionService.createCryptoTransaction({
+        await this.transactionService.createCryptoTransaction({
             depositRequestId,
             withdrawRequestId,
             rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralToken.decimals),
@@ -229,11 +227,6 @@ export class RequestResolverService {
             from: resolveDto.from,
             to: resolveDto.to,
         });
-
-        return {
-            updatedRequest,
-            transaction,
-        };
     }
 
     // // // Internal fns

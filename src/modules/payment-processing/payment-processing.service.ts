@@ -9,7 +9,6 @@ import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
-import { formatUnits } from "../../common";
 import { CryptoCallbackDto } from "./dto/callback.dto";
 
 interface XGateWayAddressResponse {
@@ -154,17 +153,10 @@ export class PaymentProcessingService {
             chatId: dto.customerId,
             callbackType: dto.type,
         });
-        const { updatedRequest, transaction } = await this.requestResolver.resolveCryptoRequest(
-            depositReqDto
-        );
+        await this.requestResolver.resolveCryptoRequest(depositReqDto);
 
         return {
-            updatedRequest,
-            transaction: {
-                ...transaction,
-                rawTransferAmount: formatUnits(transaction.rawTransferAmount),
-                usdTransferAmount: formatUnits(transaction.usdTransferAmount),
-            },
+            success: true,
         };
     }
 }
