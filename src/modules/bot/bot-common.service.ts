@@ -19,7 +19,7 @@ export class BotCommonService {
     async tryToDeleteMessages(@Ctx() ctx: ExtendedWizardContext, forceDelete = false) {
         const csss = ctx.scene.session.state;
         const allMessageIds = csss.sceneMessageIds;
-        const allSkipMessageIds = csss.skipMsgRemovingOnce;
+        const allSkipMessageIds = forceDelete ? undefined : csss.skipMsgRemovingOnce;
 
         if (allMessageIds) {
             const deleteMessageIds =
