@@ -5,6 +5,7 @@ import { InlineKeyboardButton } from "typegram/markup";
 export type DefaultSessionState = {
     sceneMessageIds?: number[];
     skipMsgRemovingOnce?: number[];
+    sceneEditMsgId?: number;
 };
 
 export type ExtendedSessionData = WizardSessionData & {

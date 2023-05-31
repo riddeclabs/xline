@@ -14,6 +14,8 @@ export class CustomExceptionFilter<D extends ExtendedWizardContext> implements E
         const telegrafHost = TelegrafArgumentsHost.create(host);
         const ctx = telegrafHost.getContext<D>();
 
+        await this.botCommon.tryToDeleteMessages(ctx, true);
+
         logger.error(exception, "State: " + JSON.stringify(ctx.session));
 
         await ctx.reply(

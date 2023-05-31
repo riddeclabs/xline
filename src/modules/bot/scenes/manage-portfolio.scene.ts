@@ -34,8 +34,11 @@ export class ManagePortfolioWizard {
 
     @WizardStep(ManagePortfolioSteps.PORTFOLIO_MENU)
     async onWalletRequest(@Ctx() ctx: ManagePortfolioContext) {
-        const msg = await ctx.replyWithMarkdownV2(
-            this.botCommon.makeHeaderText("Portfolio actions"),
+        await ctx.editMessageText(this.botCommon.makeHeaderText("Portfolio actions"), {
+            parse_mode: "MarkdownV2",
+        });
+
+        await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
                 [
                     {
@@ -51,17 +54,13 @@ export class ManagePortfolioWizard {
                 {
                     columns: 1,
                 }
-            )
+            ).reply_markup
         );
-
-        this.botCommon.tryToSaveSceneMessage(ctx, msg);
         ctx.wizard.next();
     }
 
     @Action(/.*/)
     async onActionHandler(@Ctx() ctx: ManagePortfolioContext) {
-        await this.botCommon.tryToDeleteMessages(ctx);
-
         // Enter scene handler.
         if (ctx.scene.session.cursor == ManagePortfolioSteps.PORTFOLIO_MENU) {
             await this.botCommon.executeCurrentStep(ctx);
