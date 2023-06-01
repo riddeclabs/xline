@@ -16,7 +16,8 @@ export enum NewCreditReqCallbacks {
     SUPPLY_CURRENCY = "supplyCurrency",
     RISK_STRATEGY = "riskStrategy",
     SIGN_APPLICATION = "signApplication",
-    ENTER_IBAN = "enterIban",
+    RE_ENTER_IBAN = "reEnterIban",
+    RE_ENTER_NAME = "reEnterName",
     BACK_TO_MAIN_MENU = "back",
 }
 

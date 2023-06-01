@@ -19,8 +19,9 @@ import {
     RiskStrategyLevels,
     SignApplicationSceneData,
 } from "./new-credit-request.types";
-import { validateIban } from "src/common/input-validation";
+import { validateIban, validateName } from "src/common/input-validation";
 import { Message } from "telegraf/typings/core/types/typegram";
+import { escapeSpecialCharacters } from "src/common";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -282,8 +283,11 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
-            // TODO: ENTER_IBAN handler
-            // ibanHandler: try again
+            case NewCreditReqCallbacks.RE_ENTER_NAME:
+            case NewCreditReqCallbacks.RE_ENTER_IBAN:
+                ctx.wizard.back();
+                await this.botCommon.executeCurrentStep(ctx);
+                break;
             case NewCreditReqCallbacks.BACK_TO_MAIN_MENU:
                 await this.botCommon.tryToDeleteMessages(ctx, true);
                 await ctx.scene.enter(MainScene.ID);
@@ -343,52 +347,67 @@ export class NewCreditRequestWizard {
     private async enterIbanHandler(ctx: NewCreditRequestContext, userInput: string) {
         const input = userInput.toUpperCase();
         const ibanValidity = validateIban(input);
+
         if (!ibanValidity.valid) {
-            //throw new Error("Incorrect IBAN, ErrorCode: " + ibanValidity.errorCodes);
-            const buttons = [
-               {
-                    text: "Incorrect IBAN, ErrorCode: " + ibanValidity.errorCodes,
-                    callback_data: `${NewCreditReqCallbacks.ENTER_IBAN}:ololo` //FIXME: add correct callback
-               },
-               {
-                text: "To the main menu",
-                callback_data: `${NewCreditReqCallbacks.BACK_TO_MAIN_MENU}:ololo` //FIXME: add correct callback
-               }
-
-            ];
-
-            await ctx.editMessageText(
-                "Bad luck, try again",
+            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+            await ctx.telegram.editMessageText(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                escapeSpecialCharacters("❌ Entered IBAN is incorrect. Please try again. ❌"),
                 { parse_mode: "MarkdownV2" }
             );
-
-            const msg1 = await ctx.replyWithMarkdownV2(
-                "Meh...",
-                Markup.inlineKeyboard(buttons, { columns: 1 })
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                Markup.inlineKeyboard(
+                    [
+                        {
+                            text: "🔁 Try again",
+                            callback_data: `${NewCreditReqCallbacks.RE_ENTER_IBAN}`,
+                        },
+                        this.botCommon.goBackButton(),
+                    ],
+                    { columns: 1 }
+                ).reply_markup
             );
-
-            this.botCommon.tryToSaveSceneMessage(ctx, msg1);
-            this.botCommon.skipMessageRemoving(ctx, msg1);
-
-            //Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }));
-
-            // msg Erroro
-            // button 1  -1 cursor back()
-            //
-            //
-
-            // button 2 - return to main menu  Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 })
         } else {
             ctx.scene.session.state.iban = input;
             await this.botCommon.executeCurrentStep(ctx);
         }
-        
     }
 
     private async enterAccountNameHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.bankAccountName = userInput.toUpperCase();
-        await this.botCommon.executeCurrentStep(ctx);
+        const input = userInput.toUpperCase();
+        if (!validateName(input)) {
+            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+            await ctx.telegram.editMessageText(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                escapeSpecialCharacters("❌ Entered name is incorrect. Please try again. ❌"),
+                { parse_mode: "MarkdownV2" }
+            );
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                Markup.inlineKeyboard(
+                    [
+                        {
+                            text: "🔁 Try again",
+                            callback_data: `${NewCreditReqCallbacks.RE_ENTER_NAME}`,
+                        },
+                        this.botCommon.goBackButton(),
+                    ],
+                    { columns: 1 }
+                ).reply_markup
+            );
+        } else {
+            ctx.scene.session.state.bankAccountName = input;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async reqCryptoAmountHandler(ctx: NewCreditRequestContext, userInput: string) {
