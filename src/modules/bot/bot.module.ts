@@ -24,6 +24,7 @@ import { CreditLineModule } from "../credit-line/credit-line.module";
 import { RequestResolverModule } from "../request-resolver/request-resolver.module";
 import { ManagePortfolioWizard } from "./scenes/manage-portfolio.scene";
 import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-request.text";
+import { ManageCreditLineWizard } from "./scenes/manage-credit-line/manage-credit-line.scene";
 
 @Module({
     imports: [
@@ -69,6 +70,7 @@ import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-req
         BotCommonService,
         NewCreditRequestText,
         ConfigService,
+        ManageCreditLineWizard,
     ],
 })
 export class BotModule {}
