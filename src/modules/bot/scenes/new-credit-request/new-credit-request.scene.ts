@@ -348,8 +348,8 @@ export class NewCreditRequestWizard {
 
         if (cl) {
             const errorMsg =
-                `❌ You already have a credit line with ${callbackValue} collateral. ❌\n` +
-                "You can have only one active credit line for each collateral currency.\n" +
+                `❌ *You already have a credit line with ${callbackValue} collateral.* ❌\n\n` +
+                "You can have only one active credit line for each collateral currency.\n\n" +
                 "Please choose another currency to use as collateral.";
             this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY);
         } else {
@@ -364,7 +364,9 @@ export class NewCreditRequestWizard {
 
         if (!ibanValidity.valid) {
             const errorMsg =
-                "❌ Entered IBAN is incorrect. ❌\n" + `*IBAN:* ${userInput}\n` + "Please try again.";
+                "❌ *Entered IBAN is incorrect.* ❌\n\n" +
+                `*IBAN:* ${userInput}\n\n` +
+                "Please try again.";
             this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.iban = input;
@@ -376,7 +378,9 @@ export class NewCreditRequestWizard {
         const input = userInput.toUpperCase();
         if (!validateName(input)) {
             const errorMsg =
-                "❌ Entered name is incorrect. ❌\n" + `*Name*: ${userInput}\n` + "Please try again.";
+                "❌ *Entered name is incorrect.* ❌\n\n" +
+                `*Name*: ${userInput}\n\n` +
+                "Please try again.";
             this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.bankAccountName = input;
@@ -388,8 +392,8 @@ export class NewCreditRequestWizard {
         const input = Number(userInput);
         if (!input || input <= 0) {
             const errorMsg =
-                "❌ Entered amount is incorrect. ❌\n" +
-                `*Amount:* ${userInput}\n` +
+                "❌ *Entered amount is incorrect.* ❌\n\n" +
+                `*Amount:* ${userInput}\n\n` +
                 "Please try again.";
             this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
         } else {
@@ -529,7 +533,7 @@ export class NewCreditRequestWizard {
                     },
                     this.botCommon.goBackButton(),
                 ],
-                { columns: 1 }
+                { columns: 2 } 
             ).reply_markup
         );
     }
