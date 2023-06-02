@@ -38,13 +38,16 @@ export class CreditLineService {
         return this.creditLineRepo.save(creditLine);
     }
 
-    async getCreditLineByChatIdAndColSymbol(chatId: number, collateralSymbol: string) {
+    async getCreditLineByChatIdAndColSymbol(
+        chatId: number,
+        collateralSymbol: string
+    ): Promise<CreditLine | null> {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
             .innerJoin("creditLine.userId", "user")
             .innerJoin("creditLine.collateralCurrencyId", "cc")
             .where("user.chat_id = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
-            .getOneOrFail();
+            .getOne();
     }
 }

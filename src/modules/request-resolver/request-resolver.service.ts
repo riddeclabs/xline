@@ -194,6 +194,11 @@ export class RequestResolverService {
             Number(resolveDto.chatId),
             resolveDto.collateralSymbol
         );
+
+        if (!creditLine) {
+            throw new Error("Credit line not found");
+        }
+
         const collateralToken = await this.currencyService.getCollateralCurrency(
             creditLine.collateralCurrencyId
         );

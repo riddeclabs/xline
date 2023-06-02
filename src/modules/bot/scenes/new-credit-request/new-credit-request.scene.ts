@@ -283,6 +283,8 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
+            case NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY:
+                ctx.scene.session.cursor = NewCreditRequestSteps.ENTER_IBAN;
             case NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT:
             case NewCreditReqCallbacks.RE_ENTER_NAME:
             case NewCreditReqCallbacks.RE_ENTER_IBAN:
@@ -338,11 +340,22 @@ export class NewCreditRequestWizard {
     private async supplyActionHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
         if (!callbackValue) throw new Error("Incorrect collateral currency callback received");
 
-        ctx.scene.session.state.collateralCurrency = await this.botManager.getCollateralTokenBySymbol(
-            callbackValue
-        );
+        // Will fail if currency is not found
+        const collateralCurrency = await this.botManager.getCollateralTokenBySymbol(callbackValue);
 
-        await this.botCommon.executeCurrentStep(ctx);
+        const chatId = ctx.chat!.id;
+        const cl = await this.botManager.getCreditLineByChatIdAndColSymbol(chatId, callbackValue);
+
+        if (cl) {
+            const errorMsg =
+                `❌ You already have a credit line with ${callbackValue} collateral. ❌\n` +
+                "You can have only one active credit line for each collateral currency.\n" +
+                "Please choose another currency to use as collateral.";
+            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY);
+        } else {
+            ctx.scene.session.state.collateralCurrency = collateralCurrency;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async enterIbanHandler(ctx: NewCreditRequestContext, userInput: string) {
