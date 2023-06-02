@@ -283,6 +283,7 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
+            case NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT:
             case NewCreditReqCallbacks.RE_ENTER_NAME:
             case NewCreditReqCallbacks.RE_ENTER_IBAN:
                 ctx.wizard.back();
@@ -349,29 +350,9 @@ export class NewCreditRequestWizard {
         const ibanValidity = validateIban(input);
 
         if (!ibanValidity.valid) {
-            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-            await ctx.telegram.editMessageText(
-                ctx.chat?.id,
-                editMsgId,
-                undefined,
-                escapeSpecialCharacters("❌ Entered IBAN is incorrect. Please try again. ❌"),
-                { parse_mode: "MarkdownV2" }
-            );
-            await ctx.telegram.editMessageReplyMarkup(
-                ctx.chat?.id,
-                editMsgId,
-                undefined,
-                Markup.inlineKeyboard(
-                    [
-                        {
-                            text: "🔁 Try again",
-                            callback_data: `${NewCreditReqCallbacks.RE_ENTER_IBAN}`,
-                        },
-                        this.botCommon.goBackButton(),
-                    ],
-                    { columns: 1 }
-                ).reply_markup
-            );
+            const errorMsg =
+                "❌ Entered IBAN is incorrect. ❌\n" + `*IBAN:* ${userInput}\n` + "Please try again.";
+            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.iban = input;
             await this.botCommon.executeCurrentStep(ctx);
@@ -381,29 +362,9 @@ export class NewCreditRequestWizard {
     private async enterAccountNameHandler(ctx: NewCreditRequestContext, userInput: string) {
         const input = userInput.toUpperCase();
         if (!validateName(input)) {
-            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-            await ctx.telegram.editMessageText(
-                ctx.chat?.id,
-                editMsgId,
-                undefined,
-                escapeSpecialCharacters("❌ Entered name is incorrect. Please try again. ❌"),
-                { parse_mode: "MarkdownV2" }
-            );
-            await ctx.telegram.editMessageReplyMarkup(
-                ctx.chat?.id,
-                editMsgId,
-                undefined,
-                Markup.inlineKeyboard(
-                    [
-                        {
-                            text: "🔁 Try again",
-                            callback_data: `${NewCreditReqCallbacks.RE_ENTER_NAME}`,
-                        },
-                        this.botCommon.goBackButton(),
-                    ],
-                    { columns: 1 }
-                ).reply_markup
-            );
+            const errorMsg =
+                "❌ Entered name is incorrect. ❌\n" + `*Name*: ${userInput}\n` + "Please try again.";
+            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.bankAccountName = input;
             await this.botCommon.executeCurrentStep(ctx);
@@ -411,9 +372,29 @@ export class NewCreditRequestWizard {
     }
 
     private async reqCryptoAmountHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.reqDepositAmountRaw = userInput;
-        await this.botCommon.executeCurrentStep(ctx);
+        const input = Number(userInput);
+        if (!input || input <= 0) {
+            const errorMsg =
+                "❌ Entered amount is incorrect. ❌\n" +
+                `*Amount:* ${userInput}\n` +
+                "Please try again.";
+            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
+        } else {
+            const decimalMaxLength = ctx.scene.session.state.collateralCurrency?.decimals;
+            if (!decimalMaxLength) throw new Error("Could not find collateral currency decimals");
+
+            // eslint-disable-next-line prefer-const
+            let [integer, decimal] = userInput.split(".");
+
+            if (decimal && decimal.length > decimalMaxLength) {
+                decimal = decimal.slice(0, decimalMaxLength);
+            } else {
+                decimal = decimal || "0";
+            }
+
+            ctx.scene.session.state.reqDepositAmountRaw = integer + "." + decimal;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async riskStrategyHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
@@ -508,5 +489,35 @@ export class NewCreditRequestWizard {
         } else {
             throw new Error("Incorrect sign application option");
         }
+    }
+
+    private async retryOrBackHandler(
+        ctx: NewCreditRequestContext,
+        errorMsg: string,
+        retryCallbackValue: string
+    ) {
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+        await ctx.telegram.editMessageText(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            escapeSpecialCharacters(errorMsg),
+            { parse_mode: "MarkdownV2" }
+        );
+        await ctx.telegram.editMessageReplyMarkup(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            Markup.inlineKeyboard(
+                [
+                    {
+                        text: "🔁 Try again",
+                        callback_data: `${retryCallbackValue}`,
+                    },
+                    this.botCommon.goBackButton(),
+                ],
+                { columns: 1 }
+            ).reply_markup
+        );
     }
 }

@@ -18,6 +18,7 @@ export enum NewCreditReqCallbacks {
     SIGN_APPLICATION = "signApplication",
     RE_ENTER_IBAN = "reEnterIban",
     RE_ENTER_NAME = "reEnterName",
+    RE_ENTER_CRYPTO_AMOUNT = "reEnterCryptoAmount",
     BACK_TO_MAIN_MENU = "back",
 }
 
