@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { ResolveCryptoBasedRequestDto, ResolveFiatBasedRequestDto } from "./dto/resolve-request.dto";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
@@ -51,20 +51,18 @@ export class RequestResolverService {
             throw new Error("Incorrect rawTransferAmount amount for fiat transaction");
         }
 
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
-
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
 
         // Verify borrow request
         await this.riskEngineService.verifyBorrowOrThrow(
             creditLine,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             requestedBorrowAmount
         );
 
@@ -103,7 +101,8 @@ export class RequestResolverService {
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
 
@@ -111,6 +110,7 @@ export class RequestResolverService {
             await this.riskEngineService.verifyBorrowOrThrow(
                 creditLine,
                 collateralToken.symbol,
+                creditLine.collateralToken.decimals,
                 requestedBorrowAmount
             );
         } catch (e) {
@@ -130,14 +130,14 @@ export class RequestResolverService {
 
     // Used to verify user requested borrow amount during the creation of new borrow request
     async verifyHypBorrowRequest(creditLineId: number, hypotheticalBorrowAmount: bigint) {
-        const creditLine = await this.creditLineService.getCreditLineById(creditLineId);
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
+        const creditLineExtended = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
+            creditLineId
         );
 
         await this.riskEngineService.verifyBorrowOrThrow(
-            creditLine,
-            collateralToken.symbol,
+            creditLineExtended,
+            creditLineExtended.collateralToken.symbol,
+            creditLineExtended.collateralToken.decimals,
             hypotheticalBorrowAmount
         );
     }
@@ -194,9 +194,9 @@ export class RequestResolverService {
             Number(resolveDto.chatId),
             resolveDto.collateralSymbol
         );
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
+        const collateralToken = creditLine.collateralCurrencyId as unknown as CollateralCurrency; // FIXME: after rebuild database scheme
+
+        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);
 
         let depositRequestId;
         let withdrawRequestId;
@@ -236,6 +236,7 @@ export class RequestResolverService {
     private async getBorrowAmount(
         request: BorrowRequest,
         collateralSymbol: string,
+        collateralDecimals: number,
         rawSupplyAmount: bigint
     ) {
         let requestedBorrowAmount: bigint;
@@ -243,6 +244,7 @@ export class RequestResolverService {
         if (!request.borrowFiatAmount && request.initialRiskStrategy) {
             requestedBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
                 collateralSymbol,
+                collateralDecimals,
                 rawSupplyAmount,
                 request.initialRiskStrategy
             );
@@ -264,7 +266,9 @@ export class RequestResolverService {
             | WithdrawRequest
             | BorrowRequest
             | RepayRequest;
-        const creditLine = await this.creditLineService.getCreditLineById(request.creditLineId);
+        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
+            request.creditLineId
+        );
 
         return {
             request,
@@ -297,6 +301,10 @@ export class RequestResolverService {
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
             creditLine.id
         );
+        if (!pendingRequest) {
+            throw new Error("Pending deposit request not found");
+        }
+
         const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
             pendingRequest,
             DepositRequestStatus.FINISHED
@@ -357,5 +365,27 @@ export class RequestResolverService {
         if (!(request.withdrawAmount === actualWithdrawAmount)) {
             throw new Error("Incorrect withdraw amount received");
         }
+    }
+
+    private verifyTransferAmount(rawTransferAmount: string, decimals: number) {
+        const parts = rawTransferAmount.split(".");
+
+        if (!parts[0] || parts.length > 2)
+            throw new HttpException(
+                "Incorrect structure of rawTransferAmount received",
+                HttpStatus.BAD_REQUEST
+            );
+
+        // If only whole part exist, just return
+        if (parts.length == 1) return;
+
+        // Check that fractional component exist and do not exceed required decimals
+        if (!parts[1])
+            throw new HttpException(
+                "Incorrect fractional part of the rawTransferAmount",
+                HttpStatus.BAD_REQUEST
+            );
+        if (parts[1].length > decimals)
+            throw new HttpException("Fractional component exceeds decimals", HttpStatus.BAD_REQUEST);
     }
 }
