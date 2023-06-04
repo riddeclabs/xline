@@ -15,6 +15,8 @@ import {
     ManagePortfolioCallbacks,
     ManagePortfolioSteps,
 } from "./manage-credit-line.types";
+import { DepositActionWizard } from "./deposit/deposit.scene";
+import { Message } from "typegram";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -45,12 +47,14 @@ export class ManageCreditLineWizard {
         const stepText = ManageCreditLineText.getChoseCreditLineText();
         const msgText = creditLines.length ? stepText.existLineText : stepText.notFoundText;
 
-        await ctx.editMessageText(msgText, { parse_mode: "MarkdownV2" });
+        const msg = (await ctx.editMessageText(msgText, { parse_mode: "MarkdownV2" })) as Message;
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(buttons, {
                 columns: 1,
             }).reply_markup
         );
+
+        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
@@ -59,6 +63,10 @@ export class ManageCreditLineWizard {
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(ctx.scene.session.state.creditLineId)
         );
+
+        this.botCommon.updateSceneCreditLineDto(ctx, {
+            collateralSymbol: lineDetails.collateralToken.symbol,
+        });
 
         const msgText = ManageCreditLineText.getViewLineDetailsText(economicalParams, lineDetails);
 
@@ -126,12 +134,22 @@ export class ManageCreditLineWizard {
         try {
             await ctx.deleteMessage(ctx.message.message_id);
         } catch {}
+
+        // Redirect to main scene if user input is "/start"
+        if (ctx.message.text === "/start") {
+            await this.botCommon.tryToDeleteMessages(ctx, true);
+            await ctx.scene.enter(MainScene.ID);
+        }
     }
 
     private async choseCreditLineActionHandler(ctx: ManageCreditLineContext, callbackValue?: string) {
         if (!callbackValue) throw new Error("Incorrect callback received");
 
         ctx.scene.session.state.creditLineId = callbackValue;
+        this.botCommon.updateSceneCreditLineDto(ctx, {
+            creditLineId: Number(callbackValue),
+        });
+
         await this.botCommon.executeCurrentStep(ctx);
     }
 
@@ -140,7 +158,7 @@ export class ManageCreditLineWizard {
 
         switch (callbackValue) {
             case LineActions.DEPOSIT: {
-                await ctx.scene.enter(MainScene.ID);
+                await ctx.scene.enter(DepositActionWizard.ID);
                 break;
             }
             case LineActions.WITHDRAW: {
