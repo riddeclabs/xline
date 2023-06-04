@@ -40,7 +40,7 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
-        return this.depositRequestRepo.findOneOrFail({
+        return this.depositRequestRepo.findOne({
             where: { creditLineId, depositRequestStatus: DepositRequestStatus.PENDING },
             order: {
                 createdAt: "ASC",
