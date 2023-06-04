@@ -5,7 +5,7 @@ import { CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { EXP_SCALE } from "../../common/constants";
 import { OpenCreditLineData } from "./risk-engine.types";
-import { parseUnits } from "../../common/fixed-number";
+import { parseUnits } from "../../common";
 
 @Injectable()
 export class RiskEngineService {
@@ -17,6 +17,7 @@ export class RiskEngineService {
 
     async calculateOpenCreditLineData(
         collateralTokenSymbol: string,
+        collateralTokenDecimals: number,
         scaledRawSupplyAmount: bigint,
         riskStrategy: bigint,
         economicalParams: EconomicalParameters
@@ -26,6 +27,7 @@ export class RiskEngineService {
 
         const userPortfolio = await this.calculateUserPortfolio(
             collateralTokenSymbol,
+            collateralTokenDecimals,
             scaledRawSupplyAmount,
             economicalParams.collateralFactor,
             riskStrategy
@@ -52,12 +54,14 @@ export class RiskEngineService {
     // scaledRawSupplyAmount - token Amount must be scaled by 1e18 to get correct USD value
     private async calculateUserPortfolio(
         collateralTokenSymbol: string,
+        collateralTokenDecimals: number,
         scaledRawSupplyAmount: bigint,
         collateralFactor: bigint,
         riskStrategyRate: bigint
     ) {
         const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
             collateralTokenSymbol,
+            collateralTokenDecimals,
             scaledRawSupplyAmount
         );
         const borrowUsd = (supplyUsd * riskStrategyRate) / EXP_SCALE;
@@ -73,17 +77,24 @@ export class RiskEngineService {
 
     async calculateInitialBorrowAmount(
         collateralTokenSymbol: string,
+        collateralTokenDecimals: number,
         scaledRawSupplyAmount: bigint,
         riskStrategyRate: bigint
     ) {
         const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
             collateralTokenSymbol,
+            collateralTokenDecimals,
             scaledRawSupplyAmount
         );
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    async verifyBorrowOrThrow(creditLine: CreditLine, collateralSymbol: string, borrowAmount: bigint) {
+    async verifyBorrowOrThrow(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ) {
         const economicalParams = await this.economicalParamsService.getParamsById(
             creditLine.economicalParametersId
         );
@@ -93,6 +104,7 @@ export class RiskEngineService {
 
         const usdCollateralAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralSymbol,
+            collateralDecimals,
             collateralAmount
         );
 
