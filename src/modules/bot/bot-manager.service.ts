@@ -10,10 +10,11 @@ import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
 import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
-import { formatUnits, parseUnits } from "../../common";
+import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
 import { CreditLine } from "src/database/entities";
+import { EXP_SCALE } from "../../common/constants";
 
 @Injectable()
 export class BotManagerService {
@@ -158,26 +159,21 @@ export class BotManagerService {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        const creditLine = await this.creditLineService.getCreditLineById(creditLineId);
-
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
+        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralToken.symbol,
             creditLine.rawCollateralAmount
         );
 
+        const getUtilRate = () => (depositUsdAmount * EXP_SCALE) / creditLine.debtAmount;
+
         return {
             economicalParams: lineEconomicalParams,
             lineDetails: {
-                utilRate: 1 / Number(formatUnits(creditLine.healthyFactor)),
-                healthyFactor: formatUnits(creditLine.healthyFactor),
-                totalFeeAccumulated: formatUnits(creditLine.feeAccumulatedFiatAmount),
-                rawDepositAmount: formatUnits(creditLine.rawCollateralAmount, collateralToken.decimals),
-                fiatDepositAmount: formatUnits(depositUsdAmount, collateralToken.decimals),
-                isLiquidated: creditLine.isLiquidated,
+                ...creditLine,
+                utilizationRate: creditLine.debtAmount === 0n ? 0n : getUtilRate(),
+                fiatCollateralAmount: depositUsdAmount,
             },
         };
     }
@@ -235,5 +231,9 @@ export class BotManagerService {
 
     async getDebtTokenBySymbol(tokenSymbol: string) {
         return await this.currencyService.getDebtTokenBySymbol(tokenSymbol);
+    }
+
+    async getUserCreditLinesCurrencyExtended(chatId: number) {
+        return this.creditLineService.getCreditLinesByChatIdCurrencyExtended(chatId);
     }
 }

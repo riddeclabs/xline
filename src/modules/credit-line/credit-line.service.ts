@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { CreateCreditLineDto } from "./dto/create-credit-line.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CreditLine } from "../../database/entities";
+import { CollateralCurrency, CreditLine, DebtCurrency } from "../../database/entities";
 import { Repository } from "typeorm";
+import { CreditLineCurrencyExtended } from "./credit-line.types";
 
 @Injectable()
 export class CreditLineService {
@@ -49,5 +50,36 @@ export class CreditLineService {
             .where("user.chat_id = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();
+    }
+
+    async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLineCurrencyExtended[]> {
+        const creditLines = await this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrencyId", "debtCurrency")
+            .leftJoin("creditLine.userId", "user")
+            .where("user.chat_id = :chatId", { chatId })
+            .getMany();
+
+        return creditLines.map(this.extendCreditLineByCurrencies);
+    }
+
+    async getCreditLinesByIdCurrencyExtended(creditLineId: number): Promise<CreditLineCurrencyExtended> {
+        const creditLine = await this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrencyId", "debtCurrency")
+            .where("creditLine.id = :creditLineId", { creditLineId })
+            .getOneOrFail();
+
+        return this.extendCreditLineByCurrencies(creditLine);
+    }
+
+    private extendCreditLineByCurrencies(creditLine: CreditLine): CreditLineCurrencyExtended {
+        return {
+            ...creditLine,
+            collateralToken: creditLine.collateralCurrencyId as unknown as CollateralCurrency,
+            debtToken: creditLine.debtCurrencyId as unknown as DebtCurrency,
+        };
     }
 }

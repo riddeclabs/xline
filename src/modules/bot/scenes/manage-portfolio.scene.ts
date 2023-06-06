@@ -7,6 +7,7 @@ import { ExtendedWizardContext } from "../bot.types";
 import { BotCommonService } from "../bot-common.service";
 import { CustomExceptionFilter } from "../exception-filter";
 import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
+import { ManageCreditLineWizard } from "./manage-credit-line/manage-credit-line.scene";
 
 enum ManagePortfolioSteps {
     PORTFOLIO_MENU,
@@ -87,7 +88,7 @@ export class ManagePortfolioWizard {
             await ctx.scene.enter(NewCreditRequestWizard.ID);
         } else if (callbackValue === PortfolioActions.MANAGE_EXISTING_LINES) {
             //FIXME: add separate scene for manage existing lines action
-            await ctx.scene.enter(MainScene.ID);
+            await ctx.scene.enter(ManageCreditLineWizard.ID);
         } else throw new Error("Incorrect credit line action");
     }
 }
