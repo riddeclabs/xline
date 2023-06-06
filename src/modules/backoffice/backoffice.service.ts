@@ -18,7 +18,7 @@ export enum ModifyReserveDirection {
 export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
-        private operatorRepo: Repository<Operator>
+        private operatorRepo: Repository<Operator>,
     ) {}
 
     accountInfo() {

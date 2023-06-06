@@ -33,32 +33,70 @@
         style='width: 280px;'
       >
         <a
-          href='/backoffice/dashboard'
+          href='/backoffice/home'
           class='d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none'
         >
-          <span class='fs-4'>Backoffice</span>
+          <span class='fs-4'>Xline</span>
         </a>
         <hr>
         <ul class='nav nav-pills flex-column mb-auto'>
           <li class='nav-item'>
             <a
-              href='/backoffice/dashboard'
-              class='nav-link text-white {% if current_url == '/backoffice/dashboard'%}active{% endif %}'
+              href='/backoffice/home'
+              class='nav-link text-white {% if current_url == '/backoffice/home'%}active{% endif %}'
               aria-current='page'
-              ><i class='bi-house'></i>
-              Dashboard
+              >
+              Home
+            </a>
+            <a
+            href='/backoffice/unRequest'
+            class='nav-link text-white {% if current_url == '/backoffice/unRequest'%}active{% endif %}'
+            aria-current='page'
+            >
+            Unresolved requests
+          </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/customers'
+              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              >
+              Customers
             </a>
           </li>
-          {% if account.role == 'admin' %}
-            <li>
-              <a
-                href='/backoffice/operators'
-                class='nav-link text-white {% if current_url == '/backoffice/operators'%}active{% endif %}'
-                ><i class='bi-key'></i>
-                Operators
-              </a>
-            </li>
-          {% endif %}
+          <li>
+            <a
+              href='/backoffice/operators'
+              class='nav-link text-white {% if current_url == '/backoffice/operators'%}active{% endif %}'
+              >
+              Operators
+            </a>
+          </li>
+          <hr>
+          <li>
+            <a
+              href='/backoffice/xlineRequest'
+              class='nav-link text-white {% if current_url == '/backoffice/xlineRequest'%}active{% endif %}'
+              >
+              Xline reuqisites
+            </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/economical'
+              class='nav-link text-white {% if current_url == '/backoffice/economical'%}active{% endif %}'
+              >
+              Economical params
+            </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/supported'
+              class='nav-link text-white {% if current_url == '/backoffice/supported'%}active{% endif %}'
+              >
+              Supported currencies
+            </a>
+          </li>
         </ul>
         <p class='font-weight-light font-monospace text-muted mb-0'>
           v{{ version }}

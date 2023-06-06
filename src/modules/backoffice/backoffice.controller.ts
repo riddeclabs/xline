@@ -29,7 +29,10 @@ import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(private backofficeService: BackOfficeService) {}
+    constructor(
+        private backofficeService: BackOfficeService, 
+        // private readonly userService: UserService
+        ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -65,19 +68,74 @@ export class BackOfficeController {
 
     @UseGuards(AuthenticatedGuard)
     @Get("/")
-    @Redirect("backoffice/dashboard")
+    @Redirect("backoffice/home")
     root() {
         // some code here
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("dashboard")
-    @Render("backoffice/dashboard")
-    dashboard(@Req() req: Request) {
+    @Get("home")
+    @Render("backoffice/home")
+    home(@Req() req: Request) {
         return {
             account: req.user,
         };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("supported")
+    @Render("backoffice/supported")
+    supported(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("economical")
+    @Render("backoffice/economical")
+    economical(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("xlineRequest")
+    @Render("backoffice/xlineRequest")
+    xlineRequest(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("unRequest")
+    @Render("backoffice/unRequest")
+    table(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers")
+    @Render("backoffice/customers")
+    customers(@Req() req: Request) {
+      return {
+           account: req.user,
+           customers: [
+             { customerName: 'Name1', chatID: 111, activeLines: 1},
+             { customerName: 'Name2', chatID: 222, activeLines: 2},
+             { customerName: 'Name3', chatID: 333, activeLines: 3}
+           ]
+       };
     }
 
     @Roles(Role.ADMIN)
