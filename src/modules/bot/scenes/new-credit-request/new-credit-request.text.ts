@@ -161,20 +161,31 @@ export class NewCreditRequestText {
 
     static getIbanValidationErrorMsg(userInput: string): string {
         return (
-            "❌ *Entered IBAN is incorrect.* ❌\n\n" + `*IBAN:* ${userInput}\n\n` + "Please try again."
+            "❌ *Entered IBAN is incorrect.* ❌\n\n" +
+            "IBAN should consist of 2 letter country code; 2 digit check number and " +
+            "up to 30 alphanumeric characters of Basic Bank Account Number (BBAN) that are country-specific.\n\n" +
+            "For example: *AD14 0008 0001 0012 3456 7890*\n\n" +
+            `*Entered IBAN:* ${userInput}\n\n` +
+            "Please try again."
         );
     }
 
     static getNameValidationErrorMsg(userInput: string): string {
         return (
-            "❌ *Entered name is incorrect.* ❌\n\n" + `*Name*: ${userInput}\n\n` + "Please try again."
+            "❌ *Entered name is incorrect.* ❌\n\n" +
+            "Name should consist of latin letters and contain 2 or more parts, separated with whitespace.\n\n" +
+            "For example: *JOHN DOE* or *MAXIMILIAN JOHANNES MARIA HUBERT REICHSGRAF VON SPEE*.\n\n" +
+            `*Entered name*: ${userInput}\n\n` +
+            "Please try again."
         );
     }
 
     static getAmountValidationErrorMsg(userInput: string): string {
         return (
             "❌ *Entered amount is incorrect.* ❌\n\n" +
-            `*Amount:* ${userInput}\n\n` +
+            "Amount should be a number greater than 0.\n\n" +
+            "For example: *1000* or *1000.00*.\n\n" +
+            `*Entered amount:* ${userInput}\n\n` +
             "Please try again."
         );
     }
