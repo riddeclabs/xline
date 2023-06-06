@@ -31,13 +31,12 @@ export class NewCreditRequestWizard {
 
     constructor(
         private readonly botCommon: BotCommonService,
-        private readonly botManager: BotManagerService,
-        private readonly msgSource: NewCreditRequestText
+        private readonly botManager: BotManagerService
     ) {}
 
     @WizardStep(NewCreditRequestSteps.SIGN_GENERAL_TERMS)
     async onBasicInfo(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = (await ctx.editMessageText(this.msgSource.getSignGeneralTermsMsg(), {
+        const msg = (await ctx.editMessageText(NewCreditRequestText.getSignGeneralTermsMsg(), {
             parse_mode: "MarkdownV2",
         })) as Message;
         await ctx.editMessageReplyMarkup(
@@ -71,7 +70,9 @@ export class NewCreditRequestWizard {
         });
         buttons.push(this.botCommon.goBackButton());
 
-        await ctx.editMessageText(this.msgSource.getChooseCollateralMsg(), { parse_mode: "MarkdownV2" });
+        await ctx.editMessageText(NewCreditRequestText.getChooseCollateralMsg(), {
+            parse_mode: "MarkdownV2",
+        });
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(buttons, {
                 columns: 1,
@@ -83,7 +84,7 @@ export class NewCreditRequestWizard {
 
     @WizardStep(NewCreditRequestSteps.ENTER_IBAN)
     async enterIban(@Ctx() ctx: NewCreditRequestContext) {
-        await ctx.editMessageText(this.msgSource.getEnterIbanMsg(), {
+        await ctx.editMessageText(NewCreditRequestText.getEnterIbanMsg(), {
             parse_mode: "MarkdownV2",
         });
 
@@ -96,7 +97,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             ctx.scene.session.state.sceneEditMsgId,
             undefined,
-            this.msgSource.getEnterBankAccountNameMsg(),
+            NewCreditRequestText.getEnterBankAccountNameMsg(),
             { parse_mode: "MarkdownV2" }
         );
 
@@ -109,7 +110,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             ctx.scene.session.state.sceneEditMsgId,
             undefined,
-            this.msgSource.getEnterCryptoAmountMsg(ctx),
+            NewCreditRequestText.getEnterCryptoAmountMsg(ctx),
             { parse_mode: "MarkdownV2" }
         );
 
@@ -137,7 +138,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             editMsgId,
             undefined,
-            this.msgSource.getChoseRiskStrategyMsg(convertedCF),
+            NewCreditRequestText.getChoseRiskStrategyMsg(convertedCF),
             { parse_mode: "MarkdownV2" }
         );
         await ctx.telegram.editMessageReplyMarkup(
@@ -200,7 +201,7 @@ export class NewCreditRequestWizard {
         );
         csss.economicalParamsId = economicalParameters.id;
 
-        const buttonText = this.msgSource.getSignApplicationButtonMsg();
+        const buttonText = NewCreditRequestText.getSignApplicationButtonMsg();
         const buttons = [
             {
                 text: "🧮 View calculation example",
@@ -218,7 +219,7 @@ export class NewCreditRequestWizard {
 
         if (!viewDetails) {
             await ctx.editMessageText(
-                this.msgSource.getSignApplicationMainMsg(economicalParameters, sceneData),
+                NewCreditRequestText.getSignApplicationMainMsg(economicalParameters, sceneData),
                 { parse_mode: "MarkdownV2" }
             );
 
@@ -233,7 +234,7 @@ export class NewCreditRequestWizard {
             // Remove `details` button from the button list
             buttons.shift();
 
-            const detailsText = this.msgSource.getSignApplicationDetailMsg(
+            const detailsText = NewCreditRequestText.getSignApplicationDetailMsg(
                 economicalParameters,
                 openCreditLineData,
                 sceneData
@@ -347,11 +348,12 @@ export class NewCreditRequestWizard {
         const cl = await this.botManager.getCreditLineByChatIdAndColSymbol(chatId, callbackValue);
 
         if (cl) {
-            const errorMsg =
-                `❌ *You already have a credit line with ${callbackValue} collateral.* ❌\n\n` +
-                "You can have only one active credit line for each collateral currency.\n\n" +
-                "Please choose another currency to use as collateral.";
-            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY);
+            const errorMsg = NewCreditRequestText.getExistingCreditLineErrorMsg(callbackValue);
+            await this.retryOrBackHandler(
+                ctx,
+                errorMsg,
+                NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY
+            );
         } else {
             ctx.scene.session.state.collateralCurrency = collateralCurrency;
             await this.botCommon.executeCurrentStep(ctx);
@@ -359,17 +361,14 @@ export class NewCreditRequestWizard {
     }
 
     private async enterIbanHandler(ctx: NewCreditRequestContext, userInput: string) {
-        const input = userInput.toUpperCase();
-        const ibanValidity = validateIban(input);
+        const formattedInput = userInput.replace(/\s/g, "").toUpperCase();
+        const ibanValidity = validateIban(formattedInput);
 
         if (!ibanValidity.valid) {
-            const errorMsg =
-                "❌ *Entered IBAN is incorrect.* ❌\n\n" +
-                `*IBAN:* ${userInput}\n\n` +
-                "Please try again.";
-            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+            const errorMsg = NewCreditRequestText.getIbanValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
-            ctx.scene.session.state.iban = input;
+            ctx.scene.session.state.iban = formattedInput;
             await this.botCommon.executeCurrentStep(ctx);
         }
     }
@@ -377,11 +376,8 @@ export class NewCreditRequestWizard {
     private async enterAccountNameHandler(ctx: NewCreditRequestContext, userInput: string) {
         const input = userInput.toUpperCase();
         if (!validateName(input)) {
-            const errorMsg =
-                "❌ *Entered name is incorrect.* ❌\n\n" +
-                `*Name*: ${userInput}\n\n` +
-                "Please try again.";
-            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+            const errorMsg = NewCreditRequestText.getNameValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.bankAccountName = input;
             await this.botCommon.executeCurrentStep(ctx);
@@ -391,11 +387,8 @@ export class NewCreditRequestWizard {
     private async reqCryptoAmountHandler(ctx: NewCreditRequestContext, userInput: string) {
         const input = Number(userInput);
         if (!input || input <= 0) {
-            const errorMsg =
-                "❌ *Entered amount is incorrect.* ❌\n\n" +
-                `*Amount:* ${userInput}\n\n` +
-                "Please try again.";
-            this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
+            const errorMsg = NewCreditRequestText.getAmountValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
         } else {
             const decimalMaxLength = ctx.scene.session.state.collateralCurrency?.decimals;
             if (!decimalMaxLength) throw new Error("Could not find collateral currency decimals");
@@ -467,7 +460,7 @@ export class NewCreditRequestWizard {
                 buttons.unshift(this.botCommon.getMetamaskWalletButton(wallet));
             }
 
-            const replyMsgs = this.msgSource.getSignApplicationHandlerMsg(callbackValue, wallet);
+            const replyMsgs = NewCreditRequestText.getSignApplicationHandlerMsg(callbackValue, wallet);
             if (typeof replyMsgs === "string") {
                 throw new Error("Incorrect message structure");
             }
@@ -486,7 +479,7 @@ export class NewCreditRequestWizard {
 
             this.botCommon.tryToSaveSceneMessage(ctx, [msg1, msg2]);
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
-            const replyMsg = this.msgSource.getSignApplicationHandlerMsg(callbackValue);
+            const replyMsg = NewCreditRequestText.getSignApplicationHandlerMsg(callbackValue);
             if (!(typeof replyMsg === "string")) {
                 throw new Error("Incorrect message structure");
             }
@@ -533,7 +526,7 @@ export class NewCreditRequestWizard {
                     },
                     this.botCommon.goBackButton(),
                 ],
-                { columns: 2 } 
+                { columns: 2 }
             ).reply_markup
         );
     }

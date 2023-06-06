@@ -11,7 +11,7 @@ import {
 import { SignApplicationOptions } from "../../constants";
 
 export class NewCreditRequestText {
-    getSignGeneralTermsMsg() {
+    static getSignGeneralTermsMsg() {
         return (
             "📜 *GENERAL TERMS*\n\n\n" +
             "💲 You will get the USD equivalent of provided collateral amount`.` \n\n" +
@@ -23,11 +23,11 @@ export class NewCreditRequestText {
         );
     }
 
-    getChooseCollateralMsg() {
+    static getChooseCollateralMsg() {
         return "💰 *Chose the token you want to use as collateral*";
     }
 
-    getEnterIbanMsg() {
+    static getEnterIbanMsg() {
         return (
             "💳 *Please enter your IBAN*\n\n" +
             "‼ Please make sure to provide a *USD* bank account IBAN\n\n" +
@@ -36,7 +36,7 @@ export class NewCreditRequestText {
         );
     }
 
-    getEnterBankAccountNameMsg() {
+    static getEnterBankAccountNameMsg() {
         return (
             "💳 *Please enter your bank account name*\n\n" +
             "⚠️ We collect user bank account name `(`first name and surname`)` for secure and accurate bank transfers`,` ensuring compliance with privacy laws`.`\n\n" +
@@ -44,7 +44,7 @@ export class NewCreditRequestText {
         );
     }
 
-    getEnterCryptoAmountMsg(ctx: NewCreditRequestContext) {
+    static getEnterCryptoAmountMsg(ctx: NewCreditRequestContext) {
         return (
             `💶 *Please enter ${ctx.scene.session.state.collateralCurrency?.symbol} amount you want to provide*\n\n` +
             "️⚠ This amount will be used to show you the calculation principle`.`\n" +
@@ -55,7 +55,7 @@ export class NewCreditRequestText {
         );
     }
 
-    getChoseRiskStrategyMsg(collateralFactor: number) {
+    static getChoseRiskStrategyMsg(collateralFactor: number) {
         return (
             "🚦 *Chose the risk strategy*\n\n" +
             "🟢 LOW `-` " +
@@ -70,11 +70,11 @@ export class NewCreditRequestText {
         );
     }
 
-    getSignApplicationButtonMsg() {
+    static getSignApplicationButtonMsg() {
         return "❗️ *After you agree to our offer`,` we will generate a unique wallet to send the funds to*";
     }
 
-    getSignApplicationDetailMsg(
+    static getSignApplicationDetailMsg(
         economicalParameters: EconomicalParameters,
         loanData: OpenCreditLineData,
         sceneData: SignApplicationSceneData
@@ -104,7 +104,7 @@ export class NewCreditRequestText {
         );
     }
 
-    getSignApplicationMainMsg(
+    static getSignApplicationMainMsg(
         economicalParameters: EconomicalParameters,
         sceneData: SignApplicationSceneData
     ) {
@@ -134,7 +134,7 @@ export class NewCreditRequestText {
         );
     }
 
-    getSignApplicationHandlerMsg(option: SignApplicationOptions, wallet?: string) {
+    static getSignApplicationHandlerMsg(option: SignApplicationOptions, wallet?: string) {
         switch (option) {
             case SignApplicationOptions.APPROVE:
                 return {
@@ -159,7 +159,35 @@ export class NewCreditRequestText {
         }
     }
 
-    prepareDetailsTextData(
+    static getIbanValidationErrorMsg(userInput: string): string {
+        return (
+            "❌ *Entered IBAN is incorrect.* ❌\n\n" + `*IBAN:* ${userInput}\n\n` + "Please try again."
+        );
+    }
+
+    static getNameValidationErrorMsg(userInput: string): string {
+        return (
+            "❌ *Entered name is incorrect.* ❌\n\n" + `*Name*: ${userInput}\n\n` + "Please try again."
+        );
+    }
+
+    static getAmountValidationErrorMsg(userInput: string): string {
+        return (
+            "❌ *Entered amount is incorrect.* ❌\n\n" +
+            `*Amount:* ${userInput}\n\n` +
+            "Please try again."
+        );
+    }
+
+    static getExistingCreditLineErrorMsg(collateral: string): string {
+        return (
+            `❌ *You already have a credit line with ${collateral} collateral.* ❌\n\n` +
+            "You can have only one active credit line for each collateral currency.\n\n" +
+            "Please choose another currency to use as collateral."
+        );
+    }
+
+    static prepareDetailsTextData(
         ep: EconomicalParameters,
         loanData: OpenCreditLineData,
         sceneData: SignApplicationSceneData
@@ -199,7 +227,7 @@ export class NewCreditRequestText {
         };
     }
 
-    prepareMainTextData(ep: EconomicalParameters, sceneData: SignApplicationSceneData) {
+    static prepareMainTextData(ep: EconomicalParameters, sceneData: SignApplicationSceneData) {
         return {
             mdAprPercent: truncateDecimal(formatUnitsNumber(ep.apr) * 100),
             mdLiqFeePercent: truncateDecimal(formatUnitsNumber(ep.liquidationFee) * 100),
