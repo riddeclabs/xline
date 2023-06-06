@@ -22,6 +22,7 @@ import {
 import { validateIban, validateName } from "src/common/input-validation";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { escapeSpecialCharacters } from "src/common";
+import { ManageCreditLineWizard } from "../manage-credit-line/manage-credit-line.scene";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -284,13 +285,14 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
-            case NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY:
-                ctx.scene.session.cursor = NewCreditRequestSteps.ENTER_IBAN;
             case NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT:
             case NewCreditReqCallbacks.RE_ENTER_NAME:
             case NewCreditReqCallbacks.RE_ENTER_IBAN:
                 ctx.wizard.back();
                 await this.botCommon.executeCurrentStep(ctx);
+                break;
+            case NewCreditReqCallbacks.VIEW_EXISTING_CREDIT_LINES:
+                await ctx.scene.enter(ManageCreditLineWizard.ID);
                 break;
             case NewCreditReqCallbacks.BACK_TO_MAIN_MENU:
                 await this.botCommon.tryToDeleteMessages(ctx, true);
@@ -349,10 +351,28 @@ export class NewCreditRequestWizard {
 
         if (cl) {
             const errorMsg = NewCreditRequestText.getExistingCreditLineErrorMsg(callbackValue);
-            await this.retryOrBackHandler(
-                ctx,
-                errorMsg,
-                NewCreditReqCallbacks.RE_CHOOSE_SUPPLY_CURRENCY
+            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+            await ctx.telegram.editMessageText(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                escapeSpecialCharacters(errorMsg),
+                { parse_mode: "MarkdownV2" }
+            );
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                Markup.inlineKeyboard(
+                    [
+                        {
+                            text: "📤 View existing lines",
+                            callback_data: `${NewCreditReqCallbacks.VIEW_EXISTING_CREDIT_LINES}`,
+                        },
+                        this.botCommon.goBackButton(),
+                    ],
+                    { columns: 2 }
+                ).reply_markup
             );
         } else {
             ctx.scene.session.state.collateralCurrency = collateralCurrency;
