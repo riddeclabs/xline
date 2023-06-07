@@ -30,9 +30,8 @@ import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
-        private backofficeService: BackOfficeService, 
-        // private readonly userService: UserService
-        ) {}
+        private backofficeService: BackOfficeService // private readonly userService: UserService
+    ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -127,15 +126,17 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers")
     @Render("backoffice/customers")
-    customers(@Req() req: Request) {
-      return {
-           account: req.user,
-           customers: [
-             { customerName: 'Name1', chatID: 111, activeLines: 1},
-             { customerName: 'Name2', chatID: 222, activeLines: 2},
-             { customerName: 'Name3', chatID: 333, activeLines: 3}
-           ]
-       };
+    async getCustomers(@Req() req: Request) {
+        const customers = await this.backofficeService.getCustomers();
+        const customersWithActiveLines = customers.map(customer => {
+            return {
+                id: customer.id,
+                chatId: customer.chatId,
+                name: customer.name,
+                activeLines: customer.creditLines.length,
+            };
+        });
+        return { customers: customersWithActiveLines };
     }
 
     @Roles(Role.ADMIN)

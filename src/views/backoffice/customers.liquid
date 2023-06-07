@@ -2,6 +2,7 @@
 {% block content %}
   <h1 class='pb-5 text-white fs-1'>Customers</h1>
   <div class='card bg-dark shadow-sm'>
+    <div>{{ customers[0].creditLines[0].creditLineStatus }}</div>
     <table class='table table-striped mb-0'>
       <thead>
         <tr>
@@ -15,10 +16,10 @@
         <tr style='height:50px'>
           {% for customer in customers %}
             <td class='align-middle'>
-              {{ customer.chatID }}
+              {{ customer.chatId }}
             </td>
             <td class='align-middle'>
-              {{ customer.customerName }}
+              {{ customer.name }}
             </td>
             <td class='align-middle'>
               {{ customer.activeLines }}

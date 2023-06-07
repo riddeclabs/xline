@@ -13,7 +13,14 @@ export class Customer {
         unique: true,
         nullable: false,
     })
-    customerName!: string;
+    username!: string;
+
+    @Column({
+        type: "varchar",
+        length: 80,
+        nullable: false,
+    })
+    password!: string;
 
     @Column({
         type: "enum",

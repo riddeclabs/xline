@@ -2,7 +2,7 @@ import { IsNumber, IsEnum, IsOptional, IsString } from "class-validator";
 
 import { Role } from "src/common";
 
-import { OperatorsListColumns } from "../backoffice.service";
+import { CustomersListColumns } from "../backoffice.service";
 
 export class CustomersListDto {
     @IsNumber()
@@ -12,19 +12,10 @@ export class CustomersListDto {
     @IsOptional()
     role?: Role;
 
-    @IsEnum(OperatorsListColumns)
-    sort: OperatorsListColumns = OperatorsListColumns.updated;
+    @IsEnum(CustomersListColumns)
+    sort: CustomersListColumns = CustomersListColumns.updated;
 
     @IsString()
     @IsOptional()
     username?: string;
-
-    @IsString()
-    customerName?: string;
-
-    @IsString()
-    chatId?: string;
-
-    @IsNumber()
-    activeLines?: number;
 }

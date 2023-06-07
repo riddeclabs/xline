@@ -266,8 +266,8 @@
 
     document.getElementById('user-filter-input').addEventListener('change', function(event) {
       const val = event.target.value.trim();
-      const emptyQuery = '? {{ query | mut-query: 'username' }}';
-      const queryTemplate = '? {{ query | mut-query: 'username', 'template' }}';
+      const emptyQuery = '?  {{ query | mut-query: 'username' }}';
+      const queryTemplate = '?  {{ query | mut-query: 'username', 'template' }}';
 
       const newHref = val
         ? queryTemplate.replace('username=template', 'username=' + val)

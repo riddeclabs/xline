@@ -1,10 +1,16 @@
 import { Injectable } from "@nestjs/common";
-import { Role } from "../../common";
-import { Operator } from "src/database/entities";
+import { CreditLineStatus, Role } from "../../common";
+import { Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import { UserService } from "../user/user.service";
 
 export enum OperatorsListColumns {
+    updated = "updated",
+    role = "role",
+}
+
+export enum CustomersListColumns {
     updated = "updated",
     role = "role",
 }
@@ -19,6 +25,9 @@ export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
         private operatorRepo: Repository<Operator>,
+        private userService: UserService,
+        @InjectRepository(User)
+        private userRepo: Repository<User>
     ) {}
 
     accountInfo() {
@@ -52,5 +61,13 @@ export class BackOfficeService {
             take: page.take,
             order: sortOrders[sortColumn],
         });
+    }
+
+    getCustomers() {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
+            .getMany();
     }
 }
