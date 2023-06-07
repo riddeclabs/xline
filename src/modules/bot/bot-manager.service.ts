@@ -216,7 +216,7 @@ export class BotManagerService {
     async saveNewRepayRequest(creditLineId: number, businessPaymentRequisiteId: number) {
         return await this.requestHandler.saveNewRepayRequest({
             creditLineId,
-            paymentRequisiteId: businessPaymentRequisiteId,
+            businessPaymentRequisiteId,
         });
     }
 
