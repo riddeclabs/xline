@@ -15,6 +15,7 @@ import {
     ManagePortfolioCallbacks,
     ManagePortfolioSteps,
 } from "./manage-credit-line.types";
+import { RepayActionWizard } from "./repay/repay.scene";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -59,6 +60,11 @@ export class ManageCreditLineWizard {
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(ctx.scene.session.state.creditLineId)
         );
+
+        this.botCommon.updateSceneCreditLineDto(ctx, {
+            collateralSymbol: lineDetails.collateralToken.symbol,
+            debtSymbol: lineDetails.debtToken.symbol,
+        });
 
         const msgText = ManageCreditLineText.getViewLineDetailsText(economicalParams, lineDetails);
 
@@ -132,6 +138,10 @@ export class ManageCreditLineWizard {
         if (!callbackValue) throw new Error("Incorrect callback received");
 
         ctx.scene.session.state.creditLineId = callbackValue;
+        this.botCommon.updateSceneCreditLineDto(ctx, {
+            creditLineId: Number(callbackValue),
+        });
+
         await this.botCommon.executeCurrentStep(ctx);
     }
 
@@ -152,7 +162,7 @@ export class ManageCreditLineWizard {
                 break;
             }
             case LineActions.REPAY: {
-                await ctx.scene.enter(MainScene.ID);
+                await ctx.scene.enter(RepayActionWizard.ID);
                 break;
             }
             default:

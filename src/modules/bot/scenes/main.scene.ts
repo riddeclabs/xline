@@ -38,6 +38,7 @@ export class MainScene {
             // Used to delete initial '/start' command
             await this.botCommon.tryToDeleteMessages(ctx);
         } catch {}
+        this.botCommon.clearSceneDto(ctx);
 
         const msg = await ctx.replyWithMarkdownV2(
             this.botCommon.makeHeaderText("Main menu"),
