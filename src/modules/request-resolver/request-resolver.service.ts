@@ -370,22 +370,54 @@ export class RequestResolverService {
     private verifyTransferAmount(rawTransferAmount: string, decimals: number) {
         const parts = rawTransferAmount.split(".");
 
-        if (!parts[0] || parts.length > 2)
+        // rawTransferAmount is not in the correct structure: (missing decimal point)
+        if (parts.length !== 2) {
             throw new HttpException(
                 "Incorrect structure of rawTransferAmount received",
                 HttpStatus.BAD_REQUEST
             );
+        }
 
-        // If only whole part exist, just return
-        if (parts.length == 1) return;
+        const [wholePart, fractionalPart] = parts;
 
-        // Check that fractional component exist and do not exceed required decimals
-        if (!parts[1])
+        // The whole or fractional is missing or empty
+        if (!wholePart || !fractionalPart) {
             throw new HttpException(
-                "Incorrect fractional part of the rawTransferAmount",
+                "The whole part of rawTransferAmount cannot be negative or zero",
                 HttpStatus.BAD_REQUEST
             );
-        if (parts[1].length > decimals)
+        }
+
+        // Both the whole and fractional parts are zero
+        if (
+            (Number(wholePart) === 0 || /^\s*0+$/.test(wholePart)) &&
+            (Number(fractionalPart) === 0 || /^\s*0+$/.test(fractionalPart))
+        ) {
+            throw new HttpException(
+                "Both whole and fractional parts of rawTransferAmount cannot be zero",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The whole part or fractional part is not a number
+        if (isNaN(Number(wholePart)) || isNaN(Number(fractionalPart))) {
+            throw new HttpException(
+                "Incorrect structure of rawTransferAmount received",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The whole part is negative
+        if (Number(wholePart) < 0) {
+            throw new HttpException(
+                "The whole part of rawTransferAmount cannot be negative or zero",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The length of the fractional part exceeds decimals
+        if (!fractionalPart || fractionalPart.length > decimals) {
             throw new HttpException("Fractional component exceeds decimals", HttpStatus.BAD_REQUEST);
+        }
     }
 }
