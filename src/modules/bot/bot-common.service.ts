@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { LEFT_INDENT_BD_S, MAIN_MENU_OPTIONS, RIGHT_INDENT_BD_S } from "./constants";
 import { generateCBData } from "./helpers";
 import { Ctx } from "nestjs-telegraf";
-import { CallbackButton, ExtendedWizardContext, UrlButton } from "./bot.types";
+import { CallbackButton, CreditLineSceneData, ExtendedWizardContext, UrlButton } from "./bot.types";
 import { Message } from "typegram";
 import { Markup, MiddlewareFn, MiddlewareObj } from "telegraf";
 import { InlineKeyboardButton } from "typegram/markup";
@@ -107,6 +107,46 @@ export class BotCommonService {
                 ? (step as MiddlewareFn<C>)
                 : (step as MiddlewareObj<C>).middleware();
         await stepFn(ctx, () => Promise.resolve());
+    }
+
+    updateSceneCreditLineDto(ctx: ExtendedWizardContext, scenePartialDto: Partial<CreditLineSceneData>) {
+        const currentSceneDto = ctx.session.sceneTransferObject;
+        ctx.session.sceneTransferObject = {
+            creditLineData: {
+                ...currentSceneDto?.creditLineData,
+                ...(scenePartialDto.creditLineId && {
+                    creditLineId: scenePartialDto.creditLineId,
+                }),
+                ...(scenePartialDto.collateralSymbol && {
+                    collateralSymbol: scenePartialDto.collateralSymbol,
+                }),
+                ...(scenePartialDto.debtSymbol && {
+                    debtSymbol: scenePartialDto.debtSymbol,
+                }),
+            },
+        };
+    }
+
+    getCreditLineIdFromSceneDto(ctx: ExtendedWizardContext) {
+        const clId = ctx.session.sceneTransferObject?.creditLineData?.creditLineId;
+        if (!clId) throw new Error("creditLineId is missed in scene DTO");
+        return clId;
+    }
+
+    getCollateralSymbolFromSceneDto(ctx: ExtendedWizardContext) {
+        const clCollateralSymbol = ctx.session.sceneTransferObject?.creditLineData?.collateralSymbol;
+        if (!clCollateralSymbol) throw new Error("collateralSymbol is missed in scene DTO");
+        return clCollateralSymbol;
+    }
+
+    getDebtSymbolFromSceneDto(ctx: ExtendedWizardContext) {
+        const clDebtSymbol = ctx.session.sceneTransferObject?.creditLineData?.debtSymbol;
+        if (!clDebtSymbol) throw new Error("collateralSymbol is missed in scene DTO");
+        return clDebtSymbol;
+    }
+
+    clearSceneDto(ctx: ExtendedWizardContext) {
+        ctx.session.sceneTransferObject = {};
     }
 
     makeHeaderText(origText: string): string {
