@@ -194,6 +194,11 @@ export class RequestResolverService {
             Number(resolveDto.chatId),
             resolveDto.collateralSymbol
         );
+
+        if (!creditLine) {
+            throw new Error("Credit line not found");
+        }
+
         const collateralToken = creditLine.collateralCurrencyId as unknown as CollateralCurrency; // FIXME: after rebuild database scheme
 
         this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);

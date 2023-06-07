@@ -13,6 +13,7 @@ import { createUserGatewayId, generateReferenceNumber, xor } from "../../common"
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
+import { CreditLine } from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
 
 @Injectable()
@@ -177,6 +178,13 @@ export class BotManagerService {
                 fiatCollateralAmount: depositUsdAmount,
             },
         };
+    }
+
+    async getCreditLineByChatIdAndColSymbol(
+        chatId: number,
+        colSymbol: string
+    ): Promise<CreditLine | null> {
+        return await this.creditLineService.getCreditLineByChatIdAndColSymbol(chatId, colSymbol);
     }
 
     // Requests

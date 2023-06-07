@@ -32,13 +32,15 @@ export class CreditLineController {
         return this.serializeEntity(cl);
     }
 
-    serializeEntity(cl: CreditLine) {
-        return {
-            ...cl,
-            rawCollateralAmount: cl.rawCollateralAmount.toString(),
-            debtAmount: cl.debtAmount.toString(),
-            feeAccumulatedFiatAmount: cl.feeAccumulatedFiatAmount.toString(),
-            healthyFactor: cl.healthyFactor.toString(),
-        };
+    serializeEntity(cl: CreditLine | null) {
+        return cl
+            ? {
+                  ...cl,
+                  rawCollateralAmount: cl.rawCollateralAmount.toString(),
+                  debtAmount: cl.debtAmount.toString(),
+                  feeAccumulatedFiatAmount: cl.feeAccumulatedFiatAmount.toString(),
+                  healthyFactor: cl.healthyFactor.toString(),
+              }
+            : null;
     }
 }

@@ -59,7 +59,7 @@ export class BotCommonService {
         isMarkdown = false,
         options = { columns: 1 },
         buttons?: InlineKeyboardButton[]
-    ) {
+    ): Promise<Message> {
         let msg;
         if (!isMarkdown) {
             msg = ctx.reply(msgText, buttons ? Markup.inlineKeyboard(buttons, options) : undefined);
