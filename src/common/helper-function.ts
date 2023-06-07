@@ -16,6 +16,10 @@ export function generateReferenceNumber(): string {
     return reference;
 }
 
+export function createRepayRequestRefNumber(baseRefNumber: string, requestId: number) {
+    return baseRefNumber + "RR" + requestId.toString();
+}
+
 export function escapeSpecialCharacters(str: string): string {
     const symbols = [
         "_", // FIXME: add regexp to escape only if not used for italic text
