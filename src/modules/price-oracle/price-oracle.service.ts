@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import axios from "axios";
 import { BINANCE_PRICE_FEED_URL, BTC_USDT_PAIR, ETH_USDT_PAIR } from "./constants";
 import { SUPPORTED_TOKENS } from "../bot/constants";
-import { parseUnits } from "../../common/fixed-number";
+import { parseUnits } from "../../common";
 import { EXP_SCALE } from "../../common/constants";
 
 @Injectable()
@@ -13,13 +13,14 @@ export class PriceOracleService {
         return this.getTokenPriceByPair(pair);
     }
 
-    // Note! scaledCryptoAmount - rawCryptoAmount must be scaled by 1e18 to get usd value with correct accuracy ( 1e18 )
-    async convertCryptoToUsd(collateralSymbol: string, scaledCryptoAmount: bigint) {
-        const tokenPair = this.getTokenPairBySymbol(collateralSymbol);
+    // Note! rawTokenAmount - is raw crypto amount and must be scaled in original accuracy
+    async convertCryptoToUsd(tokenSymbol: string, tokenDecimals: number, rawTokenAmount: bigint) {
+        const tokenPair = this.getTokenPairBySymbol(tokenSymbol);
         const tokenPrice = await this.getTokenPriceByPair(tokenPair);
         const scaledPrice = parseUnits(tokenPrice);
+        const priceMultiplier = this.getPriceMultiplierByCryptoDecimals(tokenDecimals);
 
-        return (scaledCryptoAmount * scaledPrice) / EXP_SCALE;
+        return (rawTokenAmount * scaledPrice * priceMultiplier) / EXP_SCALE;
     }
 
     // Returns raw token price in float format
@@ -52,5 +53,11 @@ export class PriceOracleService {
             default:
                 throw new Error("Unsupported collateral token");
         }
+    }
+
+    private getPriceMultiplierByCryptoDecimals(cryptoDecimals: number) {
+        const additionalDecimals = 18 - cryptoDecimals;
+
+        return 10n ** BigInt(additionalDecimals);
     }
 }

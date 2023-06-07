@@ -1,5 +1,5 @@
 import { Injectable, UseFilters } from "@nestjs/common";
-import { Action, Ctx, Wizard, WizardStep } from "nestjs-telegraf";
+import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MainScene } from "./main.scene";
@@ -8,6 +8,8 @@ import { BotCommonService } from "../bot-common.service";
 import { CustomExceptionFilter } from "../exception-filter";
 import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
 import { ManageCreditLineWizard } from "./manage-credit-line/manage-credit-line.scene";
+import * as filters from "telegraf/filters";
+import { Message } from "typegram";
 
 enum ManagePortfolioSteps {
     PORTFOLIO_MENU,
@@ -35,9 +37,9 @@ export class ManagePortfolioWizard {
 
     @WizardStep(ManagePortfolioSteps.PORTFOLIO_MENU)
     async onWalletRequest(@Ctx() ctx: ManagePortfolioContext) {
-        await ctx.editMessageText(this.botCommon.makeHeaderText("Portfolio actions"), {
+        const msg = (await ctx.editMessageText(this.botCommon.makeHeaderText("Portfolio actions"), {
             parse_mode: "MarkdownV2",
-        });
+        })) as Message;
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
@@ -57,6 +59,8 @@ export class ManagePortfolioWizard {
                 }
             ).reply_markup
         );
+
+        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
@@ -80,6 +84,22 @@ export class ManagePortfolioWizard {
                 break;
             default:
                 throw new Error("Could not find handler for the target action");
+        }
+    }
+
+    @Hears(/.*/)
+    async userMessageHandler(@Ctx() ctx: ManagePortfolioContext) {
+        // Catch user input to remove it with step message
+        if (!ctx.has(filters.message("text"))) return;
+
+        // This scene does not provide for user input, just delete the message
+        try {
+            await ctx.deleteMessage(ctx.message.message_id);
+        } catch {}
+
+        if (ctx.message.text === "/start") {
+            await this.botCommon.tryToDeleteMessages(ctx, true);
+            await ctx.scene.enter(MainScene.ID);
         }
     }
 
