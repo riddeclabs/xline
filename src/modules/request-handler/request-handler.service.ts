@@ -128,12 +128,14 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {
-        return this.repayRequestRepo.findOne({
-            where: { creditLineId, repayRequestStatus: RepayRequestStatus.VERIFICATION_PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .where("rr.credit_line_id = :creditLineId", { creditLineId })
+            .andWhere("rr.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .orderBy("created_at", "ASC")
+            .getOne();
     }
 
     async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {

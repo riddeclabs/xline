@@ -11,7 +11,7 @@ export class RepayTextSource {
         return escapeSpecialCharacters(
             "‼ You already have pending *'Repay'* request.\n" +
                 "\n" +
-                "📧 You can just use the provided bank details to make a payment\n\n" +
+                "📧 You can just use the provided bank details to make a payment (click on requisite to copy)\n\n" +
                 `🏦 Bank name: \`${businessPaymentRequisite.bankName}\`\n` +
                 `💳 IBAN: \`${businessPaymentRequisite.iban}\`\n` +
                 "\n" +
@@ -44,7 +44,7 @@ export class RepayTextSource {
     ) {
         return escapeSpecialCharacters(
             "✅ *Done! You've created new Repay request!* \n\n" +
-                "Please use the bank details provided to make the payment.\n\n" +
+                "Please use the bank details provided to make the payment (click on requisite to copy)\n\n" +
                 `🏦 Bank name: \`${businessPaymentRequisite.bankName}\`\n` +
                 `💳 IBAN: \`${businessPaymentRequisite.iban}\`\n` +
                 "\n" +
@@ -56,10 +56,10 @@ export class RepayTextSource {
     }
 
     static getRejectRepayText() {
-        return (
+        return escapeSpecialCharacters(
             "❌ *Repay Request Rejected* ❌\n\n" +
-            "We have received confirmation that you've rejected the request to repay.\n" +
-            "If you have any questions or need further assistance, please contact our customer support team.\n"
+                "We have received confirmation that you've rejected the request to repay.\n" +
+                "If you have any questions or need further assistance, please contact our customer support team.\n"
         );
     }
 

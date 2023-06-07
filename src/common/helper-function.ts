@@ -29,7 +29,6 @@ export function escapeSpecialCharacters(str: string): string {
         "(",
         ")",
         "~",
-        "`",
         ">",
         "#",
         "+",
