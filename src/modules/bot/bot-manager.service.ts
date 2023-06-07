@@ -213,8 +213,11 @@ export class BotManagerService {
         await this.requestResolverService.verifyHypWithdrawRequest(creditLineId, withdrawAmount);
     }
 
-    async saveNewRepayRequest(creditLineId: number, paymentRequisiteId: number) {
-        await this.requestHandler.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
+    async saveNewRepayRequest(creditLineId: number, businessPaymentRequisiteId: number) {
+        return await this.requestHandler.saveNewRepayRequest({
+            creditLineId,
+            paymentRequisiteId: businessPaymentRequisiteId,
+        });
     }
 
     async getCollateralTokenBySymbol(tokenSymbol: string) {
@@ -227,5 +230,21 @@ export class BotManagerService {
 
     async getUserCreditLinesCurrencyExtended(chatId: number) {
         return this.creditLineService.getCreditLinesByChatIdCurrencyExtended(chatId);
+    }
+
+    async getOldestPendingRepayReq(creditLineId: number) {
+        return this.requestHandler.getOldestPendingRepayReq(creditLineId);
+    }
+
+    async getFreshBusinessPayReqByDebtSymbol(debtSymbol: string) {
+        return this.paymentRequisiteService.getFreshBusinessPayReqByDebtSymbol(debtSymbol);
+    }
+
+    async getBusinessPayReqByRequestId(repayRequestId: number) {
+        return this.paymentRequisiteService.getBusinessPayReqByRequestId(repayRequestId);
+    }
+
+    async getCreditLineById(creditLineId: number) {
+        return this.creditLineService.getCreditLineById(creditLineId);
     }
 }
