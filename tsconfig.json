@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "exactOptionalPropertyTypes": true,
     "strictNullChecks": true,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": false,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
