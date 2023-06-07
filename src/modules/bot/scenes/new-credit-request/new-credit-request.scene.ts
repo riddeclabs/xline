@@ -314,7 +314,11 @@ export class NewCreditRequestWizard {
                 await this.enterIbanHandler(ctx, userMessageText);
                 break;
             default:
-                throw new Error("Could not find handler for the target message");
+                // Redirect to main scene if user input is "/start"
+                if (ctx.message.text === "/start") {
+                    await this.botCommon.tryToDeleteMessages(ctx, true);
+                    await ctx.scene.enter(MainScene.ID);
+                }
         }
     }
 

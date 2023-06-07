@@ -14,6 +14,7 @@ import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
 import { ManagePortfolioWizard } from "./manage-portfolio.scene";
 import { BotManagerService } from "../bot-manager.service";
+import * as filters from "telegraf/filters";
 
 type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest" | "managePortfolio";
 
@@ -146,8 +147,8 @@ export class MainScene {
             for (const cc of collateralCurrencies) {
                 const economicalParameters =
                     await this.botManagerService.economicalParamsService.getFreshEconomicalParams(
-                        dc.id,
-                        cc.id
+                        cc.id,
+                        dc.id
                     );
                 // prettier-ignore
                 text += `🪙 ${cc.symbol} / ${dc.symbol}\n`
@@ -194,11 +195,19 @@ export class MainScene {
     }
 
     // Catch everything except `/start` command
-    @Hears(/^(?!\/start$).*/)
+    @Hears(/.*/)
     async onMessageHandler(@Ctx() ctx: MainSceneContext) {
-        this.botCommon.tryToSaveSceneMessage(ctx, ctx.message);
-        await this.botCommon.tryToDeleteMessages(ctx);
+        // Catch user input to remove it with step message
+        if (!ctx.has(filters.message("text"))) return;
 
-        throw new Error("Unexpected user message received");
+        // This scene does not provide for user input, just delete the message
+        try {
+            await ctx.deleteMessage(ctx.message.message_id);
+        } catch {}
+
+        if (ctx.message.text === "/start") {
+            await this.botCommon.tryToDeleteMessages(ctx, true);
+            await ctx.scene.enter(MainScene.ID);
+        }
     }
 }

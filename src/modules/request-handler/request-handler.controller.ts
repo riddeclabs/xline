@@ -1,7 +1,7 @@
-import { Controller, Get, Param } from "@nestjs/common";
+import { Controller, Get, HttpException, HttpStatus, Param } from "@nestjs/common";
 import { RequestHandlerService } from "./request-handler.service";
 import { ApiTags } from "@nestjs/swagger";
-import { formatUnits } from "../../common/fixed-number";
+import { formatUnits } from "../../common";
 
 @ApiTags("Request handler")
 @Controller("request-handler")
@@ -14,7 +14,11 @@ export class RequestHandlerController {
     }
     @Get("deposit/pending/:lineId")
     getOldestPendingDepositReq(@Param("lineId") creditLineId: string) {
-        return this.requestHandlerService.getOldestPendingDepositReq(+creditLineId);
+        const depositRequest = this.requestHandlerService.getOldestPendingDepositReq(+creditLineId);
+
+        if (!depositRequest) {
+            throw new HttpException("Pending deposit request not found", HttpStatus.NOT_FOUND);
+        }
     }
 
     @Get("withdraw/all/:lineId")
