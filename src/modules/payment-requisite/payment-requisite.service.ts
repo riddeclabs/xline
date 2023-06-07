@@ -49,6 +49,22 @@ export class PaymentRequisiteService {
         return this.businessPaymentRepo.findOneBy({ debtCurrencyId });
     }
 
+    getBusinessPayReqByRequestId(repayRequestId: number) {
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .leftJoin("bpr.repayRequests", "rr", "rr.id = :repayRequestId", { repayRequestId })
+            .getOneOrFail();
+    }
+
+    getFreshBusinessPayReqByDebtSymbol(debtCurrencySymbol: string) {
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .innerJoin("bpr.debtCurrencyId", "debtCurrency")
+            .where("debtCurrency.symbol = :debtCurrencySymbol", { debtCurrencySymbol })
+            .orderBy("bpr.created_at", "ASC")
+            .getOneOrFail();
+    }
+
     saveNewBusinessRequisite(dto: CreateBusinessPaymentRequisiteDto) {
         const newReq = this.businessPaymentRepo.create(dto);
         return this.businessPaymentRepo.save(newReq);
