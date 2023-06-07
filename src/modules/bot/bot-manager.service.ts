@@ -24,7 +24,7 @@ export class BotManagerService {
         readonly priceOracleService: PriceOracleService,
         readonly paymentRequisiteService: PaymentRequisiteService,
         readonly riskEngineService: RiskEngineService,
-        readonly requestHandler: RequestHandlerService,
+        readonly requestHandlerService: RequestHandlerService,
         readonly economicalParamsService: EconomicalParametersService,
         readonly userService: UserService,
         readonly creditLineService: CreditLineService,
@@ -88,7 +88,7 @@ export class BotManagerService {
         await this.saveNewDepositRequest(creditLine.id);
 
         // save borrow request
-        await this.requestHandler.saveNewBorrowRequest({
+        await this.requestHandlerService.saveNewBorrowRequest({
             creditLineId: creditLine.id,
             borrowFiatAmount: null,
             initialRiskStrategy: riskStrategy,
@@ -103,7 +103,8 @@ export class BotManagerService {
 
         const openCreditLineData = await this.riskEngineService.calculateOpenCreditLineData(
             sceneData.colToken.symbol,
-            parseUnits(sceneData.supplyAmount),
+            sceneData.colToken.decimals,
+            parseUnits(sceneData.supplyAmount, sceneData.colToken.decimals),
             parseUnits(sceneData.riskStrategy),
             economicalParameters
         );
@@ -163,6 +164,7 @@ export class BotManagerService {
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
 
@@ -188,7 +190,7 @@ export class BotManagerService {
     // Requests
 
     async saveNewDepositRequest(creditLineId: number) {
-        await this.requestHandler.saveNewDepositRequest({ creditLineId });
+        return await this.requestHandlerService.saveNewDepositRequest({ creditLineId });
     }
 
     async saveNewWithdrawRequest(
@@ -197,7 +199,7 @@ export class BotManagerService {
         withdrawAmount: bigint
     ) {
         await this.verifyHypWithdrawRequest(creditLineId, withdrawAmount);
-        await this.requestHandler.saveNewWithdrawRequest({
+        await this.requestHandlerService.saveNewWithdrawRequest({
             creditLineId,
             walletToWithdraw,
             withdrawAmount,
@@ -206,7 +208,7 @@ export class BotManagerService {
 
     async saveNewBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
         await this.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
-        await this.requestHandler.saveNewBorrowRequest({
+        await this.requestHandlerService.saveNewBorrowRequest({
             creditLineId,
             borrowFiatAmount,
             initialRiskStrategy: null,
@@ -222,7 +224,7 @@ export class BotManagerService {
     }
 
     async saveNewRepayRequest(creditLineId: number, paymentRequisiteId: number) {
-        await this.requestHandler.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
+        await this.requestHandlerService.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
     }
 
     async getCollateralTokenBySymbol(tokenSymbol: string) {
@@ -235,5 +237,9 @@ export class BotManagerService {
 
     async getUserCreditLinesCurrencyExtended(chatId: number) {
         return this.creditLineService.getCreditLinesByChatIdCurrencyExtended(chatId);
+    }
+
+    async getOldestPendingDepositReq(creditLineId: number) {
+        return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
     }
 }

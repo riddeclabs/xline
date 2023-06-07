@@ -46,7 +46,7 @@ export class CreditLineService {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
             .innerJoin("creditLine.userId", "user")
-            .innerJoin("creditLine.collateralCurrencyId", "cc")
+            .innerJoinAndSelect("creditLine.collateralCurrencyId", "cc")
             .where("user.chat_id = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();

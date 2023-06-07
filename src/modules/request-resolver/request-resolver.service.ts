@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { ResolveCryptoBasedRequestDto, ResolveFiatBasedRequestDto } from "./dto/resolve-request.dto";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
@@ -51,20 +51,18 @@ export class RequestResolverService {
             throw new Error("Incorrect rawTransferAmount amount for fiat transaction");
         }
 
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
-
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
 
         // Verify borrow request
         await this.riskEngineService.verifyBorrowOrThrow(
             creditLine,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             requestedBorrowAmount
         );
 
@@ -103,7 +101,8 @@ export class RequestResolverService {
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
 
@@ -111,6 +110,7 @@ export class RequestResolverService {
             await this.riskEngineService.verifyBorrowOrThrow(
                 creditLine,
                 collateralToken.symbol,
+                creditLine.collateralToken.decimals,
                 requestedBorrowAmount
             );
         } catch (e) {
@@ -130,14 +130,14 @@ export class RequestResolverService {
 
     // Used to verify user requested borrow amount during the creation of new borrow request
     async verifyHypBorrowRequest(creditLineId: number, hypotheticalBorrowAmount: bigint) {
-        const creditLine = await this.creditLineService.getCreditLineById(creditLineId);
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
+        const creditLineExtended = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
+            creditLineId
         );
 
         await this.riskEngineService.verifyBorrowOrThrow(
-            creditLine,
-            collateralToken.symbol,
+            creditLineExtended,
+            creditLineExtended.collateralToken.symbol,
+            creditLineExtended.collateralToken.decimals,
             hypotheticalBorrowAmount
         );
     }
@@ -199,9 +199,9 @@ export class RequestResolverService {
             throw new Error("Credit line not found");
         }
 
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
+        const collateralToken = creditLine.collateralCurrencyId as unknown as CollateralCurrency; // FIXME: after rebuild database scheme
+
+        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);
 
         let depositRequestId;
         let withdrawRequestId;
@@ -241,6 +241,7 @@ export class RequestResolverService {
     private async getBorrowAmount(
         request: BorrowRequest,
         collateralSymbol: string,
+        collateralDecimals: number,
         rawSupplyAmount: bigint
     ) {
         let requestedBorrowAmount: bigint;
@@ -248,6 +249,7 @@ export class RequestResolverService {
         if (!request.borrowFiatAmount && request.initialRiskStrategy) {
             requestedBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
                 collateralSymbol,
+                collateralDecimals,
                 rawSupplyAmount,
                 request.initialRiskStrategy
             );
@@ -269,7 +271,9 @@ export class RequestResolverService {
             | WithdrawRequest
             | BorrowRequest
             | RepayRequest;
-        const creditLine = await this.creditLineService.getCreditLineById(request.creditLineId);
+        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
+            request.creditLineId
+        );
 
         return {
             request,
@@ -302,6 +306,10 @@ export class RequestResolverService {
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
             creditLine.id
         );
+        if (!pendingRequest) {
+            throw new Error("Pending deposit request not found");
+        }
+
         const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
             pendingRequest,
             DepositRequestStatus.FINISHED
@@ -361,6 +369,60 @@ export class RequestResolverService {
 
         if (!(request.withdrawAmount === actualWithdrawAmount)) {
             throw new Error("Incorrect withdraw amount received");
+        }
+    }
+
+    private verifyTransferAmount(rawTransferAmount: string, decimals: number) {
+        const parts = rawTransferAmount.split(".");
+
+        // rawTransferAmount is not in the correct structure: (missing decimal point)
+        if (parts.length !== 2) {
+            throw new HttpException(
+                "Incorrect structure of rawTransferAmount received",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const [wholePart, fractionalPart] = parts;
+
+        // The whole or fractional is missing or empty
+        if (!wholePart || !fractionalPart) {
+            throw new HttpException(
+                "The whole part of rawTransferAmount cannot be negative or zero",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // Both the whole and fractional parts are zero
+        if (
+            (Number(wholePart) === 0 || /^\s*0+$/.test(wholePart)) &&
+            (Number(fractionalPart) === 0 || /^\s*0+$/.test(fractionalPart))
+        ) {
+            throw new HttpException(
+                "Both whole and fractional parts of rawTransferAmount cannot be zero",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The whole part or fractional part is not a number
+        if (isNaN(Number(wholePart)) || isNaN(Number(fractionalPart))) {
+            throw new HttpException(
+                "Incorrect structure of rawTransferAmount received",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The whole part is negative
+        if (Number(wholePart) < 0) {
+            throw new HttpException(
+                "The whole part of rawTransferAmount cannot be negative or zero",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // The length of the fractional part exceeds decimals
+        if (!fractionalPart || fractionalPart.length > decimals) {
+            throw new HttpException("Fractional component exceeds decimals", HttpStatus.BAD_REQUEST);
         }
     }
 }
