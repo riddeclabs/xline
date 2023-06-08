@@ -63,7 +63,7 @@ export class BackOfficeService {
         });
     }
 
-    getCustomers(page: number, sort: string, username?: string) {
+    getCustomers(page: number, sort: string, username?: string, chatId?: string) {
         const sortInitial = sort ? sort : "-name";
         const checkDesc = sortInitial?.split("")[0] === "-" ? "DESC" : "ASC";
 
@@ -72,6 +72,7 @@ export class BackOfficeService {
             .leftJoinAndSelect("user.creditLines", "creditLine")
             .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
             .where("name ilike  :name", { name: `%${username}%` })
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT)
             .take(PAGE_LIMIT)
             .orderBy("user.name", checkDesc || "DESC")

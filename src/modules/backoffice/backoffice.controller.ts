@@ -134,15 +134,14 @@ export class BackOfficeController {
         const chatIdFilter = chatId?.trim() ?? "";
         const userFilter = username?.trim() ?? "";
 
-        const initialCustomers = await this.backofficeService.getCustomers(page - 1, sort, userFilter);
+        const initialCustomers = await this.backofficeService.getCustomers(
+            page - 1,
+            sort,
+            userFilter,
+            chatIdFilter
+        );
 
-        let customers = [];
-
-        if (chatId) {
-            customers = initialCustomers.filter(customer => customer.chatId.toString().includes(chatId));
-        } else customers = initialCustomers;
-
-        const customersWithActiveLines = customers.map(customer => {
+        const customersWithActiveLines = initialCustomers.map(customer => {
             return {
                 id: customer.id,
                 chatId: customer.chatId,
