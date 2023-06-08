@@ -25,6 +25,8 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
+import { PAGE_LIMIT } from "src/common/constants";
+import { CustomersListDto } from "./dto/customers.dto";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -126,8 +128,12 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers")
     @Render("backoffice/customers")
-    async getCustomers(@Req() req: Request) {
-        const customers = await this.backofficeService.getCustomers();
+    async getCustomers(@Req() req: Request, @OperatorsListQuery() query: CustomersListDto) {
+        const { page, username, sort } = query;
+
+        const userFilter = username?.trim() ?? "";
+        const customers = await this.backofficeService.getCustomers(page - 1, sort, userFilter);
+
         const customersWithActiveLines = customers.map(customer => {
             return {
                 id: customer.id,
@@ -136,7 +142,25 @@ export class BackOfficeController {
                 activeLines: customer.creditLines.length,
             };
         });
-        return { customers: customersWithActiveLines };
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            username: userFilter ? userFilter : undefined,
+            sort: sort,
+        };
+        return {
+            customers: customersWithActiveLines,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount: 2,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount: 2,
+                    siblingCount: 1,
+                }),
+                disabled: customersWithActiveLines.length > PAGE_LIMIT,
+            },
+        };
     }
 
     @Roles(Role.ADMIN)
@@ -172,7 +196,6 @@ export class BackOfficeController {
             [], // MOCKED
         ]);
         const totalPageCount = Math.ceil(totalCount / takePerPage);
-
         return {
             account: req.user,
             operators,

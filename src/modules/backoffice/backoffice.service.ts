@@ -4,6 +4,7 @@ import { Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserService } from "../user/user.service";
+import { PAGE_LIMIT } from "src/common/constants";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -11,8 +12,7 @@ export enum OperatorsListColumns {
 }
 
 export enum CustomersListColumns {
-    updated = "updated",
-    role = "role",
+    name = "name",
 }
 
 export enum ModifyReserveDirection {
@@ -63,11 +63,18 @@ export class BackOfficeService {
         });
     }
 
-    getCustomers() {
+    getCustomers(page: number, sort: string, username?: string, chatId?: string) {
+        const sortInitial = sort ? sort : "-name";
+        const checkDesc = sortInitial?.split("")[0] === "-" ? "DESC" : "ASC";
+
         return this.userRepo
             .createQueryBuilder("user")
             .leftJoinAndSelect("user.creditLines", "creditLine")
             .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
+            .where("name ilike  :name", { name: `%${username}%` })
+            .skip(page * PAGE_LIMIT)
+            .take(PAGE_LIMIT)
+            .orderBy("user.name", checkDesc || "DESC")
             .getMany();
     }
 }

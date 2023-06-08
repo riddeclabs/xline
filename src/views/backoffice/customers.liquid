@@ -1,20 +1,61 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
   <h1 class='pb-5 text-white fs-1'>Customers</h1>
-  <div class='card bg-dark shadow-sm'>
-    <div>{{ customers[0].creditLines[0].creditLineStatus }}</div>
-    <table class='table table-striped mb-0'>
+  <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
+    <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
+      <div class='input-group' style='width: 350px'>
+        <a
+          class='btn btn-outline-success blue-button'
+          id='user-filter-btn'
+          href='?{{ query | mut-query }}'>
+          Search
+        </a>
+        <input
+          placeholder='Username'
+          type='search'
+          class='form-control'
+          aria-label='Sizing example input'
+          aria-describedby='inputGroup-sizing-sm'
+          id='user-filter-input'
+          value='{{ query.username }}'>
+      </div>
+      <a
+        class='btn btn-outline-success blue-button'
+        id='user-filter-btn'
+        href='/backoffice/customers'>
+        Clear
+      </a>
+    </div>
+  </div>
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Customers list</h1>
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
       <thead>
         <tr>
-          <th scope='col'>Chat ID</th>
-          <th scope='col'>Customer name</th>
-          <th scope='col'>Active lines</th>
+          <th scope='col'>
+            Chat ID
+          </th>
+          <th scope='col'>
+            {% if page.query.sort == "name" %}
+              <a href='?{{ query | mut-query: 'sort', '-name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-up'></i>
+              </a>
+            {% elsif page.query.sort == "-name" %}
+              <a href='?{{ query | mut-query: 'sort', 'name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-down'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sort', '-name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            Active lines
+          </th>
           <th scope='col'>View</th>
         </tr>
       </thead>
       <tbody>
-        <tr style='height:50px'>
-          {% for customer in customers %}
+        {% for customer in customers %}
+          <tr style='height:50px' class="table-column">
             <td class='align-middle'>
               {{ customer.chatId }}
             </td>
@@ -25,35 +66,55 @@
               {{ customer.activeLines }}
             </td>
             <td class='align-middle'>
-              <button>View</button>
+              <button class="icon-button">
+                <i class='bi-info-circle'></i>
+              </button>
             </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
-    <nav aria-label='Page navigation example' class='mt-3'>
-      {% assign prev_page = page.current | minus: 1 %}
-      {% assign next_page = page.current | plus: 1 %}
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
 
-      <ul class='pagination justify-content-center'>
-        <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
-          <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
-            <i class='bi-arrow-left'></i>
-          </a>
-        </li>
-        {% for p in page.pages %}
-          <li class='page-item'>
-            <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
-              {{ p }}
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
             </a>
           </li>
-        {% endfor %}
-        <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
-          <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
-            <i class='bi-arrow-right'></i>
-          </a>
-        </li>
-      </ul>
-    </nav>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    {% endif %}
   </div>
+  <script>
+    const $userFilterBtn = document.querySelector('#user-filter-btn');
+
+    document.getElementById('user-filter-input').addEventListener('change', function(event) {
+      const val = event.target.value.trim();
+      const emptyQuery = `?{{ query | mut-query: 'username' }}`;
+      const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
+
+      const newHref = val
+        ? queryTemplate.replace('username=template', 'username=' + val)
+        : emptyQuery;
+
+      $userFilterBtn.setAttribute('href', newHref);
+      window.location.assign(newHref);
+    });
+  </script>
 {% endblock %}

@@ -13,7 +13,10 @@ export class CustomersListDto {
     role?: Role;
 
     @IsEnum(CustomersListColumns)
-    sort: CustomersListColumns = CustomersListColumns.updated;
+    sort: CustomersListColumns = CustomersListColumns.name;
+
+    @IsString()
+    chatId?: string;
 
     @IsString()
     @IsOptional()

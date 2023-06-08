@@ -6,8 +6,8 @@ export const CustomersListQuery = createParamDecorator((data: unknown, ctx: Exec
 
     const result = new CustomersListDto();
     result.page = request.query.page ? Number(request.query.page) : 1;
-    result.role = request.query.role;
     result.sort = request.query.sort;
     result.username = request.query.username;
+    result.chatId = request.query.chatId;
     return result;
 });
