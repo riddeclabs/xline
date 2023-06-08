@@ -26,6 +26,7 @@ import { ManagePortfolioWizard } from "./scenes/manage-portfolio.scene";
 import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-request.text";
 import { ManageCreditLineWizard } from "./scenes/manage-credit-line/manage-credit-line.scene";
 import { DepositActionWizard } from "./scenes/manage-credit-line/deposit/deposit.scene";
+import { BorrowActionWizard } from "./scenes/manage-credit-line/borrow/borrow.scene";
 
 @Module({
     imports: [
@@ -73,6 +74,7 @@ import { DepositActionWizard } from "./scenes/manage-credit-line/deposit/deposit
         ConfigService,
         ManageCreditLineWizard,
         DepositActionWizard,
+        BorrowActionWizard,
     ],
 })
 export class BotModule {}
