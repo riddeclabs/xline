@@ -27,6 +27,7 @@ import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
 import { PAGE_LIMIT } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
+import { CustomersListQuery } from "./decorators/customers.decorators";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -128,11 +129,18 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers")
     @Render("backoffice/customers")
-    async getCustomers(@Req() req: Request, @OperatorsListQuery() query: CustomersListDto) {
-        const { page, username, sort } = query;
-
+    async getCustomers(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+        const { page, username, sort, chatId } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
         const userFilter = username?.trim() ?? "";
-        const customers = await this.backofficeService.getCustomers(page - 1, sort, userFilter);
+
+        const initialCustomers = await this.backofficeService.getCustomers(page - 1, sort, userFilter);
+
+        let customers = [];
+
+        if (chatId) {
+            customers = initialCustomers.filter(customer => customer.chatId.toString().includes(chatId));
+        } else customers = initialCustomers;
 
         const customersWithActiveLines = customers.map(customer => {
             return {
@@ -144,7 +152,8 @@ export class BackOfficeController {
         });
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
-            username: userFilter ? userFilter : undefined,
+            username: userFilter ?? undefined,
+            chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
         return {

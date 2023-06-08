@@ -63,7 +63,7 @@ export class BackOfficeService {
         });
     }
 
-    getCustomers(page: number, sort: string, username?: string, chatId?: string) {
+    getCustomers(page: number, sort: string, username?: string) {
         const sortInitial = sort ? sort : "-name";
         const checkDesc = sortInitial?.split("")[0] === "-" ? "DESC" : "ASC";
 

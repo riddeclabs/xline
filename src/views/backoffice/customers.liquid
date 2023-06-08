@@ -4,27 +4,50 @@
   <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
     <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
       <div class='input-group' style='width: 350px'>
-        <a
-          class='btn btn-outline-success blue-button'
-          id='user-filter-btn'
-          href='?{{ query | mut-query }}'>
-          Search
-        </a>
+        {% if page.query.chatId.size > 0 %}
         <input
+          placeholder='Chat ID'
+          type='search'
+          class='form-control number-input'
+          autofocus
+          aria-label='Sizing example input'
+          aria-describedby='inputGroup-sizing-sm'
+          id='filter-chat-input'
+          value='{{ page.query.chatId }}'>
+          {% else %}
+            <input
+          placeholder='Chat ID'
+          type='search'
+          class='form-control number-input'
+          aria-label='Sizing example input'
+          aria-describedby='inputGroup-sizing-sm'
+          id='filter-chat-input'
+          value='{{ page.query.chatId }}'>
+        {% endif %}
+          
+      </div>
+      <div class='input-group' style='width: 350px'>
+        {% if page.query.username.size > 0 %}
+        <input
+          placeholder='Username'
+          type='search'
+          class='form-control'
+          autofocus
+          aria-label='Sizing example input'
+          aria-describedby='inputGroup-sizing-sm'
+          id='user-filter-input'
+          value='{{ page.query.username }}'>
+          {% else %}
+          <input
           placeholder='Username'
           type='search'
           class='form-control'
           aria-label='Sizing example input'
           aria-describedby='inputGroup-sizing-sm'
           id='user-filter-input'
-          value='{{ query.username }}'>
+          value='{{ page.query.username }}'>
+          {% endif %}
       </div>
-      <a
-        class='btn btn-outline-success blue-button'
-        id='user-filter-btn'
-        href='/backoffice/customers'>
-        Clear
-      </a>
     </div>
   </div>
   <div class='card bg-dark shadow-sm wrapper-table'>
@@ -54,24 +77,30 @@
         </tr>
       </thead>
       <tbody>
-        {% for customer in customers %}
-          <tr style='height:50px' class="table-column">
-            <td class='align-middle'>
-              {{ customer.chatId }}
-            </td>
-            <td class='align-middle'>
-              {{ customer.name }}
-            </td>
-            <td class='align-middle'>
-              {{ customer.activeLines }}
-            </td>
-            <td class='align-middle'>
-              <button class="icon-button">
-                <i class='bi-info-circle'></i>
-              </button>
-            </td>
+        {% unless customers.size > 0 %}
+          <tr>
+            <td colspan="4">Unfortunately, we did not find any client.</td>
           </tr>
-        {% endfor %}
+        {% endunless %}
+          {% for customer in customers %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ customer.chatId }}
+              </td>
+              <td class='align-middle'>
+                {{ customer.name }}
+              </td>
+              <td class='align-middle'>
+                {{ customer.activeLines }}
+              </td>
+              <td class='align-middle'>
+                <button class="icon-button">
+                  <i class='bi-info-circle'></i>
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
       </tbody>
     </table>
     {% if page.disabled %}
@@ -102,19 +131,40 @@
     {% endif %}
   </div>
   <script>
-    const $userFilterBtn = document.querySelector('#user-filter-btn');
+    const userInput = document.getElementById('user-filter-input');
+    const chatInput = document.getElementById('filter-chat-input');
 
-    document.getElementById('user-filter-input').addEventListener('change', function(event) {
-      const val = event.target.value.trim();
-      const emptyQuery = `?{{ query | mut-query: 'username' }}`;
-      const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
+    function debounce(func, timeout = 500){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
 
-      const newHref = val
-        ? queryTemplate.replace('username=template', 'username=' + val)
-        : emptyQuery;
+  userInput.addEventListener('input', debounce((e) => {
+    const valueInput = e.target.value
+    const emptyQuery = `?{{ query | mut-query: 'username' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
+    const newHref = valueInput
+     ? queryTemplate.replace('username=template', 'username=' + valueInput)
+       : emptyQuery;
 
-      $userFilterBtn.setAttribute('href', newHref);
+     userInput.setAttribute('href', newHref);
       window.location.assign(newHref);
-    });
+  }, 500))
+
+  chatInput.addEventListener('input', debounce((e) => {
+    const valueInput = e.target.value
+    const emptyQuery = `?{{ query | mut-query: 'chatId' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'chatId', 'template' }}`;
+    const newHref = valueInput
+     ? queryTemplate.replace('chatId=template', 'chatId=' + valueInput)
+       : emptyQuery;
+
+     userInput.setAttribute('href', newHref);
+      window.location.assign(newHref);
+  }, 500))
+
   </script>
 {% endblock %}

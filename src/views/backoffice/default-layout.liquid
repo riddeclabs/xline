@@ -52,6 +52,11 @@
     border: 1px solid #0d6efd;
     background: #0d6efd;
   }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
   .blue-button:hover {
     color: #0d6efd;
     background: #fff;
@@ -60,6 +65,10 @@
     -moz-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
     box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
 
+  }
+  .clear-btn {
+    margin-left: auto;
+    margin-right: 12px;
   }
   .icon-button {
     border: none;
@@ -79,6 +88,7 @@
   table {
     border-radius: 8px !important;
   }
+  
     </style>
   </head>
 
@@ -189,5 +199,6 @@
       integrity='sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2XofN4zfuZxLkoj1gXtW8ANNCe9d5Y3eG5eD'
       crossorigin='anonymous'
     ></script>
+    <script scr="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
   </body>
 </html>
