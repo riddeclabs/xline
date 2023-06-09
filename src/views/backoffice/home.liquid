@@ -1,4 +1,36 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-5 text-white fs-1'>Home</h1>
+  <h1 class='pb-5 text-white fs-1'>Dashboard</h1>
+  <div class="home-wrapper">
+    <div class="total-home">
+      <div class="wrapper-table p-4 fs-5">Total customers: {{ totalCustomers }}</div>
+      <div class="wrapper-table p-4 mt-3">
+        <div class="fs-5">Total supply: {{ totalSupply }} m$</div>
+        <div class="fs-6 mt-1">ETH: {{ ETH }} m$</div>
+        <div class="fs-6">BTC: {{ BTC }}m$</div>
+        <hr style="color: #fff;">
+        <div class="fs-5">Total borrow: {{ totalBorrow }} m$</div>
+        <div class="fs-6 mt-1">USD: {{ USD }} m$</div>
+        <hr>
+        <div class="fs-5">Total free accumulated {{ freeAccum }} k$</div>
+      </div>
+    </div>
+    <div class="suported-home">
+      <div class="wrapper-table p-4">
+        <div class="fs-5">Supported currencies</div>
+        <div class="fs-6 mt-3">Collateral:</div>
+        <ul>
+          {% for collateral in collateralString %}
+            <li>{{ collateral }}</li>
+          {% endfor %}
+        </ul>
+        <div class="fs-6 mt-3">Borrow:</div>
+        <ul>
+          {% for borrow in borrowString %}
+            <li>{{ borrow }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
 {% endblock %}

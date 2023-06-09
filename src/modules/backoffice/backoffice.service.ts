@@ -78,4 +78,8 @@ export class BackOfficeService {
             .orderBy("user.name", checkDesc || "DESC")
             .getMany();
     }
+
+    getAllCustomers() {
+        return this.userRepo.createQueryBuilder("user").getMany();
+    }
 }

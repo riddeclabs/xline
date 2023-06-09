@@ -79,9 +79,18 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
     @Render("backoffice/home")
-    home(@Req() req: Request) {
+    async home(@Req() req: Request) {
+        const allCustomers = await this.backofficeService.getAllCustomers();
         return {
-            account: req.user,
+            totalCustomers: allCustomers.length,
+            collateralString: ["ETH", "BTC"],
+            borrowString: ["USD"],
+            totalSupply: "2.54",
+            ETH: "1.34",
+            BTC: "1.2",
+            totalBorrow: "1.87",
+            USD: "1.34",
+            freeAccum: "245",
         };
     }
 
