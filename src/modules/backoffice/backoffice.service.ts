@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { Operator, User } from "src/database/entities";
+import { CreditLine, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserService } from "../user/user.service";
 import { PAGE_LIMIT } from "src/common/constants";
 
 export enum OperatorsListColumns {
@@ -25,9 +24,10 @@ export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
         private operatorRepo: Repository<Operator>,
-        private userService: UserService,
         @InjectRepository(User)
-        private userRepo: Repository<User>
+        private userRepo: Repository<User>,
+        @InjectRepository(CreditLine)
+        private creditLineRepo: Repository<CreditLine>
     ) {}
 
     accountInfo() {
@@ -81,5 +81,23 @@ export class BackOfficeService {
 
     getAllCustomers() {
         return this.userRepo.createQueryBuilder("user").getMany();
+    }
+
+    getCreditLines() {
+        return this.creditLineRepo.createQueryBuilder("creditLines").getMany();
+    }
+
+    getBorrow() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLines")
+            .leftJoinAndSelect("creditLines.borrowRequests", "borrowRequest")
+            .getMany();
+    }
+
+    getDeposit() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLines")
+            .leftJoinAndSelect("creditLines.depositRequests", "depositRequests")
+            .getMany();
     }
 }

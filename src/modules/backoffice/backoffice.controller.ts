@@ -81,16 +81,26 @@ export class BackOfficeController {
     @Render("backoffice/home")
     async home(@Req() req: Request) {
         const allCustomers = await this.backofficeService.getAllCustomers();
+        // const borrowRequest = await this.backofficeService.getBorrow();
+        // const depositRequest = await this.backofficeService.getDeposit();
+        // console.log("test", borrowRequest[0]?.borrowRequests);
+        // console.log("test", depositRequest[0]?.depositRequests);
+        const test = await this.backofficeService.getCreditLines();
+        console.log("test", test);
+        const freeAccumulated = test
+            .map(creditLine => creditLine.feeAccumulatedFiatAmount)
+            .reduce((a, b) => a + b);
+        console.log("freeAccumulated", freeAccumulated);
         return {
             totalCustomers: allCustomers.length,
             collateralString: ["ETH", "BTC"],
             borrowString: ["USD"],
-            totalSupply: "2.54",
-            ETH: "1.34",
-            BTC: "1.2",
+            totalSupply: "0",
+            ETH: "0",
+            BTC: "0",
             totalBorrow: "1.87",
             USD: "1.34",
-            freeAccum: "245",
+            freeAccum: "0",
         };
     }
 
