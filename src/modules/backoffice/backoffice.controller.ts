@@ -32,9 +32,7 @@ import { CustomersListQuery } from "./decorators/customers.decorators";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(
-        private backofficeService: BackOfficeService // private readonly userService: UserService
-    ) {}
+    constructor(private backofficeService: BackOfficeService) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -80,27 +78,18 @@ export class BackOfficeController {
     @Get("home")
     @Render("backoffice/home")
     async home(@Req() req: Request) {
-        const allCustomers = await this.backofficeService.getAllCustomers();
-        // const borrowRequest = await this.backofficeService.getBorrow();
-        // const depositRequest = await this.backofficeService.getDeposit();
-        // console.log("test", borrowRequest[0]?.borrowRequests);
-        // console.log("test", depositRequest[0]?.depositRequests);
-        const test = await this.backofficeService.getCreditLines();
-        console.log("test", test);
-        const freeAccumulated = test
-            .map(creditLine => creditLine.feeAccumulatedFiatAmount)
-            .reduce((a, b) => a + b);
-        console.log("freeAccumulated", freeAccumulated);
+        const allCustomersLength = await this.backofficeService.getAllCustomers();
+        const freeAccumulated = await this.backofficeService.getFeeAccumulatedAmount();
         return {
-            totalCustomers: allCustomers.length,
-            collateralString: ["ETH", "BTC"],
-            borrowString: ["USD"],
+            totalCustomers: allCustomersLength,
+            collateralString: "",
+            borrowString: "",
             totalSupply: "0",
             ETH: "0",
             BTC: "0",
-            totalBorrow: "1.87",
-            USD: "1.34",
-            freeAccum: "0",
+            totalBorrow: "0",
+            USD: "0",
+            freeAccum: freeAccumulated.sum,
         };
     }
 

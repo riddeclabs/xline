@@ -80,24 +80,27 @@ export class BackOfficeService {
     }
 
     getAllCustomers() {
-        return this.userRepo.createQueryBuilder("user").getMany();
+        return this.userRepo.count();
     }
 
-    getCreditLines() {
-        return this.creditLineRepo.createQueryBuilder("creditLines").getMany();
+    getFeeAccumulatedAmount() {
+        return this.creditLineRepo
+            .createQueryBuilder("cl")
+            .select("SUM(cl.feeAccumulatedFiatAmount)", "sum")
+            .getRawOne();
     }
 
     getBorrow() {
         return this.creditLineRepo
             .createQueryBuilder("creditLines")
-            .leftJoinAndSelect("creditLines.borrowRequests", "borrowRequest")
+            .leftJoinAndSelect("creditLines.debtCurrencyId", "borrowRequest")
             .getMany();
     }
 
     getDeposit() {
         return this.creditLineRepo
             .createQueryBuilder("creditLines")
-            .leftJoinAndSelect("creditLines.depositRequests", "depositRequests")
+            .leftJoinAndSelect("creditLines.collateralCurrencyId", "deptCurrenty")
             .getMany();
     }
 }
