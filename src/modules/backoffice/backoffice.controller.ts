@@ -32,9 +32,7 @@ import { CustomersListQuery } from "./decorators/customers.decorators";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(
-        private backofficeService: BackOfficeService // private readonly userService: UserService
-    ) {}
+    constructor(private backofficeService: BackOfficeService) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
