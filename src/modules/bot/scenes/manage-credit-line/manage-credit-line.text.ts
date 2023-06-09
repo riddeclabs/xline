@@ -1,10 +1,10 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
-import { bigintToFormattedPercent, formatUnits, formatUnitsNumber } from "../../../../common";
+import { bigintToFormattedPercent, formatUnits } from "../../../../common";
 import { truncateDecimal } from "../../../../common/text-formatter";
-import { RiskStrategyLevels } from "../new-credit-request/new-credit-request.types";
+import { BasicSourceText } from "../common/basic-source.text";
 
-export class ManageCreditLineText {
+export class ManageCreditLineText extends BasicSourceText {
     static getChoseCreditLineText() {
         return {
             notFoundText:
@@ -64,18 +64,5 @@ export class ManageCreditLineText {
             ),
             mdDebtAmount: truncateDecimal(formatUnits(cld.debtAmount)),
         };
-    }
-
-    private static getCurrentLiquidationRisk(rawUtilRate: bigint, rawCollateralFactor: bigint) {
-        const utilRate = formatUnitsNumber(rawUtilRate);
-        const collateralFactor = formatUnitsNumber(rawCollateralFactor);
-
-        if (utilRate <= RiskStrategyLevels.MEDIUM) {
-            return "🟢 LOW";
-        }
-        if (utilRate <= collateralFactor) {
-            return "🟠 MEDIUM";
-        }
-        return "🔴 HIGH";
     }
 }

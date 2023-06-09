@@ -13,8 +13,14 @@ import { createUserGatewayId, generateReferenceNumber, xor } from "../../common"
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
-import { CreditLine } from "src/database/entities";
+import { CreditLine, EconomicalParameters } from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
+import { CreditLineDetails } from "../credit-line/credit-line.types";
+
+export type CreditLineDetailsExt = {
+    economicalParams: EconomicalParameters;
+    lineDetails: CreditLineDetails;
+};
 
 @Injectable()
 export class BotManagerService {
@@ -156,7 +162,7 @@ export class BotManagerService {
 
     // Credit line
 
-    async getCreditLineDetails(creditLineId: number) {
+    async getCreditLineDetails(creditLineId: number): Promise<CreditLineDetailsExt> {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );

@@ -1,6 +1,8 @@
 import { escapeSpecialCharacters } from "src/common";
+import { BasicSourceText } from "../../common/basic-source.text";
+import { CreditLineSnapshot } from "./borrow.type";
 
-export class BorrowTextSource {
+export class BorrowTextSource extends BasicSourceText {
     static getBorrowTermsText(maxCollateral: number, processingFee: number): string {
         return escapeSpecialCharacters(
             "*Borrow info*\n\n" +
@@ -8,60 +10,52 @@ export class BorrowTextSource {
                 "After confirmation of your request by the system, the requested amount of USD will be sent to your IBAN\n\n" +
                 "⚠️ Be careful! \n" +
                 "Borrow operation increases the utilization rate of your position and increases the risk of liquidation.\n\n" +
-                `The total debt for your position cannot exceed ${maxCollateral}% of the remaining deposit.` +
-                `⚠️ ${processingFee}% of borrowable amount will be apply as processing fee.` +
-                "An amount equal to the fee will be added to your debt position."
+                `The total debt for your position cannot exceed ${maxCollateral}% of the remaining deposit.\n` +
+                `⚠️ ${processingFee}% of borrowable amount will be apply as processing fee.\n` +
+                "An amount equal to the fee will be added to your debt position.\n"
         );
     }
 
-    static getAmountInputText(
-        depositCrypto: number,
-        depositFiat: number,
-        cryptoCurrency: string,
-        fiatCurrency: string,
-        debtAmount: number,
-        utilizationRate: number,
-        maxUtilizationRate: number,
-        maxAllowedAmount: number
-    ): string {
+    static async getAmountInputText(cls: CreditLineSnapshot): Promise<string> {
         return escapeSpecialCharacters(
-            `*Please enter ${fiatCurrency} amount you want to borrow*\n\n` +
+            `*Please enter ${cls.fiatCurrency} amount you want to borrow*\n\n` +
                 "Current state:\n" +
-                `Deposit amount: ${depositCrypto} ${cryptoCurrency} / ${depositFiat} ${fiatCurrency}\n` +
-                `Debt amount: ${debtAmount} ${fiatCurrency}\n` +
-                `Utilization rate: ${utilizationRate}%\n` +
-                `Max utilization rate: ${maxUtilizationRate}%\n\n` +
-                `Max allowed amount to borrow: ${maxAllowedAmount} ${fiatCurrency}\n\n` +
+                `Deposit amount: ${cls.depositCrypto} ${cls.cryptoCurrency} / ${cls.depositFiat} ${cls.fiatCurrency}\n` +
+                `Debt amount: ${cls.debtAmount} ${cls.fiatCurrency}\n` +
+                `Utilization rate: ${cls.utilizationRate}%\n` +
+                `Max utilization rate: ${cls.maxUtilizationRate}%\n\n` +
+                `Max allowed amount to borrow: ${cls.maxAllowedAmount} ${cls.fiatCurrency}\n\n` +
                 `Max accuracy for USD value ia 1 cent.`
         );
     }
 
     static getSignTermsText(
-        depositCrypto: number,
-        depositFiat: number,
-        cryptoCurrency: string,
-        fiatCurrency: string,
-        debtAmountBefore: number,
-        utilizationRateBefore: number,
-        debtAmountAfter: number,
-        utilizationRateAfter: number,
-        liquidationRiskBefore: string,
-        liquidationRiskAfter: string,
+        before: CreditLineSnapshot,
+        after: CreditLineSnapshot,
         name: string,
         iban: string
     ): string {
+        const liquidationRiskBefore = BorrowTextSource.getCurrentLiquidationRisk(
+            before.utilizationRate,
+            before.maxUtilizationRate
+        );
+        const liquidationRiskAfter = BorrowTextSource.getCurrentLiquidationRisk(
+            after.utilizationRate,
+            after.maxUtilizationRate
+        );
+
         return escapeSpecialCharacters(
             "*Borrow request details*\n\n" +
                 "You have requested 15 000 USD to borrow.\n\n" +
                 "Old state:\n" +
-                `Deposit amount: ${depositCrypto} ${cryptoCurrency} / ${depositFiat} ${fiatCurrency}\n` +
-                `Debt amount: ${debtAmountBefore} ${fiatCurrency}\n` +
-                `Utilization rate: ${utilizationRateBefore}%\n` +
+                `Deposit amount: ${before.depositCrypto} ${before.cryptoCurrency} / ${before.depositFiat} ${before.fiatCurrency}\n` +
+                `Debt amount: ${before.debtAmount} ${before.fiatCurrency}\n` +
+                `Utilization rate: ${before.utilizationRate}%\n` +
                 `Liquidation risk: ${liquidationRiskBefore}\n\n` +
                 "New state:\n" +
-                `Deposit amount: ${depositCrypto} ${cryptoCurrency} / ${depositFiat} ${fiatCurrency}\n` +
-                `Debt amount: ${debtAmountAfter} ${fiatCurrency}\n` +
-                `Utilization rate: ${utilizationRateAfter}%\n` +
+                `Deposit amount: ${after.depositCrypto} ${after.cryptoCurrency} / ${after.depositFiat} ${after.fiatCurrency}\n` +
+                `Debt amount: ${after.debtAmount} ${after.fiatCurrency}\n` +
+                `Utilization rate: ${after.utilizationRate}%\n` +
                 `Liquidation risk: ${liquidationRiskAfter}\n\n` +
                 `Holder name: ${name}\n` +
                 `IBAN: ${iban}\n\n` +
@@ -90,6 +84,26 @@ export class BorrowTextSource {
             "❌ *Borrow Request Rejected* ❌\n\n" +
                 "We have received confirmation that you've rejected the request to borrow.\n" +
                 "If you have any questions or need further assistance, please contact our customer support team.\n"
+        );
+    }
+
+    static getAmountValidationErrorMsg(userInput: string): string {
+        return (
+            "❌ *Entered amount is incorrect.* ❌\n\n" +
+            "Amount should be a number greater than 0.\n\n" +
+            "For example: *1000* or *1000.00*.\n\n" +
+            `*Entered amount:* ${userInput}\n\n` +
+            "Please try again."
+        );
+    }
+
+    static getAmountValidationErrorMaxAllowedMsg(userInput: string, maxAllowed: number): string {
+        return (
+            "❌ *Entered amount is incorrect.* ❌\n\n" +
+            "Amount could not be grater that max allowed amount for your credit line.\n\n" +
+            `*Max amount:* ${maxAllowed}\n\n` +
+            `*Entered amount:* ${userInput}\n\n` +
+            "Please try again."
         );
     }
 }
