@@ -139,6 +139,8 @@ export class BackOfficeController {
             chatIdFilter
         );
 
+        const countCustomers = await this.backofficeService.getCountCustomers(userFilter, chatIdFilter);
+
         const customersWithActiveLines = initialCustomers.map(customer => {
             return {
                 id: customer.id,
@@ -153,18 +155,20 @@ export class BackOfficeController {
             chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
+        const totalPageCount = Math.ceil(countCustomers.length / PAGE_LIMIT);
+
         return {
             customers: customersWithActiveLines,
             page: {
                 current: page,
                 query: queryWithDefaults,
-                totalPageCount: 2,
+                totalPageCount,
                 pages: makePagination({
                     currentPage: page,
-                    totalPageCount: 2,
+                    totalPageCount,
                     siblingCount: 1,
                 }),
-                disabled: customersWithActiveLines.length > PAGE_LIMIT,
+                disabled: countCustomers.length > PAGE_LIMIT,
             },
         };
     }

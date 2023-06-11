@@ -78,4 +78,14 @@ export class BackOfficeService {
             .orderBy("user.name", checkDesc || "DESC")
             .getMany();
     }
+
+    getCountCustomers(username?: string, chatId?: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
+            .andWhere("name ilike  :name", { name: `%${username}%` })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .getMany();
+    }
 }
