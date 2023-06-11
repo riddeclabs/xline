@@ -4,49 +4,24 @@
   <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
     <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
       <div class='input-group' style='width: 350px'>
-        {% if page.query.chatId.size > 0 %}
         <input
           placeholder='Chat ID'
           type='search'
           class='form-control number-input'
-          autofocus
           aria-label='Sizing example input'
           aria-describedby='inputGroup-sizing-sm'
           id='filter-chat-input'
-          value='{{ page.query.chatId }}'>
-          {% else %}
-            <input
-          placeholder='Chat ID'
-          type='search'
-          class='form-control number-input'
-          aria-label='Sizing example input'
-          aria-describedby='inputGroup-sizing-sm'
-          id='filter-chat-input'
-          value='{{ page.query.chatId }}'>
-        {% endif %}
-          
+          value='{{ page.query.chatId }}'> 
       </div>
       <div class='input-group' style='width: 350px'>
-        {% if page.query.username.size > 0 %}
         <input
           placeholder='Username'
           type='search'
           class='form-control'
-          autofocus
           aria-label='Sizing example input'
           aria-describedby='inputGroup-sizing-sm'
           id='user-filter-input'
           value='{{ page.query.username }}'>
-          {% else %}
-          <input
-          placeholder='Username'
-          type='search'
-          class='form-control'
-          aria-label='Sizing example input'
-          aria-describedby='inputGroup-sizing-sm'
-          id='user-filter-input'
-          value='{{ page.query.username }}'>
-          {% endif %}
       </div>
     </div>
   </div>
@@ -166,5 +141,14 @@
       window.location.assign(newHref);
   }, 500))
 
+  if (chatInput.value) {
+    chatInput.focus();
+    chatInput.selectionStart = chatInput.value.length;
+  }
+
+  if (userInput.value) {
+    userInput.focus();
+    userInput.selectionStart = userInput.value.length;
+  }
   </script>
 {% endblock %}
