@@ -105,8 +105,8 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("xlineRequest")
-    @Render("backoffice/xlineRequest")
+    @Get("xline-request")
+    @Render("backoffice/xline-request")
     xlineRequest(@Req() req: Request) {
         return {
             account: req.user,
@@ -115,8 +115,8 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("unRequest")
-    @Render("backoffice/unRequest")
+    @Get("unresolved-request")
+    @Render("backoffice/unresolved-request")
     table(@Req() req: Request) {
         return {
             account: req.user,
