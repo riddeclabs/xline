@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, Role } from "../../common";
+import { Role } from "../../common";
 import { CreditLine, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -11,7 +11,7 @@ export enum OperatorsListColumns {
 }
 
 export enum CustomersListColumns {
-    name = "name",
+    name = "DESC",
 }
 
 export enum ModifyReserveDirection {
@@ -63,20 +63,18 @@ export class BackOfficeService {
         });
     }
 
-    getCustomers(page: number, sort: string, username?: string, chatId?: string) {
-        const sortInitial = sort ? sort : "-name";
-        const checkDesc = sortInitial?.split("")[0] === "-" ? "DESC" : "ASC";
+    getCustomers(page: number, sort?: "ASC" | "DESC", username?: string, chatId?: string) {
+        const sortTrim = sort ?? "DESC";
 
         return this.userRepo
             .createQueryBuilder("user")
             .leftJoinAndSelect("user.creditLines", "creditLine")
-            .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
             .where("name ilike  :name", { name: `%${username}%` })
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT)
             .take(PAGE_LIMIT)
-            .orderBy("user.name", checkDesc || "DESC")
-            .getMany();
+            .orderBy("user.name", sortTrim)
+            .getManyAndCount();
     }
 
     getAllCustomers() {

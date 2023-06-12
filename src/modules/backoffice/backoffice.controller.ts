@@ -115,8 +115,8 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("xlineRequest")
-    @Render("backoffice/xlineRequest")
+    @Get("xline-request")
+    @Render("backoffice/xline-request")
     xlineRequest(@Req() req: Request) {
         return {
             account: req.user,
@@ -125,8 +125,8 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("unRequest")
-    @Render("backoffice/unRequest")
+    @Get("unresolved-request")
+    @Render("backoffice/unresolved-request")
     table(@Req() req: Request) {
         return {
             account: req.user,
@@ -142,7 +142,7 @@ export class BackOfficeController {
         const chatIdFilter = chatId?.trim() ?? "";
         const userFilter = username?.trim() ?? "";
 
-        const initialCustomers = await this.backofficeService.getCustomers(
+        const [initialCustomers, totalCount] = await this.backofficeService.getCustomers(
             page - 1,
             sort,
             userFilter,
@@ -163,18 +163,20 @@ export class BackOfficeController {
             chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
+
         return {
             customers: customersWithActiveLines,
             page: {
                 current: page,
                 query: queryWithDefaults,
-                totalPageCount: 2,
+                totalPageCount,
                 pages: makePagination({
                     currentPage: page,
-                    totalPageCount: 2,
+                    totalPageCount,
                     siblingCount: 1,
                 }),
-                disabled: customersWithActiveLines.length > PAGE_LIMIT,
+                disabled: totalCount > PAGE_LIMIT,
             },
         };
     }
