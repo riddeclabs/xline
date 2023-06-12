@@ -163,8 +163,8 @@ export class BotManagerService {
         const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
-            creditLine.collateralToken.symbol,
-            creditLine.collateralToken.decimals,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount
         );
 

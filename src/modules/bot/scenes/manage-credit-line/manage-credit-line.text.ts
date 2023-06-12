@@ -16,8 +16,8 @@ export class ManageCreditLineText {
 
     static getViewLineDetailsText(ep: EconomicalParameters, cld: CreditLineDetails) {
         const vld = this.prepareViewLineData(ep, cld);
-        const collateralSymbol = cld.collateralToken.symbol;
-        const debtSymbol = cld.debtToken.symbol;
+        const collateralSymbol = cld.collateralCurrency.symbol;
+        const debtSymbol = cld.collateralCurrency.symbol;
 
         const healthyFactorText =
             cld.healthyFactor === 0n
@@ -60,7 +60,7 @@ export class ManageCreditLineText {
             mdFeeAccumulatedFiatAmount: truncateDecimal(formatUnits(cld.feeAccumulatedFiatAmount)),
             mdFiatCollateralAmount: truncateDecimal(formatUnits(cld.fiatCollateralAmount)),
             mdRawCollateralAmount: truncateDecimal(
-                formatUnits(cld.rawCollateralAmount, cld.collateralToken.decimals)
+                formatUnits(cld.rawCollateralAmount, cld.collateralCurrency.decimals)
             ),
             mdDebtAmount: truncateDecimal(formatUnits(cld.debtAmount)),
         };
