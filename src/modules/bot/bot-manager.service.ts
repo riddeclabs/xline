@@ -10,9 +10,11 @@ import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
 import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
-import { formatUnits, parseUnits } from "../../common";
+import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
+import { CreditLine } from "src/database/entities";
+import { EXP_SCALE } from "../../common/constants";
 
 @Injectable()
 export class BotManagerService {
@@ -22,7 +24,7 @@ export class BotManagerService {
         readonly priceOracleService: PriceOracleService,
         readonly paymentRequisiteService: PaymentRequisiteService,
         readonly riskEngineService: RiskEngineService,
-        readonly requestHandler: RequestHandlerService,
+        readonly requestHandlerService: RequestHandlerService,
         readonly economicalParamsService: EconomicalParametersService,
         readonly userService: UserService,
         readonly creditLineService: CreditLineService,
@@ -86,7 +88,7 @@ export class BotManagerService {
         await this.saveNewDepositRequest(creditLine.id);
 
         // save borrow request
-        await this.requestHandler.saveNewBorrowRequest({
+        await this.requestHandlerService.saveNewBorrowRequest({
             creditLineId: creditLine.id,
             borrowFiatAmount: null,
             initialRiskStrategy: riskStrategy,
@@ -101,7 +103,8 @@ export class BotManagerService {
 
         const openCreditLineData = await this.riskEngineService.calculateOpenCreditLineData(
             sceneData.colToken.symbol,
-            parseUnits(sceneData.supplyAmount),
+            sceneData.colToken.decimals,
+            parseUnits(sceneData.supplyAmount, sceneData.colToken.decimals),
             parseUnits(sceneData.riskStrategy),
             economicalParameters
         );
@@ -157,34 +160,37 @@ export class BotManagerService {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        const creditLine = await this.creditLineService.getCreditLineById(creditLineId);
-
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
+        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
-            collateralToken.symbol,
+            creditLine.collateralToken.symbol,
+            creditLine.collateralToken.decimals,
             creditLine.rawCollateralAmount
         );
+
+        const getUtilRate = () => (depositUsdAmount * EXP_SCALE) / creditLine.debtAmount;
 
         return {
             economicalParams: lineEconomicalParams,
             lineDetails: {
-                utilRate: 1 / Number(formatUnits(creditLine.healthyFactor)),
-                healthyFactor: formatUnits(creditLine.healthyFactor),
-                totalFeeAccumulated: formatUnits(creditLine.feeAccumulatedFiatAmount),
-                rawDepositAmount: formatUnits(creditLine.rawCollateralAmount, collateralToken.decimals),
-                fiatDepositAmount: formatUnits(depositUsdAmount, collateralToken.decimals),
-                isLiquidated: creditLine.isLiquidated,
+                ...creditLine,
+                utilizationRate: creditLine.debtAmount === 0n ? 0n : getUtilRate(),
+                fiatCollateralAmount: depositUsdAmount,
             },
         };
+    }
+
+    async getCreditLineByChatIdAndColSymbol(
+        chatId: number,
+        colSymbol: string
+    ): Promise<CreditLine | null> {
+        return await this.creditLineService.getCreditLineByChatIdAndColSymbol(chatId, colSymbol);
     }
 
     // Requests
 
     async saveNewDepositRequest(creditLineId: number) {
-        await this.requestHandler.saveNewDepositRequest({ creditLineId });
+        return await this.requestHandlerService.saveNewDepositRequest({ creditLineId });
     }
 
     async saveNewWithdrawRequest(
@@ -193,7 +199,7 @@ export class BotManagerService {
         withdrawAmount: bigint
     ) {
         await this.verifyHypWithdrawRequest(creditLineId, withdrawAmount);
-        await this.requestHandler.saveNewWithdrawRequest({
+        await this.requestHandlerService.saveNewWithdrawRequest({
             creditLineId,
             walletToWithdraw,
             withdrawAmount,
@@ -202,7 +208,7 @@ export class BotManagerService {
 
     async saveNewBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
         await this.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
-        await this.requestHandler.saveNewBorrowRequest({
+        await this.requestHandlerService.saveNewBorrowRequest({
             creditLineId,
             borrowFiatAmount,
             initialRiskStrategy: null,
@@ -218,7 +224,7 @@ export class BotManagerService {
     }
 
     async saveNewRepayRequest(creditLineId: number, paymentRequisiteId: number) {
-        await this.requestHandler.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
+        await this.requestHandlerService.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
     }
 
     async getCollateralTokenBySymbol(tokenSymbol: string) {
@@ -227,5 +233,13 @@ export class BotManagerService {
 
     async getDebtTokenBySymbol(tokenSymbol: string) {
         return await this.currencyService.getDebtTokenBySymbol(tokenSymbol);
+    }
+
+    async getUserCreditLinesCurrencyExtended(chatId: number) {
+        return this.creditLineService.getCreditLinesByChatIdCurrencyExtended(chatId);
+    }
+
+    async getOldestPendingDepositReq(creditLineId: number) {
+        return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
     }
 }
