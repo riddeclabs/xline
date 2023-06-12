@@ -92,6 +92,7 @@ export class RequestResolverService {
     // Used by operator to verify borrow request before transfer the payment
     async verifyBorrowRequest(reqId: number) {
         const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
+        console.log("verifyBorrowRequest ", request, creditLine);
         if (!(request instanceof BorrowRequest)) {
             throw new Error("Incorrect request received");
         }
@@ -271,6 +272,7 @@ export class RequestResolverService {
             | WithdrawRequest
             | BorrowRequest
             | RepayRequest;
+
         const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
             request.creditLineId
         );
@@ -284,13 +286,13 @@ export class RequestResolverService {
     private getRequestFnByAction(action: ActionTypes) {
         switch (action) {
             case ActionTypes.DEPOSIT:
-                return this.requestHandlerService.getDepositRequest;
+                return this.requestHandlerService.getDepositRequest.bind(this.requestHandlerService);
             case ActionTypes.WITHDRAW:
-                return this.requestHandlerService.getWithdrawRequest;
+                return this.requestHandlerService.getWithdrawRequest.bind(this.requestHandlerService);
             case ActionTypes.BORROW:
-                return this.requestHandlerService.getBorrowRequest;
+                return this.requestHandlerService.getBorrowRequest.bind(this.requestHandlerService);
             case ActionTypes.REPAY:
-                return this.requestHandlerService.getRepayRequest;
+                return this.requestHandlerService.getRepayRequest.bind(this.requestHandlerService);
             default:
                 throw new Error("Unexpected action type");
         }

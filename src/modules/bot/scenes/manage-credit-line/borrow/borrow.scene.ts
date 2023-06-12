@@ -2,7 +2,7 @@ import { Injectable, UseFilters } from "@nestjs/common";
 import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { BotCommonService } from "../../../bot-common.service";
 import { CustomExceptionFilter } from "../../../exception-filter";
-import { escapeSpecialCharacters, formatUnitsNumber } from "src/common";
+import { escapeSpecialCharacters, formatUnitsNumber, parseUnits } from "src/common";
 import { Markup } from "telegraf";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { SignApplicationOptions } from "../../../constants";
@@ -25,13 +25,55 @@ export class BorrowActionWizard {
         private readonly botManager: BotManagerService
     ) {}
 
+    @WizardStep(BorrowActionSteps.VERIFY_PENDING_REQUESTS)
+    async onVerifyPendingRequests(@Ctx() ctx: BorrowContext) {
+        const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
+        const pendingRequest = await this.botManager.getOldestPendingBorrowReq(creditLineId);
+
+        if (!pendingRequest) {
+            ctx.wizard.next();
+            await this.botCommon.executeCurrentStep(ctx);
+            return;
+        }
+
+        let text;
+        const date = pendingRequest.createdAt.toLocaleDateString("en-GB");
+        const currency = "USD"; //FIXME: get from request
+        if (pendingRequest.borrowFiatAmount) {
+            const amount = formatUnitsNumber(pendingRequest.borrowFiatAmount);
+            text = BorrowTextSource.getExistingBorrowRequestErrorMsg(currency, date, amount);
+        } else if (pendingRequest.initialRiskStrategy) {
+            const strategy = formatUnitsNumber(pendingRequest.initialRiskStrategy);
+            text = BorrowTextSource.getExistingBorrowRequestErrorMsg(
+                currency,
+                date,
+                undefined,
+                strategy
+            );
+        } else {
+            throw new Error("Invalid pending request. Nether strategy, nor amount are defined");
+        }
+
+        const msg = (await ctx.editMessageText(text, {
+            parse_mode: "MarkdownV2",
+        })) as Message;
+
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                columns: 1,
+            }).reply_markup
+        );
+        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
+        ctx.wizard.next();
+    }
+
     @WizardStep(BorrowActionSteps.BORROW_TERMS)
     async onBorrowTerms(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const maxCollateral = formatUnitsNumber(cld.economicalParams.collateralFactor);
-        const fee = formatUnitsNumber(cld.economicalParams.fiatProcessingFee);
+        const maxCollateral = formatUnitsNumber(cld.economicalParams.collateralFactor) * 100;
+        const fee = formatUnitsNumber(cld.economicalParams.fiatProcessingFee) * 100;
 
         const msg = (await ctx.editMessageText(BorrowTextSource.getBorrowTermsText(maxCollateral, fee), {
             parse_mode: "MarkdownV2",
@@ -59,7 +101,7 @@ export class BorrowActionWizard {
     async onAmountRequest(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
-        const snapshot = await this.prepareCreditLineSnapshot(cld);
+        const snapshot = this.prepareCreditLineSnapshot(cld);
         ctx.scene.session.state.maxAllowedAmount = snapshot.maxAllowedAmount.toString();
 
         const text = await BorrowTextSource.getAmountInputText(snapshot);
@@ -71,8 +113,8 @@ export class BorrowActionWizard {
 
     @WizardStep(BorrowActionSteps.SIGN_TERMS)
     async onSignTerms(@Ctx() ctx: BorrowContext) {
-        const debtAmount = Number(ctx.scene.session.state.borrowAmount);
-        if (!debtAmount) {
+        const borrowAmount = Number(ctx.scene.session.state.borrowAmount);
+        if (!borrowAmount) {
             throw new Error("No debt amount provided");
         }
 
@@ -94,8 +136,8 @@ export class BorrowActionWizard {
         const before = this.prepareCreditLineSnapshot(cdl);
 
         const after: CreditLineSnapshot = { ...before };
-        after.debtAmount = debtAmount;
-        after.utilizationRate = after.depositFiat / after.debtAmount;
+        after.debtAmount = before.debtAmount + borrowAmount;
+        after.utilizationRate = (after.debtAmount / after.depositFiat) * 100;
         after.maxAllowedAmount = after.maxAllowedAmount - (after.debtAmount - before.debtAmount);
 
         const editMsgId = ctx.scene.session.state.sceneEditMsgId;
@@ -103,7 +145,7 @@ export class BorrowActionWizard {
             ctx.chat?.id,
             editMsgId,
             undefined,
-            BorrowTextSource.getSignTermsText(before, after, name, iban),
+            BorrowTextSource.getSignTermsText(before, after, borrowAmount, name, iban),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -136,11 +178,10 @@ export class BorrowActionWizard {
     @Action(/.*/)
     async sceneActionHandler(@Ctx() ctx: BorrowContext) {
         // Enter scene handler.
-        if (ctx.scene.session.cursor == BorrowActionSteps.BORROW_TERMS) {
+        if (ctx.scene.session.cursor == BorrowActionSteps.VERIFY_PENDING_REQUESTS) {
             await this.botCommon.executeCurrentStep(ctx);
             return;
         }
-
         if (!ctx.has(callbackQuery("data"))) return;
         const [callBackTarget, value] = ctx.callbackQuery.data.split(":");
 
@@ -193,7 +234,7 @@ export class BorrowActionWizard {
     private async signApplicationHandler(ctx: BorrowContext, callbackValue?: string) {
         if (callbackValue === SignApplicationOptions.APPROVE) {
             const chat_id = ctx.chat!.id;
-
+            const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
             const user = await this.botManager.getUserByChatId(chat_id);
             const requisite = await this.botManager.getUserPaymentRequisiteByChatId(chat_id);
 
@@ -211,7 +252,12 @@ export class BorrowActionWizard {
                 Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }).reply_markup
             );
 
-            //FIXME: SAVE REQUEST TO DB
+            const amount = ctx.scene.session.state.borrowAmount;
+            if (!amount) throw new Error("No borrow amount provided");
+
+            const borrowFiatAmount = parseUnits(amount);
+
+            await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
             await ctx.editMessageText(BorrowTextSource.getBorrowDisapprovedText(), {
                 parse_mode: "MarkdownV2",
@@ -260,7 +306,8 @@ export class BorrowActionWizard {
             utilizationRate: formatUnitsNumber(cld.lineDetails.utilizationRate) * 100,
             maxUtilizationRate: formatUnitsNumber(cld.economicalParams.collateralFactor) * 100,
             maxAllowedAmount: formatUnitsNumber(
-                (cld.lineDetails.utilizationRate * cld.economicalParams.collateralFactor) / EXP_SCALE -
+                (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
+                    EXP_SCALE -
                     cld.lineDetails.debtAmount
             ),
         };

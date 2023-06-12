@@ -13,7 +13,7 @@ import { createUserGatewayId, generateReferenceNumber, xor } from "../../common"
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
-import { CreditLine, EconomicalParameters } from "src/database/entities";
+import { BorrowRequest, CreditLine, EconomicalParameters } from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
 import { CreditLineDetails } from "../credit-line/credit-line.types";
 
@@ -247,5 +247,9 @@ export class BotManagerService {
 
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
+    }
+
+    async getOldestPendingBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestPendingBorrowReq(creditLineId);
     }
 }

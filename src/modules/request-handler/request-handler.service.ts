@@ -20,7 +20,7 @@ export class RequestHandlerService {
     constructor(
         @InjectRepository(DepositRequest) private depositRequestRepo: Repository<DepositRequest>,
         @InjectRepository(WithdrawRequest) private withdrawRequestRepo: Repository<WithdrawRequest>,
-        @InjectRepository(BorrowRequest) private borrowRequestRepo: Repository<BorrowRequest>,
+        @InjectRepository(BorrowRequest) public borrowRequestRepo: Repository<BorrowRequest>,
         @InjectRepository(RepayRequest) private repayRequestRepo: Repository<RepayRequest>
     ) {}
 
@@ -96,13 +96,15 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.find({ where: { creditLineId } });
     }
 
-    async getOldestPendingBorrowReq(creditLineId: number) {
-        return this.borrowRequestRepo.findOne({
-            where: { creditLineId, borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+    async getOldestPendingBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.credit_line_id = :creditLineId", { creditLineId })
+            .andWhere("br.borrow_request_status = :status", {
+                status: BorrowRequestStatus.VERIFICATION_PENDING,
+            })
+            .orderBy("br.created_at", "ASC")
+            .getOne();
     }
 
     async updateBorrowReqStatus(reqId: number, newStatus: BorrowRequestStatus) {

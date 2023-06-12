@@ -5,6 +5,7 @@ import {
 } from "src/modules/bot/bot.types";
 
 export enum BorrowActionSteps {
+    VERIFY_PENDING_REQUESTS,
     BORROW_TERMS,
     AMOUNT_REQUEST,
     SIGN_TERMS,
