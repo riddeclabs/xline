@@ -3,7 +3,7 @@ import { RequestResolverService } from "../request-resolver/request-resolver.ser
 import { ResolveCryptoBasedRequestDto } from "../request-resolver/dto/resolve-request.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PaymentProcessing } from "../../database/entities";
-import { MoreThan, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import axios from "axios";
 import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
@@ -52,14 +52,11 @@ export class PaymentProcessingService {
 
     // Returns last registered payment getaway
     async getCurrentPaymentGateway() {
-        return this.paymentProcessingRepo.findOne({
-            order: {
-                createdAt: "DESC",
-            },
-            where: {
-                id: MoreThan(0),
-            },
-        });
+        return this.paymentProcessingRepo
+            .createQueryBuilder("paymentProcessing")
+            .where("paymentProcessing.id > :id", { id: 0 })
+            .orderBy("paymentProcessing.createdAt", "DESC")
+            .getOne();
     }
 
     // Return user wallet address.
