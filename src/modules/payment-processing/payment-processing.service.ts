@@ -144,9 +144,8 @@ export class PaymentProcessingService {
     // Callback handler for the deposit action
     async handleCryptoCallback(dto: CryptoCallbackDto) {
         const depositReqDto = Object.assign(new ResolveCryptoBasedRequestDto(), {
-            from: "0x0",
-            to: "0x0",
-            txHash: dto.id,
+            txHash: "0xMock_transaction_hash_fixme", // FIXME: Add transaction hash when XGateway implements new callback version
+            paymentProcessingTxId: dto.id,
             rawTransferAmount: dto.amount,
             usdTransferAmount: dto.usd.toString(),
             collateralSymbol: dto.currency,
