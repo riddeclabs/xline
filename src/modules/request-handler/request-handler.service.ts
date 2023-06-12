@@ -130,11 +130,11 @@ export class RequestHandlerService {
     async getOldestPendingRepayReq(creditLineId: number) {
         return this.repayRequestRepo
             .createQueryBuilder("rr")
-            .where("rr.credit_line_id = :creditLineId", { creditLineId })
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
             .andWhere("rr.repayRequestStatus = :status", {
                 status: RepayRequestStatus.VERIFICATION_PENDING,
             })
-            .orderBy("created_at", "ASC")
+            .orderBy("rr.createdAt", "ASC")
             .getOne();
     }
 
