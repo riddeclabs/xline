@@ -76,16 +76,16 @@ export class BackOfficeService {
             .skip(page * PAGE_LIMIT)
             .take(PAGE_LIMIT)
             .orderBy("user.name", checkDesc || "DESC")
-            .getMany();
+            .getManyAndCount();
     }
 
-    getCountCustomers(username?: string, chatId?: string) {
-        return this.userRepo
-            .createQueryBuilder("user")
-            .leftJoinAndSelect("user.creditLines", "creditLine")
-            .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
-            .andWhere("name ilike  :name", { name: `%${username}%` })
-            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-            .getMany();
-    }
+    // getCountCustomers(username?: string, chatId?: string) {
+    //     return this.userRepo
+    //         .createQueryBuilder("user")
+    //         .leftJoinAndSelect("user.creditLines", "creditLine")
+    //         .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
+    //         .andWhere("name ilike  :name", { name: `%${username}%` })
+    //         .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+    //         .getMany();
+    // }
 }

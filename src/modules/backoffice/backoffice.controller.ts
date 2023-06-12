@@ -132,14 +132,12 @@ export class BackOfficeController {
         const chatIdFilter = chatId?.trim() ?? "";
         const userFilter = username?.trim() ?? "";
 
-        const initialCustomers = await this.backofficeService.getCustomers(
+        const [initialCustomers, totalCount] = await this.backofficeService.getCustomers(
             page - 1,
             sort,
             userFilter,
             chatIdFilter
         );
-
-        const countCustomers = await this.backofficeService.getCountCustomers(userFilter, chatIdFilter);
 
         const customersWithActiveLines = initialCustomers.map(customer => {
             return {
@@ -155,7 +153,7 @@ export class BackOfficeController {
             chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
-        const totalPageCount = Math.ceil(countCustomers.length / PAGE_LIMIT);
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
 
         return {
             customers: customersWithActiveLines,
@@ -168,7 +166,7 @@ export class BackOfficeController {
                     totalPageCount,
                     siblingCount: 1,
                 }),
-                disabled: countCustomers.length > PAGE_LIMIT,
+                disabled: totalCount > PAGE_LIMIT,
             },
         };
     }
