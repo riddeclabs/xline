@@ -17,6 +17,7 @@ import {
 } from "./manage-credit-line.types";
 import { DepositActionWizard } from "./deposit/deposit.scene";
 import { Message } from "typegram";
+import { RepayActionWizard } from "./repay/repay.scene";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -66,6 +67,7 @@ export class ManageCreditLineWizard {
 
         this.botCommon.updateSceneCreditLineDto(ctx, {
             collateralSymbol: lineDetails.collateralCurrency.symbol,
+            debtSymbol: lineDetails.debtCurrency.symbol,
         });
 
         const msgText = ManageCreditLineText.getViewLineDetailsText(economicalParams, lineDetails);
@@ -170,7 +172,7 @@ export class ManageCreditLineWizard {
                 break;
             }
             case LineActions.REPAY: {
-                await ctx.scene.enter(MainScene.ID);
+                await ctx.scene.enter(RepayActionWizard.ID);
                 break;
             }
             default:

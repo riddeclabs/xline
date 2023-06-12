@@ -5,11 +5,11 @@ import { Markup } from "telegraf";
 import { SUPPORTED_TOKENS } from "../constants";
 import { callbackQuery } from "telegraf/filters";
 import { MainScene } from "./main.scene";
-import { RepayActionWizard } from "./repay.scene";
 import { WithdrawActionWizard } from "./withdraw.scene";
 import { BotCommonService } from "../bot-common.service";
 import { DefaultSessionState, ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
+import { RepayActionWizard } from "./manage-credit-line/repay/repay.scene";
 
 enum ViewActiveLineSteps {
     OVERVIEW,

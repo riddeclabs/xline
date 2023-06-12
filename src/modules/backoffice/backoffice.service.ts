@@ -1,12 +1,18 @@
 import { Injectable } from "@nestjs/common";
-import { Role } from "../../common";
-import { Operator } from "src/database/entities";
+import { CreditLineStatus, Role } from "../../common";
+import { Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import { UserService } from "../user/user.service";
+import { PAGE_LIMIT } from "src/common/constants";
 
 export enum OperatorsListColumns {
     updated = "updated",
     role = "role",
+}
+
+export enum CustomersListColumns {
+    name = "DESC",
 }
 
 export enum ModifyReserveDirection {
@@ -18,7 +24,10 @@ export enum ModifyReserveDirection {
 export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
-        private operatorRepo: Repository<Operator>
+        private operatorRepo: Repository<Operator>,
+        private userService: UserService,
+        @InjectRepository(User)
+        private userRepo: Repository<User>
     ) {}
 
     accountInfo() {
@@ -52,5 +61,24 @@ export class BackOfficeService {
             take: page.take,
             order: sortOrders[sortColumn],
         });
+    }
+
+    getCustomers(page: number, sort?: "ASC" | "DESC", username?: string, chatId?: string) {
+        const sortTrim = sort ?? "DESC";
+
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect(
+                "user.creditLines",
+                "creditLine",
+                "creditLine.creditLineStatus = :status",
+                { status: CreditLineStatus.INITIALIZED }
+            )
+            .where("name ilike  :name", { name: `%${username}%` })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .skip(page * PAGE_LIMIT)
+            .take(PAGE_LIMIT)
+            .orderBy("user.name", sortTrim)
+            .getManyAndCount();
     }
 }
