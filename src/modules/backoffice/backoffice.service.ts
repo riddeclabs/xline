@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Role } from "../../common";
+import { CreditLineStatus, Role } from "../../common";
 import { Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -68,7 +68,12 @@ export class BackOfficeService {
 
         return this.userRepo
             .createQueryBuilder("user")
-            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect(
+                "user.creditLines",
+                "creditLine",
+                "creditLine.creditLineStatus = :status",
+                { status: CreditLineStatus.INITIALIZED }
+            )
             .where("name ilike  :name", { name: `%${username}%` })
             .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT)
