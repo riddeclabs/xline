@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Role } from "../../common";
-import { CreditLine, Operator, User } from "src/database/entities";
+import { CollateralCurrency, CreditLine, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT } from "src/common/constants";
@@ -27,7 +27,9 @@ export class BackOfficeService {
         @InjectRepository(User)
         private userRepo: Repository<User>,
         @InjectRepository(CreditLine)
-        private creditLineRepo: Repository<CreditLine>
+        private creditLineRepo: Repository<CreditLine>,
+        @InjectRepository(CreditLine)
+        private collateralCurrency: Repository<CollateralCurrency>
     ) {}
 
     accountInfo() {
@@ -100,5 +102,15 @@ export class BackOfficeService {
             .createQueryBuilder("creditLines")
             .leftJoinAndSelect("creditLines.collateralCurrencyId", "deptCurrenty")
             .getMany();
+    }
+    getTest() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .select("collateralCurrency.id", "id")
+            .addSelect("collateralCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
+            .leftJoin("creditLine.collateralCurrencyId", "collateralCurrency")
+            .groupBy("collateralCurrency.id")
+            .getRawMany();
     }
 }

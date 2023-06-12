@@ -28,11 +28,15 @@ import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
 import { PAGE_LIMIT } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(private backofficeService: BackOfficeService) {}
+    constructor(
+        private backofficeService: BackOfficeService,
+        private priceOracleService: PriceOracleService
+    ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -80,6 +84,18 @@ export class BackOfficeController {
     async home(@Req() req: Request) {
         const allCustomersLength = await this.backofficeService.getAllCustomers();
         const freeAccumulated = await this.backofficeService.getFeeAccumulatedAmount();
+        const test = await this.backofficeService.getTest();
+
+        const test2 = await Promise.all(
+            test.map(async item => {
+                const amountUSD = await this.priceOracleService.convertCryptoToUsd(
+                    item.symbol,
+                    BigInt(item.amount)
+                );
+                return { ...item, amount: amountUSD };
+            })
+        );
+
         return {
             totalCustomers: allCustomersLength,
             collateralString: "",
