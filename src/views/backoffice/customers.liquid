@@ -34,14 +34,14 @@
             Chat ID
           </th>
           <th scope='col'>
-            {% if page.query.sort == "name" %}
-              <a href='?{{ query | mut-query: 'sort', '-name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-up'></i>
+            {% if page.query.sort == "DESC" %}
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-up'></i>
               </a>
-            {% elsif page.query.sort == "-name" %}
-              <a href='?{{ query | mut-query: 'sort', 'name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-down'></i>
+            {% elsif page.query.sort == "ASC" %}
+              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name<i class='bi-arrow-down'></i>
               </a>
             {% else %}
-              <a href='?{{ query | mut-query: 'sort', '-name' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' style="text-decoration: none; color: rgb(173, 181, 189);">Customer name
               </a>
             {% endif %}
           </th>

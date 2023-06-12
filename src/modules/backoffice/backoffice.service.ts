@@ -12,7 +12,7 @@ export enum OperatorsListColumns {
 }
 
 export enum CustomersListColumns {
-    name = "name",
+    name = "DESC",
 }
 
 export enum ModifyReserveDirection {
@@ -63,9 +63,8 @@ export class BackOfficeService {
         });
     }
 
-    getCustomers(page: number, sort: string, username?: string, chatId?: string) {
-        const sortInitial = sort ? sort : "-name";
-        const checkDesc = sortInitial?.split("")[0] === "-" ? "DESC" : "ASC";
+    getCustomers(page: number, sort?: "ASC" | "DESC", username?: string, chatId?: string) {
+        const sortTrim = sort ?? "DESC";
 
         return this.userRepo
             .createQueryBuilder("user")
@@ -75,17 +74,7 @@ export class BackOfficeService {
             .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT)
             .take(PAGE_LIMIT)
-            .orderBy("user.name", checkDesc || "DESC")
+            .orderBy("user.name", sortTrim)
             .getManyAndCount();
     }
-
-    // getCountCustomers(username?: string, chatId?: string) {
-    //     return this.userRepo
-    //         .createQueryBuilder("user")
-    //         .leftJoinAndSelect("user.creditLines", "creditLine")
-    //         .where("creditLine.creditLineStatus = :status", { status: CreditLineStatus.INITIALIZED })
-    //         .andWhere("name ilike  :name", { name: `%${username}%` })
-    //         .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-    //         .getMany();
-    // }
 }
