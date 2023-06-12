@@ -17,8 +17,18 @@ export type ExtendedWizardContext<D extends ExtendedSessionData = ExtendedSessio
         session: WizardSession & {
             // Custom field that used to transfer data between scenes
             targetCurrency: string;
+            sceneTransferObject?: SceneTransferObject;
         };
     };
+
+export type SceneTransferObject = {
+    creditLineData?: CreditLineSceneData;
+};
+
+export type CreditLineSceneData = {
+    creditLineId?: number;
+    collateralSymbol?: string;
+};
 
 export type CallbackButton = InlineKeyboardButton.CallbackButton;
 export type UrlButton = InlineKeyboardButton.UrlButton;

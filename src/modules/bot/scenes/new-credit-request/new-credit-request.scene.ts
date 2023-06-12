@@ -8,7 +8,7 @@ import { BotCommonService } from "../../bot-common.service";
 import { SignApplicationOptions, SUPPORTED_TOKENS } from "../../constants";
 import { CustomExceptionFilter } from "../../exception-filter";
 import { BotManagerService } from "../../bot-manager.service";
-import { formatUnitsNumber, parseUnits } from "../../../../common";
+import { formatUnitsNumber, parseUnits } from "../../../../common/fixed-number";
 import { InlineKeyboardButton } from "typegram/markup";
 import { NewCreditRequestText } from "./new-credit-request.text";
 import {
@@ -19,7 +19,10 @@ import {
     RiskStrategyLevels,
     SignApplicationSceneData,
 } from "./new-credit-request.types";
-import { Message } from "typegram";
+import { validateIban, validateName } from "src/common/input-validation";
+import { Message } from "telegraf/typings/core/types/typegram";
+import { escapeSpecialCharacters } from "src/common";
+import { ManageCreditLineWizard } from "../manage-credit-line/manage-credit-line.scene";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -29,13 +32,12 @@ export class NewCreditRequestWizard {
 
     constructor(
         private readonly botCommon: BotCommonService,
-        private readonly botManager: BotManagerService,
-        private readonly msgSource: NewCreditRequestText
+        private readonly botManager: BotManagerService
     ) {}
 
     @WizardStep(NewCreditRequestSteps.SIGN_GENERAL_TERMS)
     async onBasicInfo(@Ctx() ctx: NewCreditRequestContext) {
-        const msg = (await ctx.editMessageText(this.msgSource.getSignGeneralTermsMsg(), {
+        const msg = (await ctx.editMessageText(NewCreditRequestText.getSignGeneralTermsMsg(), {
             parse_mode: "MarkdownV2",
         })) as Message;
         await ctx.editMessageReplyMarkup(
@@ -69,7 +71,9 @@ export class NewCreditRequestWizard {
         });
         buttons.push(this.botCommon.goBackButton());
 
-        await ctx.editMessageText(this.msgSource.getChooseCollateralMsg(), { parse_mode: "MarkdownV2" });
+        await ctx.editMessageText(NewCreditRequestText.getChooseCollateralMsg(), {
+            parse_mode: "MarkdownV2",
+        });
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(buttons, {
                 columns: 1,
@@ -81,7 +85,7 @@ export class NewCreditRequestWizard {
 
     @WizardStep(NewCreditRequestSteps.ENTER_IBAN)
     async enterIban(@Ctx() ctx: NewCreditRequestContext) {
-        await ctx.editMessageText(this.msgSource.getEnterIbanMsg(), {
+        await ctx.editMessageText(NewCreditRequestText.getEnterIbanMsg(), {
             parse_mode: "MarkdownV2",
         });
 
@@ -94,7 +98,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             ctx.scene.session.state.sceneEditMsgId,
             undefined,
-            this.msgSource.getEnterBankAccountNameMsg(),
+            NewCreditRequestText.getEnterBankAccountNameMsg(),
             { parse_mode: "MarkdownV2" }
         );
 
@@ -107,7 +111,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             ctx.scene.session.state.sceneEditMsgId,
             undefined,
-            this.msgSource.getEnterCryptoAmountMsg(ctx),
+            NewCreditRequestText.getEnterCryptoAmountMsg(ctx),
             { parse_mode: "MarkdownV2" }
         );
 
@@ -135,7 +139,7 @@ export class NewCreditRequestWizard {
             ctx.chat?.id,
             editMsgId,
             undefined,
-            this.msgSource.getChoseRiskStrategyMsg(convertedCF),
+            NewCreditRequestText.getChoseRiskStrategyMsg(convertedCF),
             { parse_mode: "MarkdownV2" }
         );
         await ctx.telegram.editMessageReplyMarkup(
@@ -198,7 +202,7 @@ export class NewCreditRequestWizard {
         );
         csss.economicalParamsId = economicalParameters.id;
 
-        const buttonText = this.msgSource.getSignApplicationButtonMsg();
+        const buttonText = NewCreditRequestText.getSignApplicationButtonMsg();
         const buttons = [
             {
                 text: "🧮 View calculation example",
@@ -216,7 +220,7 @@ export class NewCreditRequestWizard {
 
         if (!viewDetails) {
             await ctx.editMessageText(
-                this.msgSource.getSignApplicationMainMsg(economicalParameters, sceneData),
+                NewCreditRequestText.getSignApplicationMainMsg(economicalParameters, sceneData),
                 { parse_mode: "MarkdownV2" }
             );
 
@@ -231,7 +235,7 @@ export class NewCreditRequestWizard {
             // Remove `details` button from the button list
             buttons.shift();
 
-            const detailsText = this.msgSource.getSignApplicationDetailMsg(
+            const detailsText = NewCreditRequestText.getSignApplicationDetailMsg(
                 economicalParameters,
                 openCreditLineData,
                 sceneData
@@ -281,6 +285,15 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.SIGN_APPLICATION:
                 await this.signApplicationHandler(ctx, value);
                 break;
+            case NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT:
+            case NewCreditReqCallbacks.RE_ENTER_NAME:
+            case NewCreditReqCallbacks.RE_ENTER_IBAN:
+                ctx.wizard.back();
+                await this.botCommon.executeCurrentStep(ctx);
+                break;
+            case NewCreditReqCallbacks.VIEW_EXISTING_CREDIT_LINES:
+                await ctx.scene.enter(ManageCreditLineWizard.ID);
+                break;
             case NewCreditReqCallbacks.BACK_TO_MAIN_MENU:
                 await this.botCommon.tryToDeleteMessages(ctx, true);
                 await ctx.scene.enter(MainScene.ID);
@@ -314,7 +327,11 @@ export class NewCreditRequestWizard {
                 await this.enterIbanHandler(ctx, userMessageText);
                 break;
             default:
-                throw new Error("Could not find handler for the target message");
+                // Redirect to main scene if user input is "/start"
+                if (ctx.message.text === "/start") {
+                    await this.botCommon.tryToDeleteMessages(ctx, true);
+                    await ctx.scene.enter(MainScene.ID);
+                }
         }
     }
 
@@ -330,29 +347,88 @@ export class NewCreditRequestWizard {
     private async supplyActionHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
         if (!callbackValue) throw new Error("Incorrect collateral currency callback received");
 
-        ctx.scene.session.state.collateralCurrency = await this.botManager.getCollateralTokenBySymbol(
-            callbackValue
-        );
+        // Will fail if currency is not found
+        const collateralCurrency = await this.botManager.getCollateralTokenBySymbol(callbackValue);
 
-        await this.botCommon.executeCurrentStep(ctx);
+        const chatId = ctx.chat!.id;
+        const cl = await this.botManager.getCreditLineByChatIdAndColSymbol(chatId, callbackValue);
+
+        if (cl) {
+            const errorMsg = NewCreditRequestText.getExistingCreditLineErrorMsg(callbackValue);
+            const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+            await ctx.telegram.editMessageText(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                escapeSpecialCharacters(errorMsg),
+                { parse_mode: "MarkdownV2" }
+            );
+            await ctx.telegram.editMessageReplyMarkup(
+                ctx.chat?.id,
+                editMsgId,
+                undefined,
+                Markup.inlineKeyboard(
+                    [
+                        {
+                            text: "📤 View existing lines",
+                            callback_data: `${NewCreditReqCallbacks.VIEW_EXISTING_CREDIT_LINES}`,
+                        },
+                        this.botCommon.goBackButton(),
+                    ],
+                    { columns: 2 }
+                ).reply_markup
+            );
+        } else {
+            ctx.scene.session.state.collateralCurrency = collateralCurrency;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async enterIbanHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.iban = userInput.toUpperCase();
-        await this.botCommon.executeCurrentStep(ctx);
+        const formattedInput = userInput.replace(/\s/g, "").toUpperCase();
+        const ibanValidity = validateIban(formattedInput);
+
+        if (!ibanValidity.valid) {
+            const errorMsg = NewCreditRequestText.getIbanValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+        } else {
+            ctx.scene.session.state.iban = formattedInput;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async enterAccountNameHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.bankAccountName = userInput.toUpperCase();
-        await this.botCommon.executeCurrentStep(ctx);
+        const input = userInput.toUpperCase();
+        if (!validateName(input)) {
+            const errorMsg = NewCreditRequestText.getNameValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+        } else {
+            ctx.scene.session.state.bankAccountName = input;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async reqCryptoAmountHandler(ctx: NewCreditRequestContext, userInput: string) {
-        // FIXME: verify user input
-        ctx.scene.session.state.reqDepositAmountRaw = userInput;
-        await this.botCommon.executeCurrentStep(ctx);
+        const input = Number(userInput);
+        if (!input || input <= 0) {
+            const errorMsg = NewCreditRequestText.getAmountValidationErrorMsg(userInput);
+            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
+        } else {
+            const decimalMaxLength = ctx.scene.session.state.collateralCurrency?.decimals;
+            if (!decimalMaxLength) throw new Error("Could not find collateral currency decimals");
+
+            // eslint-disable-next-line prefer-const
+            let [integer, decimal] = userInput.split(".");
+
+            if (decimal && decimal.length > decimalMaxLength) {
+                decimal = decimal.slice(0, decimalMaxLength);
+            } else {
+                decimal = decimal || "0";
+            }
+
+            ctx.scene.session.state.reqDepositAmountRaw = integer + "." + decimal;
+            await this.botCommon.executeCurrentStep(ctx);
+        }
     }
 
     private async riskStrategyHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
@@ -408,7 +484,7 @@ export class NewCreditRequestWizard {
                 buttons.unshift(this.botCommon.getMetamaskWalletButton(wallet));
             }
 
-            const replyMsgs = this.msgSource.getSignApplicationHandlerMsg(callbackValue, wallet);
+            const replyMsgs = NewCreditRequestText.getSignApplicationHandlerMsg(callbackValue, wallet);
             if (typeof replyMsgs === "string") {
                 throw new Error("Incorrect message structure");
             }
@@ -427,7 +503,7 @@ export class NewCreditRequestWizard {
 
             this.botCommon.tryToSaveSceneMessage(ctx, [msg1, msg2]);
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
-            const replyMsg = this.msgSource.getSignApplicationHandlerMsg(callbackValue);
+            const replyMsg = NewCreditRequestText.getSignApplicationHandlerMsg(callbackValue);
             if (!(typeof replyMsg === "string")) {
                 throw new Error("Incorrect message structure");
             }
@@ -447,5 +523,35 @@ export class NewCreditRequestWizard {
         } else {
             throw new Error("Incorrect sign application option");
         }
+    }
+
+    private async retryOrBackHandler(
+        ctx: NewCreditRequestContext,
+        errorMsg: string,
+        retryCallbackValue: string
+    ) {
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+        await ctx.telegram.editMessageText(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            escapeSpecialCharacters(errorMsg),
+            { parse_mode: "MarkdownV2" }
+        );
+        await ctx.telegram.editMessageReplyMarkup(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            Markup.inlineKeyboard(
+                [
+                    {
+                        text: "🔁 Try again",
+                        callback_data: `${retryCallbackValue}`,
+                    },
+                    this.botCommon.goBackButton(),
+                ],
+                { columns: 2 }
+            ).reply_markup
+        );
     }
 }

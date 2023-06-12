@@ -1,5 +1,5 @@
 import { Injectable, UseFilters } from "@nestjs/common";
-import { Action, Ctx, Wizard, WizardStep } from "nestjs-telegraf";
+import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MainScene } from "./main.scene";
@@ -7,6 +7,9 @@ import { ExtendedWizardContext } from "../bot.types";
 import { BotCommonService } from "../bot-common.service";
 import { CustomExceptionFilter } from "../exception-filter";
 import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
+import { ManageCreditLineWizard } from "./manage-credit-line/manage-credit-line.scene";
+import * as filters from "telegraf/filters";
+import { Message } from "typegram";
 
 enum ManagePortfolioSteps {
     PORTFOLIO_MENU,
@@ -34,9 +37,9 @@ export class ManagePortfolioWizard {
 
     @WizardStep(ManagePortfolioSteps.PORTFOLIO_MENU)
     async onWalletRequest(@Ctx() ctx: ManagePortfolioContext) {
-        await ctx.editMessageText(this.botCommon.makeHeaderText("Portfolio actions"), {
+        const msg = (await ctx.editMessageText(this.botCommon.makeHeaderText("Portfolio actions"), {
             parse_mode: "MarkdownV2",
-        });
+        })) as Message;
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
@@ -56,6 +59,8 @@ export class ManagePortfolioWizard {
                 }
             ).reply_markup
         );
+
+        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
@@ -82,12 +87,28 @@ export class ManagePortfolioWizard {
         }
     }
 
+    @Hears(/.*/)
+    async userMessageHandler(@Ctx() ctx: ManagePortfolioContext) {
+        // Catch user input to remove it with step message
+        if (!ctx.has(filters.message("text"))) return;
+
+        // This scene does not provide for user input, just delete the message
+        try {
+            await ctx.deleteMessage(ctx.message.message_id);
+        } catch {}
+
+        if (ctx.message.text === "/start") {
+            await this.botCommon.tryToDeleteMessages(ctx, true);
+            await ctx.scene.enter(MainScene.ID);
+        }
+    }
+
     private async chosePortfolioActionHandler(ctx: ManagePortfolioContext, callbackValue?: string) {
         if (callbackValue === PortfolioActions.OPEN_NEW_LINE) {
             await ctx.scene.enter(NewCreditRequestWizard.ID);
         } else if (callbackValue === PortfolioActions.MANAGE_EXISTING_LINES) {
             //FIXME: add separate scene for manage existing lines action
-            await ctx.scene.enter(MainScene.ID);
+            await ctx.scene.enter(ManageCreditLineWizard.ID);
         } else throw new Error("Incorrect credit line action");
     }
 }

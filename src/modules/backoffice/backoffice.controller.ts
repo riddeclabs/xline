@@ -17,7 +17,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { makePagination, Role } from "src/common";
+import { formatUnits, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -84,27 +84,30 @@ export class BackOfficeController {
     async home(@Req() req: Request) {
         const allCustomersLength = await this.backofficeService.getAllCustomers();
         const freeAccumulated = await this.backofficeService.getFeeAccumulatedAmount();
-        const test = await this.backofficeService.getTest();
+        const collateralInitial = await this.backofficeService.getCollateralCurrency();
 
-        const test2 = await Promise.all(
-            test.map(async item => {
+        const collateralCurrencyAmount = await Promise.all(
+            collateralInitial.map(async item => {
                 const amountUSD = await this.priceOracleService.convertCryptoToUsd(
                     item.symbol,
+                    item.decimals,
                     BigInt(item.amount)
                 );
-                return { ...item, amount: amountUSD };
+                return { symbol: item.symbol, amount: +formatUnits(amountUSD, item.decimals) };
             })
         );
 
+        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b);
+
+        const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => a + b);
+
         return {
             totalCustomers: allCustomersLength,
-            collateralString: "",
-            borrowString: "",
-            totalSupply: "0",
-            ETH: "0",
-            BTC: "0",
-            totalBorrow: "0",
-            USD: "0",
+            totalSupply,
+            collateralCurrencyAmount,
+            totalDebt,
+            debtCurrencyInitial,
             freeAccum: freeAccumulated.sum,
         };
     }

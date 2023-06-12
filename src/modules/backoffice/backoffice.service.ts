@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Role } from "../../common";
+import { CreditLineStatus, Role } from "../../common";
 import { CollateralCurrency, CreditLine, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -70,7 +70,12 @@ export class BackOfficeService {
 
         return this.userRepo
             .createQueryBuilder("user")
-            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect(
+                "user.creditLines",
+                "creditLine",
+                "creditLine.creditLineStatus = :status",
+                { status: CreditLineStatus.INITIALIZED }
+            )
             .where("name ilike  :name", { name: `%${username}%` })
             .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT)
@@ -103,14 +108,27 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLines.collateralCurrencyId", "deptCurrenty")
             .getMany();
     }
-    getTest() {
+    getCollateralCurrency() {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .select("collateralCurrency.id", "id")
+            .addSelect("collateralCurrency.decimals", "decimals")
             .addSelect("collateralCurrency.symbol", "symbol")
             .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
             .leftJoin("creditLine.collateralCurrencyId", "collateralCurrency")
             .groupBy("collateralCurrency.id")
+            .getRawMany();
+    }
+
+    getDebtCurrency() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .select("debtCurrency.id", "id")
+            .addSelect("debtCurrency.decimals", "decimals")
+            .addSelect("debtCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.debtAmount)", "amount")
+            .leftJoin("creditLine.debtCurrencyId", "debtCurrency")
+            .groupBy("debtCurrency.id")
             .getRawMany();
     }
 }
