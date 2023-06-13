@@ -17,7 +17,7 @@ export class ManageCreditLineText {
     static getViewLineDetailsText(ep: EconomicalParameters, cld: CreditLineDetails) {
         const vld = this.prepareViewLineData(ep, cld);
         const collateralSymbol = cld.collateralCurrency.symbol;
-        const debtSymbol = cld.collateralCurrency.symbol;
+        const debtSymbol = cld.debtCurrency.symbol;
 
         const healthyFactorText =
             cld.healthyFactor === 0n

@@ -44,10 +44,10 @@ export class CryptoTransaction {
     @Column("numeric", { ...uint256(), name: "usd_transfer_amount" })
     usdTransferAmount!: bigint;
 
-    @Column("varchar", { name: "tx_hash" })
+    @Column("varchar", { name: "tx_hash", unique: true })
     txHash!: string;
 
-    @Column("varchar", { name: "payment_processing_tx_id" })
+    @Column("varchar", { name: "payment_processing_tx_id", unique: true })
     paymentProcessingTxId!: string;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

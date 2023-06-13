@@ -45,7 +45,9 @@ export class CreditLine {
     @Column({ name: "economical_parameters_id" })
     economicalParametersId!: number;
 
-    @ManyToOne(() => EconomicalParameters, economicalParameters => economicalParameters.creditLines)
+    @ManyToOne(() => EconomicalParameters, economicalParameters => economicalParameters.creditLines, {
+        onDelete: "CASCADE",
+    })
     @JoinColumn({ name: "economical_parameters_id" })
     economicalParameters!: EconomicalParameters;
 
