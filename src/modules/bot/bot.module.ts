@@ -9,7 +9,7 @@ import { ViewActiveCreditLineWizard } from "./scenes/view-active-line.scene";
 import { MainScene } from "./scenes/main.scene";
 import { RepayActionWizard } from "./scenes/repay.scene";
 import { WithdrawActionWizard } from "./scenes/withdraw.scene";
-import { ViewRequestWizard } from "./scenes/view-request.scene";
+import { ViewRequestWizard } from "./scenes/view-requests/view-request.scene";
 import { BotCommonService } from "./bot-common.service";
 import { BotManagerService } from "./bot-manager.service";
 import { RiskEngineModule } from "../risk-engine/risk-engine.module";

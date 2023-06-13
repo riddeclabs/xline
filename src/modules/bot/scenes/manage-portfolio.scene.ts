@@ -10,6 +10,7 @@ import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.
 import { ManageCreditLineWizard } from "./manage-credit-line/manage-credit-line.scene";
 import * as filters from "telegraf/filters";
 import { Message } from "typegram";
+import { ViewRequestWizard } from "./view-requests/view-request.scene";
 
 enum ManagePortfolioSteps {
     PORTFOLIO_MENU,
@@ -17,6 +18,7 @@ enum ManagePortfolioSteps {
 
 enum ManagePortfolioCallbacks {
     PORTFOLIO_ACTIONS = "portfolioActions",
+    VIEW_REQUEST = "viewRequest",
     BACK_TO_MAIN_MENU = "back",
 }
 
@@ -52,6 +54,10 @@ export class ManagePortfolioWizard {
                         text: "📤 Manage existing lines",
                         callback_data: `${ManagePortfolioCallbacks.PORTFOLIO_ACTIONS}:${PortfolioActions.MANAGE_EXISTING_LINES}`,
                     },
+                    {
+                        text: "📔 View my requests",
+                        callback_data: `${ManagePortfolioCallbacks.VIEW_REQUEST}`,
+                    },
                     this.botCommon.goBackButton(),
                 ],
                 {
@@ -78,6 +84,9 @@ export class ManagePortfolioWizard {
         switch (callBackTarget) {
             case ManagePortfolioCallbacks.PORTFOLIO_ACTIONS:
                 await this.chosePortfolioActionHandler(ctx, value);
+                break;
+            case ManagePortfolioCallbacks.VIEW_REQUEST:
+                await ctx.scene.enter(ViewRequestWizard.ID);
                 break;
             case ManagePortfolioCallbacks.BACK_TO_MAIN_MENU:
                 await ctx.scene.enter(MainScene.ID);

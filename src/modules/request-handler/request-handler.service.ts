@@ -47,6 +47,15 @@ export class RequestHandlerService {
             },
         });
     }
+
+    async getNewestDepositReq(creditLineId: number): Promise<DepositRequest | null> {
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("dr.createdAt", "DESC")
+            .getOne();
+    }
+
     async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
         request.depositRequestStatus = newStatus;
         return this.depositRequestRepo.save(request);
@@ -74,6 +83,14 @@ export class RequestHandlerService {
                 createdAt: "ASC",
             },
         });
+    }
+
+    async getNewestWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("wr.createdAt", "DESC")
+            .getOne();
     }
 
     async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
@@ -105,6 +122,14 @@ export class RequestHandlerService {
         });
     }
 
+    async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("br.createdAt", "DESC")
+            .getOne();
+    }
+
     async updateBorrowReqStatus(reqId: number, newStatus: BorrowRequestStatus) {
         const req = await this.borrowRequestRepo.findOneByOrFail({ id: reqId });
         req.borrowRequestStatus = newStatus;
@@ -134,6 +159,14 @@ export class RequestHandlerService {
                 createdAt: "ASC",
             },
         });
+    }
+
+    async getNewestRepayReq(creditLineId: number): Promise<RepayRequest | null> {
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("rr.createdAt", "DESC")
+            .getOne();
     }
 
     async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {

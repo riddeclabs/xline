@@ -13,7 +13,13 @@ import { createUserGatewayId, generateReferenceNumber, xor } from "../../common"
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
-import { CreditLine } from "src/database/entities";
+import {
+    BorrowRequest,
+    CreditLine,
+    DepositRequest,
+    RepayRequest,
+    WithdrawRequest,
+} from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
 
 @Injectable()
@@ -241,5 +247,21 @@ export class BotManagerService {
 
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
+    }
+
+    async getNewestDepositReq(creditLineId: number): Promise<DepositRequest | null> {
+        return this.requestHandlerService.getNewestDepositReq(creditLineId);
+    }
+
+    async getNewestWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
+        return this.requestHandlerService.getNewestWithdrawReq(creditLineId);
+    }
+
+    async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getNewestBorrowReq(creditLineId);
+    }
+
+    async getNewestRepayReq(creditLineId: number): Promise<RepayRequest | null> {
+        return this.requestHandlerService.getNewestRepayReq(creditLineId);
     }
 }
