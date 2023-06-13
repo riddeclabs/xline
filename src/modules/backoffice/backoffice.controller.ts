@@ -11,6 +11,7 @@ import {
     UseFilters,
     ValidationPipe,
     UsePipes,
+    Param,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -25,9 +26,10 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
-import { PAGE_LIMIT } from "src/common/constants";
+import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
+import * as moment from "moment";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -115,69 +117,85 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("unresolved-request")
-    @Render("backoffice/unresolved-request")
-    table(@Req() req: Request) {
-        const borrowRequests = [
-            {
-                chatId: 234234,
-                currencies: "ETH / USD",
-                amount: "4322 usd",
-                status: "PENDING",
-                iban: "E234432234234",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
-            },
-            {
-                chatId: 54632424,
-                currencies: "ETH / USD",
-                amount: "341 usd",
-                status: "PENDING",
-                iban: "E345423546542345",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
-            },
-            {
-                chatId: 1243523443,
-                currencies: "ETH / USD",
-                amount: "65423 usd",
-                status: "PENDING",
-                iban: "EE23523467324",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
-            },
-        ];
+    @Get("borrow-request")
+    @Render("backoffice/borrow-request")
+    async borrowList(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+        const { page } = query;
 
-        const repayRequests = [
-            {
-                chatId: 234234,
-                currencies: "ETH / USD",
-                amount: "4322 usd",
-                status: "PENDING",
-                iban: "E234432234234",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
+        const getAllBorrow = await this.backofficeService.getAllBorrowRequest(page - 1);
+        const allBorrowResult = getAllBorrow.map(item => {
+            return {
+                ...item,
+                borrow_created_at: moment(item.borrow_created_at).format("DD.MM.YYYY HH:mm"),
+                borrow_updated_at: moment(item.borrow_updated_at).format("DD.MM.YYYY HH:mm"),
+                borrow_borrow_fiat_amount: item.borrow_borrow_fiat_amount ?? 0,
+            };
+        });
+
+        const totalCount = await this.backofficeService.getBorrowCount();
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+        };
+        return {
+            allBorrowResult,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: totalCount > PAGE_LIMIT_REQUEST,
             },
-            {
-                chatId: 54632424,
-                currencies: "ETH / USD",
-                amount: "341 usd",
-                status: "PENDING",
-                iban: "E345423546542345",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("repay-request")
+    @Render("backoffice/repay-request")
+    async repayList(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+        const { page } = query;
+
+        const getAllRepay = await this.backofficeService.getAllRepayRequest(page - 1);
+        const allRepayResult = getAllRepay.map(item => {
+            return {
+                ...item,
+                borrow_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
+                borrow_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
+            };
+        });
+
+        const totalCount = await this.backofficeService.getRepayCount();
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+        };
+        return {
+            allRepayResult,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: totalCount > PAGE_LIMIT_REQUEST,
             },
-            {
-                chatId: 1243523443,
-                currencies: "ETH / USD",
-                amount: "65423 usd",
-                status: "PENDING",
-                iban: "EE23523467324",
-                createdAt: "01.01.2001 11:44 UTC",
-                updatedAt: "02.02.2002 12:45 UTC",
-            },
-        ];
-        return { borrowRequests: borrowRequests, account: req.user, repayRequests: repayRequests };
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("borrow-request/:id")
+    @Render("backoffice/unresolved-request-borrow")
+    async borrowRequest(@Req() req: Request, @Param("id") id: string) {
+        return { id };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)

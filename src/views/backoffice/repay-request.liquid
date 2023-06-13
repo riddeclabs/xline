@@ -1,0 +1,102 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <h1 class='pb-5 text-white fs-1'>Repay requests</h1>
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Repay requests list</h1>
+    <div>{{ query.username }}</div>
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col'>
+            Chat ID
+          </th>
+          <th scope='col'>
+            Currencies
+          </th>
+          <th scope='col'>
+            Xline iban 
+          </th>
+          <th scope='col'>
+            Status
+          </th>
+          <th scope='col'>
+            Reference number 
+          </th>
+          <th scope='col'>
+            Created at 
+          </th>
+          <th scope='col'>
+            Updated at 
+          </th>
+          <th scope='col'></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless allRepayResult.size > 0 %}
+          <tr>
+            <td colspan="8">Unfortunately, we did not find any request.</td>
+          </tr>
+        {% endunless %}
+          {% for repay in allRepayResult %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ repay.user_chat_id }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.collateralCurrency_symbol }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.repay_repay_fiat_amount }}
+              </td>
+              <td class='align-middle td-status'>
+                {{ repay.repay_repay_request_status }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.userPaymentRequisite_iban }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.repay_created_at }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.repay_updated_at }}
+              </td>
+              <td class='align-middle'>
+                <a href='/backoffice/repay-request/{{ repay.id }}'>
+                  <button class="blue-button">
+                    Resolve
+                  </button>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+{% endblock %}

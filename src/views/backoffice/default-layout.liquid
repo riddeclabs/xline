@@ -70,6 +70,55 @@ input::-webkit-inner-spin-button {
     box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
 
   }
+
+  .req-bor-wrapper {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .req-bor-wrapper p {
+    margin-bottom: 0;
+  }
+  .reject-button {
+    background: #880F0F;
+    border: 2px solid #880F0F;
+    color: #fff;
+    width: fit-content;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .reject-button:hover {
+  background: #fff;
+  color: #880F0F;
+  -webkit-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  -moz-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  }
+
+  .accept-button {
+    background: #18652E;
+    border: 2px solid #18652E;
+    color: #fff;
+    width: fit-content;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .accept-button:hover {
+  background: #fff;
+  color: #18652E;
+  -webkit-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  -moz-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  }
+  .wrapper-count {
+    background: #34373B !important;
+    border: none;
+    width: 49%;
+    padding: 17px 32px;
+    margin-bottom: 15px;
+    float: left;
+  }
+  
   .clear-btn {
     margin-left: auto;
     margin-right: 12px;
@@ -118,12 +167,23 @@ input::-webkit-inner-spin-button {
               >
               Home
             </a>
+            </li>
+            <li>
             <a
-            href='/backoffice/unresolved-request'
-            class='nav-link text-white {% if current_url == '/backoffice/unresolved-request'%}active{% endif %}'
+            href='/backoffice/borrow-request'
+            class='nav-link text-white {% if current_url == '/backoffice/borrow-request'%}active{% endif %}'
             aria-current='page'
             >
-            Unresolved requests
+            Borrow requests
+          </a>
+          </li>
+          <li>
+            <a
+            href='/backoffice/repay-request'
+            class='nav-link text-white {% if current_url == '/backoffice/repay-request'%}active{% endif %}'
+            aria-current='page'
+            >
+            Repay requests
           </a>
           </li>
           <li>

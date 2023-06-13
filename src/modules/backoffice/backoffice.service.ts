@@ -1,10 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { Operator, User } from "src/database/entities";
+import { BorrowRequest, Operator, RepayRequest, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserService } from "../user/user.service";
-import { PAGE_LIMIT } from "src/common/constants";
+import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -25,9 +24,12 @@ export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
         private operatorRepo: Repository<Operator>,
-        private userService: UserService,
         @InjectRepository(User)
-        private userRepo: Repository<User>
+        private userRepo: Repository<User>,
+        @InjectRepository(BorrowRequest)
+        private borrowRepo: Repository<BorrowRequest>,
+        @InjectRepository(RepayRequest)
+        private repayRepo: Repository<RepayRequest>
     ) {}
 
     accountInfo() {
@@ -80,5 +82,55 @@ export class BackOfficeService {
             .take(PAGE_LIMIT)
             .orderBy("user.name", sortTrim)
             .getManyAndCount();
+    }
+
+    getAllBorrowRequest(page: number) {
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLineId", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.userId", "user")
+            .select(["borrow"])
+            .addSelect(["collateralCurrency.symbol"])
+            .addSelect(["userPaymentRequisite.iban"])
+            .addSelect(["user.chatId"])
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(2)
+            .getRawMany();
+    }
+
+    getBorrowCount() {
+        return this.borrowRepo.createQueryBuilder().getCount();
+    }
+
+    getBorrowById(id: string) {
+        return this.borrowRepo.findOneBy({
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            where: {
+                id: id,
+            },
+        });
+    }
+
+    getAllRepayRequest(page: number) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.creditLineId", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.userId", "user")
+            .select(["repay"])
+            .addSelect(["collateralCurrency.symbol"])
+            .addSelect(["userPaymentRequisite.iban"])
+            .addSelect(["user.chatId"])
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(2)
+            .getRawMany();
+    }
+
+    getRepayCount() {
+        return this.repayRepo.createQueryBuilder().getCount();
     }
 }
