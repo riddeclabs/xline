@@ -18,20 +18,34 @@ export class RepayRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine, creditLine => creditLine.repayRequests, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
+    // Foreign keys
+
+    @Column({ name: "credit_line_id" })
     creditLineId!: number;
+
+    @ManyToOne(() => CreditLine, creditLine => creditLine.repayRequests, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "credit_line_id" })
+    creditLine!: CreditLine;
+
+    @Column({ name: "business_payment_requisite_id" })
+    businessPaymentRequisiteId!: number;
 
     @ManyToOne(
         () => BusinessPaymentRequisite,
         businessPaymentRequisite => businessPaymentRequisite.repayRequests,
         { onDelete: "CASCADE" }
     )
-    @JoinColumn({ name: "business_payment_requisite_id", referencedColumnName: "id" })
-    businessPaymentRequisiteId!: number;
+    @JoinColumn({ name: "business_payment_requisite_id" })
+    businessPaymentRequisite!: BusinessPaymentRequisite;
 
-    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.repayRequestId)
+    // Child relations
+
+    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.repayRequest)
     fiatTransactions!: FiatTransaction[];
+
+    // Table attributes
 
     @Column("enum", {
         name: "repay_request_status",

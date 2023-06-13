@@ -18,12 +18,23 @@ export class BorrowRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine, creditLine => creditLine.borrowRequests, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
+    // Foreign keys
+
+    @Column({ name: "credit_line_id" })
     creditLineId!: number;
 
-    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.borrowRequestId)
+    @ManyToOne(() => CreditLine, creditLine => creditLine.borrowRequests, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "credit_line_id" })
+    creditLine!: CreditLine;
+
+    // Child relations
+
+    @OneToMany(() => FiatTransaction, fiatTransaction => fiatTransaction.borrowRequest)
     fiatTransactions!: FiatTransaction[];
+
+    // Table attributes
 
     @Column({
         name: "borrow_request_status",

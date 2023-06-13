@@ -25,6 +25,9 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
+import { PAGE_LIMIT } from "src/common/constants";
+import { CustomersListDto } from "./dto/customers.dto";
+import { CustomersListQuery } from "./decorators/customers.decorators";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -65,18 +68,106 @@ export class BackOfficeController {
 
     @UseGuards(AuthenticatedGuard)
     @Get("/")
-    @Redirect("backoffice/dashboard")
+    @Redirect("backoffice/home")
     root() {
         // some code here
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("dashboard")
-    @Render("backoffice/dashboard")
-    dashboard(@Req() req: Request) {
+    @Get("home")
+    @Render("backoffice/home")
+    home(@Req() req: Request) {
         return {
             account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("supported")
+    @Render("backoffice/supported")
+    supported(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("economical")
+    @Render("backoffice/economical")
+    economical(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("xline-request")
+    @Render("backoffice/xline-request")
+    xlineRequest(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("unresolved-request")
+    @Render("backoffice/unresolved-request")
+    table(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers")
+    @Render("backoffice/customers")
+    async getCustomers(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+        const { page, username, sort, chatId } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
+        const userFilter = username?.trim() ?? "";
+
+        const [initialCustomers, totalCount] = await this.backofficeService.getCustomers(
+            page - 1,
+            sort,
+            userFilter,
+            chatIdFilter
+        );
+
+        const customersWithActiveLines = initialCustomers.map(customer => {
+            return {
+                id: customer.id,
+                chatId: customer.chatId,
+                name: customer.name,
+                activeLines: customer.creditLines.length,
+            };
+        });
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            username: userFilter ?? undefined,
+            chatId: chatIdFilter ?? undefined,
+            sort: sort,
+        };
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
+
+        return {
+            customers: customersWithActiveLines,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: totalCount > PAGE_LIMIT,
+            },
         };
     }
 
@@ -113,7 +204,6 @@ export class BackOfficeController {
             [], // MOCKED
         ]);
         const totalPageCount = Math.ceil(totalCount / takePerPage);
-
         return {
             account: req.user,
             operators,

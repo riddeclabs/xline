@@ -53,16 +53,16 @@ export class RequestResolverService {
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            creditLine.collateralToken.symbol,
-            creditLine.collateralToken.decimals,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount
         );
 
         // Verify borrow request
         await this.riskEngineService.verifyBorrowOrThrow(
             creditLine,
-            creditLine.collateralToken.symbol,
-            creditLine.collateralToken.decimals,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
             requestedBorrowAmount
         );
 
@@ -102,8 +102,8 @@ export class RequestResolverService {
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
-            creditLine.collateralToken.symbol,
-            creditLine.collateralToken.decimals,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount
         );
 
@@ -111,7 +111,7 @@ export class RequestResolverService {
             await this.riskEngineService.verifyBorrowOrThrow(
                 creditLine,
                 collateralToken.symbol,
-                creditLine.collateralToken.decimals,
+                creditLine.collateralCurrency.decimals,
                 requestedBorrowAmount
             );
         } catch (e) {
@@ -137,8 +137,8 @@ export class RequestResolverService {
 
         await this.riskEngineService.verifyBorrowOrThrow(
             creditLineExtended,
-            creditLineExtended.collateralToken.symbol,
-            creditLineExtended.collateralToken.decimals,
+            creditLineExtended.collateralCurrency.symbol,
+            creditLineExtended.collateralCurrency.decimals,
             hypotheticalBorrowAmount
         );
     }
@@ -200,7 +200,7 @@ export class RequestResolverService {
             throw new Error("Credit line not found");
         }
 
-        const collateralToken = creditLine.collateralCurrencyId as unknown as CollateralCurrency; // FIXME: after rebuild database scheme
+        const collateralToken = creditLine.collateralCurrency;
 
         this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);
 
@@ -230,8 +230,7 @@ export class RequestResolverService {
             // FIXME: maybe calculate usd amount by us?
             usdTransferAmount: parseUnits(resolveDto.usdTransferAmount),
             txHash: resolveDto.txHash,
-            from: resolveDto.from,
-            to: resolveDto.to,
+            paymentProcessingTxId: resolveDto.paymentProcessingTxId,
         });
     }
 

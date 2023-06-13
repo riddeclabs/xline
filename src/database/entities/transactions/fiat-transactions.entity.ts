@@ -17,17 +17,27 @@ export class FiatTransaction {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    // Foreign keys
+
+    @Column({ name: "borrow_request_id", nullable: true })
+    borrowRequestId!: number | null;
+
     @ManyToOne(() => BorrowRequest, borrowRequest => borrowRequest.fiatTransactions, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "borrow_request_id", referencedColumnName: "id" })
-    borrowRequestId!: number | null;
+    @JoinColumn({ name: "borrow_request_id" })
+    borrowRequest!: BorrowRequest | null;
+
+    @Column({ name: "repay_request_id", nullable: true })
+    repayRequestId!: number | null;
 
     @ManyToOne(() => RepayRequest, repayRequest => repayRequest.fiatTransactions, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "repay_request_id", referencedColumnName: "id" })
-    repayRequestId!: number | null;
+    @JoinColumn({ name: "repay_request_id" })
+    repayRequest!: RepayRequest | null;
+
+    // Table attributes
 
     @Column("varchar", { name: "iban_from" })
     ibanFrom!: string;
@@ -44,7 +54,12 @@ export class FiatTransaction {
     @Column("numeric", { ...uint256(), name: "raw_transfer_amount" })
     rawTransferAmount!: bigint;
 
-    @Column({ name: "status", type: "enum", enum: FiatTransactionStatus })
+    @Column({
+        name: "status",
+        type: "enum",
+        enum: FiatTransactionStatus,
+        default: FiatTransactionStatus.PENDING,
+    })
     status!: FiatTransactionStatus;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

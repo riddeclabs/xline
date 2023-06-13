@@ -20,7 +20,7 @@ export class RequestHandlerService {
     constructor(
         @InjectRepository(DepositRequest) private depositRequestRepo: Repository<DepositRequest>,
         @InjectRepository(WithdrawRequest) private withdrawRequestRepo: Repository<WithdrawRequest>,
-        @InjectRepository(BorrowRequest) public borrowRequestRepo: Repository<BorrowRequest>,
+        @InjectRepository(BorrowRequest) private borrowRequestRepo: Repository<BorrowRequest>,
         @InjectRepository(RepayRequest) private repayRequestRepo: Repository<RepayRequest>
     ) {}
 
@@ -40,13 +40,16 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
-        return this.depositRequestRepo.findOne({
-            where: { creditLineId, depositRequestStatus: DepositRequestStatus.PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("dr.depositRequestStatus = :status", {
+                status: DepositRequestStatus.PENDING,
+            })
+            .orderBy("dr.createdAt", "ASC")
+            .getOne();
     }
+
     async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
         request.depositRequestStatus = newStatus;
         return this.depositRequestRepo.save(request);
@@ -68,12 +71,12 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number) {
-        return this.withdrawRequestRepo.findOneOrFail({
-            where: { creditLineId, withdrawRequestStatus: WithdrawRequestStatus.PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
+            .orderBy("wr.createdAt", "ASC")
+            .getOneOrFail();
     }
 
     async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
@@ -96,14 +99,14 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.find({ where: { creditLineId } });
     }
 
-    async getOldestPendingBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+    async getOldestPendingBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
-            .where("br.credit_line_id = :creditLineId", { creditLineId })
-            .andWhere("br.borrow_request_status = :status", {
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("br.borrowRequestStatus = :status", {
                 status: BorrowRequestStatus.VERIFICATION_PENDING,
             })
-            .orderBy("br.created_at", "ASC")
+            .orderBy("br.createdAt", "ASC")
             .getOne();
     }
 
@@ -130,12 +133,14 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {
-        return this.repayRequestRepo.findOne({
-            where: { creditLineId, repayRequestStatus: RepayRequestStatus.VERIFICATION_PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("rr.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .orderBy("rr.createdAt", "ASC")
+            .getOne();
     }
 
     async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {

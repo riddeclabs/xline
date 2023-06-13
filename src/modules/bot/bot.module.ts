@@ -7,7 +7,6 @@ import { entities } from "../../database";
 import { NewCreditRequestWizard } from "./scenes/new-credit-request/new-credit-request.scene";
 import { ViewActiveCreditLineWizard } from "./scenes/view-active-line.scene";
 import { MainScene } from "./scenes/main.scene";
-import { RepayActionWizard } from "./scenes/repay.scene";
 import { WithdrawActionWizard } from "./scenes/withdraw.scene";
 import { ViewRequestWizard } from "./scenes/view-request.scene";
 import { BotCommonService } from "./bot-common.service";
@@ -27,6 +26,7 @@ import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-req
 import { ManageCreditLineWizard } from "./scenes/manage-credit-line/manage-credit-line.scene";
 import { DepositActionWizard } from "./scenes/manage-credit-line/deposit/deposit.scene";
 import { BorrowActionWizard } from "./scenes/manage-credit-line/borrow/borrow.scene";
+import { RepayActionWizard } from "./scenes/manage-credit-line/repay/repay.scene";
 
 @Module({
     imports: [
@@ -65,7 +65,6 @@ import { BorrowActionWizard } from "./scenes/manage-credit-line/borrow/borrow.sc
         MainScene,
         NewCreditRequestWizard,
         ViewActiveCreditLineWizard,
-        RepayActionWizard,
         WithdrawActionWizard,
         ViewRequestWizard,
         ManagePortfolioWizard,
@@ -75,6 +74,7 @@ import { BorrowActionWizard } from "./scenes/manage-credit-line/borrow/borrow.sc
         ManageCreditLineWizard,
         DepositActionWizard,
         BorrowActionWizard,
+        RepayActionWizard,
     ],
 })
 export class BotModule {}

@@ -21,5 +21,5 @@ export class CreateRepayRequestHandlerDto {
     @IsNumber()
     readonly creditLineId!: number;
     @IsNumber()
-    readonly paymentRequisiteId!: number;
+    readonly businessPaymentRequisiteId!: number;
 }

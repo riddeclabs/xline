@@ -29,8 +29,8 @@ export class PaymentRequisiteService {
     getUserPaymentRequisiteByChatId(chatId: number) {
         return this.userPaymentRepo
             .createQueryBuilder("pr")
-            .leftJoin("pr.userId", "user")
-            .where("user.chat_id = :chatId", { chatId })
+            .leftJoin("pr.user", "user")
+            .where("user.chatId = :chatId", { chatId })
             .getOne();
     }
 
@@ -47,6 +47,22 @@ export class PaymentRequisiteService {
 
     getBusinessPayReqByCurrency(debtCurrencyId: number) {
         return this.businessPaymentRepo.findOneBy({ debtCurrencyId });
+    }
+
+    getBusinessPayReqByRequestId(repayRequestId: number) {
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .leftJoin("bpr.repayRequests", "rr", "rr.id = :repayRequestId", { repayRequestId })
+            .getOneOrFail();
+    }
+
+    getFreshBusinessPayReqByDebtSymbol(debtCurrencySymbol: string) {
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .innerJoin("bpr.debtCurrencyId", "debtCurrency")
+            .where("debtCurrency.symbol = :debtCurrencySymbol", { debtCurrencySymbol })
+            .orderBy("bpr.created_at", "ASC")
+            .getOneOrFail();
     }
 
     saveNewBusinessRequisite(dto: CreateBusinessPaymentRequisiteDto) {

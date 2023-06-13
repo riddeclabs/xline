@@ -297,11 +297,11 @@ export class BorrowActionWizard {
         return {
             depositCrypto: formatUnitsNumber(
                 cld.lineDetails.rawCollateralAmount,
-                cld.lineDetails.collateralToken.decimals
+                cld.lineDetails.collateralCurrency.decimals
             ),
             depositFiat: formatUnitsNumber(cld.lineDetails.fiatCollateralAmount),
-            cryptoCurrency: cld.lineDetails.collateralToken.symbol,
-            fiatCurrency: cld.lineDetails.debtToken.symbol,
+            cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
+            fiatCurrency: cld.lineDetails.debtCurrency.symbol,
             debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
             utilizationRate: formatUnitsNumber(cld.lineDetails.utilizationRate) * 100,
             maxUtilizationRate: formatUnitsNumber(cld.economicalParams.collateralFactor) * 100,
