@@ -118,9 +118,66 @@ export class BackOfficeController {
     @Get("unresolved-request")
     @Render("backoffice/unresolved-request")
     table(@Req() req: Request) {
-        return {
-            account: req.user,
-        };
+        const borrowRequests = [
+            {
+                chatId: 234234,
+                currencies: "ETH / USD",
+                amount: "4322 usd",
+                status: "PENDING",
+                iban: "E234432234234",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+            {
+                chatId: 54632424,
+                currencies: "ETH / USD",
+                amount: "341 usd",
+                status: "PENDING",
+                iban: "E345423546542345",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+            {
+                chatId: 1243523443,
+                currencies: "ETH / USD",
+                amount: "65423 usd",
+                status: "PENDING",
+                iban: "EE23523467324",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+        ];
+
+        const repayRequests = [
+            {
+                chatId: 234234,
+                currencies: "ETH / USD",
+                amount: "4322 usd",
+                status: "PENDING",
+                iban: "E234432234234",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+            {
+                chatId: 54632424,
+                currencies: "ETH / USD",
+                amount: "341 usd",
+                status: "PENDING",
+                iban: "E345423546542345",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+            {
+                chatId: 1243523443,
+                currencies: "ETH / USD",
+                amount: "65423 usd",
+                status: "PENDING",
+                iban: "EE23523467324",
+                createdAt: "01.01.2001 11:44 UTC",
+                updatedAt: "02.02.2002 12:45 UTC",
+            },
+        ];
+        return { borrowRequests: borrowRequests, account: req.user, repayRequests: repayRequests };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
