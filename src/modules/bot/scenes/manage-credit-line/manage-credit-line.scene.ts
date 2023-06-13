@@ -38,7 +38,7 @@ export class ManageCreditLineWizard {
         if (creditLines.length) {
             const existPairs = creditLines.map(cl => {
                 return {
-                    text: `${cl.collateralToken.symbol} / ${cl.debtToken.symbol}`,
+                    text: `${cl.collateralCurrency.symbol} / ${cl.debtCurrency.symbol}`,
                     callback_data: `${ManagePortfolioCallbacks.CHOSE_CREDIT_LINE}:${cl.id}`,
                 };
             });
@@ -66,8 +66,8 @@ export class ManageCreditLineWizard {
         );
 
         this.botCommon.updateSceneCreditLineDto(ctx, {
-            collateralSymbol: lineDetails.collateralToken.symbol,
-            debtSymbol: lineDetails.debtToken.symbol,
+            collateralSymbol: lineDetails.collateralCurrency.symbol,
+            debtSymbol: lineDetails.debtCurrency.symbol,
         });
 
         const msgText = ManageCreditLineText.getViewLineDetailsText(economicalParams, lineDetails);

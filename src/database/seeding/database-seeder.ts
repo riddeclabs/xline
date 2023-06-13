@@ -66,9 +66,6 @@ import { Role } from "../../common";
         })
         .addPaymentProcessing({
             url: "https://api.xgateway.dev/api/v1",
-            originName: "xgateway",
-            callbackAuth: "12345",
-            gatewayAuth: "12345",
         })
         .addOperator({
             username: "Vasia",
@@ -147,12 +144,7 @@ class DatabaseSeeder {
         return this;
     }
 
-    addPaymentProcessing(params: {
-        url: string;
-        originName: string;
-        callbackAuth: string;
-        gatewayAuth: string;
-    }): DatabaseSeeder {
+    addPaymentProcessing(params: { url: string }): DatabaseSeeder {
         this.paymentProcessing.push({ ...params });
         return this;
     }
