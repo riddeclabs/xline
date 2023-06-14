@@ -54,7 +54,7 @@ export class ViewRequestText {
 
     static getBorrowRequestMsgText(data: XLineRequestMsgData): string {
         if (!data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
-            throw new Error("Invalid withdraw request");
+            throw new Error("Invalid borrow request");
         }
 
         let borrowAmountText;
