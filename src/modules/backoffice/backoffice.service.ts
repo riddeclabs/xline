@@ -14,6 +14,11 @@ export enum CustomersListColumns {
     name = "DESC",
 }
 
+export enum BorrowRequestColumns {
+    createdAt = "DESC",
+    updatedAt = "DESC",
+}
+
 export enum ModifyReserveDirection {
     increase = "increase",
     reduce = "reduce",
@@ -84,19 +89,25 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(page: number) {
+    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+        const sortDate = sort ?? "DESC";
+
         return this.borrowRepo
             .createQueryBuilder("borrow")
             .leftJoinAndSelect("borrow.creditLineId", "creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.userId", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .select(["borrow"])
             .addSelect(["collateralCurrency.symbol"])
             .addSelect(["userPaymentRequisite.iban"])
             .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
-            .take(2)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("borrow.createdAt", sortDate)
+            .addOrderBy("borrow.updatedAt", sortDate)
+
             .getRawMany();
     }
 

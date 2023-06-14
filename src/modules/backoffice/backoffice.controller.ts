@@ -30,6 +30,7 @@ import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
+import { BorrowRequestDto } from "./dto/borrow-request.dto";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -119,10 +120,15 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request")
     @Render("backoffice/borrow-request")
-    async borrowList(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
-        const { page } = query;
+    async borrowList(@Req() req: Request, @CustomersListQuery() query: BorrowRequestDto) {
+        const { page, sort, chatId } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
 
-        const getAllBorrow = await this.backofficeService.getAllBorrowRequest(page - 1);
+        const getAllBorrow = await this.backofficeService.getAllBorrowRequest(
+            page - 1,
+            sort,
+            chatIdFilter
+        );
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
@@ -136,6 +142,8 @@ export class BackOfficeController {
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
+            chatId: chatIdFilter ?? undefined,
+            sort: sort,
         };
         return {
             allBorrowResult,

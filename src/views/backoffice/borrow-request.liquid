@@ -1,6 +1,20 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
   <h1 class='pb-5 text-white fs-1'>Borrow requests</h1>
+  <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
+    <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
+      <div class='input-group' style='width: 350px'>
+        <input
+          placeholder='Chat ID'
+          type='search'
+          class='form-control number-input'
+          aria-label='Sizing example input'
+          aria-describedby='inputGroup-sizing-sm'
+          id='filter-chat-input'
+          value='{{ page.query.chatId }}'> 
+      </div>
+    </div>
+  </div>
   <div class='card bg-dark shadow-sm wrapper-table'>
     <h1 class='m-3 text-white fs-5'>Borrow requests list</h1>
     <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
@@ -22,10 +36,19 @@
             Iban 
           </th>
           <th scope='col'>
-            Created at 
+            {% if page.query.sort == "DESC" %}
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at<i class='bi-arrow-up'></i>
+              </a>
+            {% elsif page.query.sort == "ASC" %}
+              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' class="sortingTitle">Created at<i class='bi-arrow-down'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at
+              </a>
+            {% endif %}
           </th>
           <th scope='col'>
-            Updated at 
+            Updated at
           </th>
           <th scope='col'></th>
         </tr>
@@ -98,4 +121,33 @@
       </nav>
         {% endif %}
   </div>
+  <script>
+    const chatInput = document.getElementById('filter-chat-input');
+
+    function debounce(func, timeout = 500){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
+
+  chatInput.addEventListener('input', debounce((e) => {
+    const valueInput = e.target.value
+    const emptyQuery = `?{{ query | mut-query: 'chatId' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'chatId', 'template' }}`;
+    const newHref = valueInput
+     ? queryTemplate.replace('chatId=template', 'chatId=' + valueInput)
+       : emptyQuery;
+
+      chatInput.setAttribute('href', newHref);
+      window.location.assign(newHref);
+  }, 500))
+
+  if (chatInput.value) {
+    chatInput.focus();
+    chatInput.selectionStart = chatInput.value.length;
+  }
+
+  </script>
 {% endblock %}
