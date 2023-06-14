@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
-import { CollateralCurrency, CreditLine, Operator, User } from "src/database/entities";
+import { CollateralCurrency, CreditLine, DebtCurrency, Operator, User } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
@@ -13,7 +13,7 @@ import { PriceOracleModule } from "../price-oracle/price-oracle.module";
 @Module({
     imports: [
         ConfigModule,
-        TypeOrmModule.forFeature([Operator, User, CreditLine, CollateralCurrency]),
+        TypeOrmModule.forFeature([Operator, User, CreditLine, CollateralCurrency, DebtCurrency]),
         CreditLineModule,
         UserModule,
         PriceOracleModule,

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { CollateralCurrency, CreditLine, Operator, User } from "src/database/entities";
+import { CollateralCurrency, CreditLine, DebtCurrency, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT } from "src/common/constants";
@@ -28,8 +28,10 @@ export class BackOfficeService {
         private userRepo: Repository<User>,
         @InjectRepository(CreditLine)
         private creditLineRepo: Repository<CreditLine>,
-        @InjectRepository(CreditLine)
-        private collateralCurrency: Repository<CollateralCurrency>
+        @InjectRepository(CollateralCurrency)
+        private collateralCurrency: Repository<CollateralCurrency>,
+        @InjectRepository(DebtCurrency)
+        private debtCurrency: Repository<DebtCurrency>
     ) {}
 
     accountInfo() {
@@ -84,7 +86,7 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllCustomers() {
+    getAllCustomersCount() {
         return this.userRepo.count();
     }
 
@@ -129,6 +131,20 @@ export class BackOfficeService {
             .addSelect("SUM(creditLine.debtAmount)", "amount")
             .leftJoin("creditLine.debtCurrencyId", "debtCurrency")
             .groupBy("debtCurrency.id")
+            .getRawMany();
+    }
+
+    getDebtAllSymbol() {
+        return this.debtCurrency
+            .createQueryBuilder("debtCurrency")
+            .select("debtCurrency.symbol")
+            .getRawMany();
+    }
+
+    getCollateralsAllSymbol() {
+        return this.collateralCurrency
+            .createQueryBuilder("collateralCurrency")
+            .select("collateralCurrency.symbol")
             .getRawMany();
     }
 }

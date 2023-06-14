@@ -27,14 +27,14 @@
         <div class="fs-5">Supported currencies</div>
         <div class="fs-6 mt-3">Collateral:</div>
         <ul>
-          {% for collateral in collateralCurrencyAmount %}
-            <li>{{ collateral.symbol }}</li>
+          {% for collateral in currenciesAllSymbol %}
+            <li>{{ collateral.collateralCurrency_symbol }}</li>
           {% endfor %}
         </ul>
         <div class="fs-6 mt-3">Borrow:</div>
         <ul>
-          {% for borrow in debtCurrencyInitial %}
-            <li>{{ borrow.symbol }}</li>
+          {% for borrow in debtAllSymbol %}
+            <li>{{ borrow.debtCurrency_symbol }}</li>
           {% endfor %}
         </ul>
       </div>

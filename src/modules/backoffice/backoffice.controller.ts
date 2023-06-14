@@ -30,6 +30,12 @@ import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 
+type CollatetalCurrencyType = {
+    id: number;
+    symbol: string;
+    decimals: number;
+    amount: string;
+};
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
@@ -82,9 +88,15 @@ export class BackOfficeController {
     @Get("home")
     @Render("backoffice/home")
     async home(@Req() req: Request) {
-        const allCustomersLength = await this.backofficeService.getAllCustomers();
-        const freeAccumulated = await this.backofficeService.getFeeAccumulatedAmount();
-        const collateralInitial = await this.backofficeService.getCollateralCurrency();
+        const allCustomersLength = await this.backofficeService.getAllCustomersCount();
+        const feeAccumulated: { sum: string } = await this.backofficeService.getFeeAccumulatedAmount();
+        const collateralInitial: CollatetalCurrencyType[] =
+            await this.backofficeService.getCollateralCurrency();
+
+        const debtAllSymbol: { debtCurrency_symbol: string }[] =
+            await this.backofficeService.getDebtAllSymbol();
+        const currenciesAllSymbol: { collateralCurrency_symbol: string }[] =
+            await this.backofficeService.getCollateralsAllSymbol();
 
         const collateralCurrencyAmount = await Promise.all(
             collateralInitial.map(async item => {
@@ -93,14 +105,17 @@ export class BackOfficeController {
                     item.decimals,
                     BigInt(item.amount)
                 );
-                return { symbol: item.symbol, amount: +formatUnits(amountUSD, item.decimals) };
+                return {
+                    symbol: item.symbol,
+                    amount: +formatUnits(amountUSD),
+                };
             })
         );
 
-        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b);
+        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
-        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => a + b);
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         return {
             totalCustomers: allCustomersLength,
@@ -108,7 +123,9 @@ export class BackOfficeController {
             collateralCurrencyAmount,
             totalDebt,
             debtCurrencyInitial,
-            freeAccum: freeAccumulated.sum,
+            freeAccum: feeAccumulated.sum,
+            currenciesAllSymbol,
+            debtAllSymbol,
         };
     }
 
