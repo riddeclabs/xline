@@ -91,6 +91,9 @@ export class RequestHandlerService {
     }
 
     async saveNewBorrowRequest(dto: CreateBorrowRequestHandlerDto) {
+        if (!dto.borrowFiatAmount && !dto.initialRiskStrategy) {
+            throw new Error("Borrow amount or risk strategy must be provided");
+        }
         const newReq = this.borrowRequestRepo.create(dto);
         return this.borrowRequestRepo.save(newReq);
     }
@@ -106,6 +109,20 @@ export class RequestHandlerService {
             .andWhere("br.borrowRequestStatus = :status", {
                 status: BorrowRequestStatus.VERIFICATION_PENDING,
             })
+            .orderBy("br.createdAt", "ASC")
+            .getOne();
+    }
+
+    async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.borrowRequestStatus = :statusVP", {
+                statusVP: BorrowRequestStatus.VERIFICATION_PENDING,
+            })
+            .orWhere("br.borrowRequestStatus = :statusWFD", {
+                statusWFD: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+            })
+            .andWhere("br.creditLineId = :creditLineId", { creditLineId })
             .orderBy("br.createdAt", "ASC")
             .getOne();
     }

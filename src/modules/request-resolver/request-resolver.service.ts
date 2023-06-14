@@ -92,7 +92,6 @@ export class RequestResolverService {
     // Used by operator to verify borrow request before transfer the payment
     async verifyBorrowRequest(reqId: number) {
         const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
-        console.log("verifyBorrowRequest ", request, creditLine);
         if (!(request instanceof BorrowRequest)) {
             throw new Error("Incorrect request received");
         }

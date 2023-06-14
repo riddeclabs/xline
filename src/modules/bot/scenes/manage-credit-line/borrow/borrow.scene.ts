@@ -2,17 +2,19 @@ import { Injectable, UseFilters } from "@nestjs/common";
 import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { BotCommonService } from "../../../bot-common.service";
 import { CustomExceptionFilter } from "../../../exception-filter";
-import { escapeSpecialCharacters, formatUnitsNumber, parseUnits } from "src/common";
+import { bigintToFormattedPercent, formatUnitsNumber, parseUnits } from "src/common";
 import { Markup } from "telegraf";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { SignApplicationOptions } from "../../../constants";
 import { callbackQuery } from "telegraf/filters";
 import { MainScene } from "../../main.scene";
 import * as filters from "telegraf/filters";
-import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks, CreditLineSnapshot } from "./borrow.type";
+import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.type";
 import { BorrowTextSource } from "./borrow.text";
-import { BotManagerService, CreditLineDetailsExt } from "src/modules/bot/bot-manager.service";
-import { EXP_SCALE } from "src/common/constants";
+import { BotManagerService } from "src/modules/bot/bot-manager.service";
+import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
+import { getCreditLineState, truncateDecimals } from "../../common/utils";
+import { validateAmountDecimals } from "src/common/input-validation";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -28,7 +30,8 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_PENDING_REQUESTS)
     async onVerifyPendingRequests(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const pendingRequest = await this.botManager.getOldestPendingBorrowReq(creditLineId);
+        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
+        const pendingRequest = await this.botManager.getOldestPendingOrWFDBorrowReq(creditLineId);
 
         if (!pendingRequest) {
             ctx.wizard.next();
@@ -36,25 +39,26 @@ export class BorrowActionWizard {
             return;
         }
 
-        let text;
-        const date = pendingRequest.createdAt.toLocaleDateString("en-GB");
-        const currency = "USD"; //FIXME: get from request
+        const data: XLineRequestMsgData = {
+            status: pendingRequest.borrowRequestStatus as string,
+            currency: creditLine.debtCurrency.symbol,
+            created: pendingRequest.createdAt.toDateString(),
+            updated: pendingRequest.updatedAt.toDateString(),
+            requisitesOrWallet: {
+                iban: creditLine.userPaymentRequisite.iban,
+                accountName: creditLine.user.name,
+            },
+        };
+
         if (pendingRequest.borrowFiatAmount) {
-            const amount = formatUnitsNumber(pendingRequest.borrowFiatAmount);
-            text = BorrowTextSource.getExistingBorrowRequestErrorMsg(currency, date, amount);
+            data.amountOrStrategy = formatUnitsNumber(pendingRequest.borrowFiatAmount);
         } else if (pendingRequest.initialRiskStrategy) {
-            const strategy = formatUnitsNumber(pendingRequest.initialRiskStrategy);
-            text = BorrowTextSource.getExistingBorrowRequestErrorMsg(
-                currency,
-                date,
-                undefined,
-                strategy
+            data.amountOrStrategy = BorrowTextSource.getRiskStrategyText(
+                pendingRequest.initialRiskStrategy
             );
-        } else {
-            throw new Error("Invalid pending request. Nether strategy, nor amount are defined");
         }
 
-        const msg = (await ctx.editMessageText(text, {
+        const msg = (await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
             parse_mode: "MarkdownV2",
         })) as Message;
 
@@ -70,14 +74,19 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.BORROW_TERMS)
     async onBorrowTerms(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const cld = await this.botManager.getCreditLineDetails(creditLineId);
+        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
-        const maxCollateral = formatUnitsNumber(cld.economicalParams.collateralFactor) * 100;
-        const fee = formatUnitsNumber(cld.economicalParams.fiatProcessingFee) * 100;
+        const collateralFactor = bigintToFormattedPercent(
+            creditLine.economicalParameters.collateralFactor
+        );
+        const fee = bigintToFormattedPercent(creditLine.economicalParameters.fiatProcessingFee);
 
-        const msg = (await ctx.editMessageText(BorrowTextSource.getBorrowTermsText(maxCollateral, fee), {
-            parse_mode: "MarkdownV2",
-        })) as Message;
+        const msg = (await ctx.editMessageText(
+            BorrowTextSource.getBorrowTermsText(collateralFactor, fee),
+            {
+                parse_mode: "MarkdownV2",
+            }
+        )) as Message;
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
@@ -101,10 +110,10 @@ export class BorrowActionWizard {
     async onAmountRequest(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
-        const snapshot = this.prepareCreditLineSnapshot(cld);
-        ctx.scene.session.state.maxAllowedAmount = snapshot.maxAllowedAmount.toString();
 
-        const text = await BorrowTextSource.getAmountInputText(snapshot);
+        const state = getCreditLineState(cld);
+        const text = await BorrowTextSource.getAmountInputText(state);
+
         await ctx.editMessageText(text, {
             parse_mode: "MarkdownV2",
         });
@@ -113,39 +122,52 @@ export class BorrowActionWizard {
 
     @WizardStep(BorrowActionSteps.SIGN_TERMS)
     async onSignTerms(@Ctx() ctx: BorrowContext) {
-        const borrowAmount = Number(ctx.scene.session.state.borrowAmount);
-        if (!borrowAmount) {
-            throw new Error("No debt amount provided");
-        }
-
-        const chat_id = ctx.chat!.id;
-
+        const amount = Number(ctx.scene.session.state.borrowAmount);
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cdl = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const user = await this.botManager.getUserByChatId(chat_id);
-        const requisite = await this.botManager.getUserPaymentRequisiteByChatId(chat_id);
-
-        const iban = requisite?.iban;
-        const name = user?.name;
-
-        if (!iban || !name) {
-            throw new Error("User has no requisite or name");
+        if (!amount) {
+            throw new Error("No borrow amount provided");
         }
 
-        const before = this.prepareCreditLineSnapshot(cdl);
+        const borrowFiatAmount = parseUnits(amount);
+        try {
+            await this.botManager.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+        } catch (e) {
+            const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
+            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            return;
+        }
+        const stateBefore = getCreditLineState(cdl);
+        const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
-        const after: CreditLineSnapshot = { ...before };
-        after.debtAmount = before.debtAmount + borrowAmount;
-        after.utilizationRate = (after.debtAmount / after.depositFiat) * 100;
-        after.maxAllowedAmount = after.maxAllowedAmount - (after.debtAmount - before.debtAmount);
+        const processingFee = formatUnitsNumber(cdl.economicalParams.fiatProcessingFee);
+
+        stateAfter.debtAmount = truncateDecimals(
+            stateBefore.debtAmount + amount + amount * processingFee,
+            2
+        );
+        stateAfter.utilizationRatePercent = bigintToFormattedPercent(
+            parseUnits(stateAfter.debtAmount / stateAfter.supplyFiat)
+        );
+
+        const requisites: Requisites = {
+            iban: cdl.lineDetails.userPaymentRequisite.iban,
+            accountName: cdl.lineDetails.user.name,
+        };
 
         const editMsgId = ctx.scene.session.state.sceneEditMsgId;
         const msg = (await ctx.telegram.editMessageText(
             ctx.chat?.id,
             editMsgId,
             undefined,
-            BorrowTextSource.getSignTermsText(before, after, borrowAmount, name, iban),
+            BorrowTextSource.getSignTermsText(
+                stateBefore,
+                stateAfter,
+                amount,
+                processingFee,
+                requisites
+            ),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -193,7 +215,7 @@ export class BorrowActionWizard {
                 await this.approveTermsHandler(ctx, value);
                 break;
             case BorrowReqCallbacks.RE_ENTER__AMOUNT:
-                ctx.wizard.back();
+                ctx.scene.session.cursor = BorrowActionSteps.AMOUNT_REQUEST;
                 await this.botCommon.executeCurrentStep(ctx);
                 break;
             case BorrowReqCallbacks.BACK_TO_MAIN_MENU:
@@ -233,31 +255,34 @@ export class BorrowActionWizard {
 
     private async signApplicationHandler(ctx: BorrowContext, callbackValue?: string) {
         if (callbackValue === SignApplicationOptions.APPROVE) {
-            const chat_id = ctx.chat!.id;
             const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-            const user = await this.botManager.getUserByChatId(chat_id);
-            const requisite = await this.botManager.getUserPaymentRequisiteByChatId(chat_id);
+            const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
-            const iban = requisite?.iban;
-            const name = user?.name;
+            const amount = ctx.scene.session.state.borrowAmount;
+            if (!amount) throw new Error("No borrow amount provided");
 
-            if (!iban || !name) {
-                throw new Error("User has no requisite or name");
-            }
+            const borrowFiatAmount: bigint = parseUnits(amount);
 
-            await ctx.editMessageText(BorrowTextSource.getBorrowSuccessText(name, iban), {
+            const requisites: Requisites = {
+                iban: creditLine.userPaymentRequisite.iban,
+                accountName: creditLine.user.name,
+            };
+
+            await ctx.editMessageText(BorrowTextSource.getBorrowSuccessText(requisites), {
                 parse_mode: "MarkdownV2",
             });
             await ctx.editMessageReplyMarkup(
                 Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }).reply_markup
             );
 
-            const amount = ctx.scene.session.state.borrowAmount;
-            if (!amount) throw new Error("No borrow amount provided");
-
-            const borrowFiatAmount = parseUnits(amount);
-
-            await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
+            //FIXME: Think about adding some threshold for the amount
+            try {
+                await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
+            } catch (e) {
+                const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
+                await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+                return;
+            }
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
             await ctx.editMessageText(BorrowTextSource.getBorrowDisapprovedText(), {
                 parse_mode: "MarkdownV2",
@@ -275,54 +300,38 @@ export class BorrowActionWizard {
     }
 
     private async reqAmountHandler(ctx: BorrowContext, userInput: string) {
-        const input = Number(userInput);
-        const maxAllowed = Number(ctx.scene.session.state.maxAllowedAmount);
+        const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
+        const cld = await this.botManager.getCreditLineDetails(creditLineId);
+        const state = getCreditLineState(cld);
 
+        const input = Number(userInput);
         if (!input || input <= 0) {
             const errorMsg = BorrowTextSource.getAmountValidationErrorMsg(userInput);
             await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
-        } else if (input > maxAllowed) {
+            return;
+        } else if (!validateAmountDecimals(input, 2)) {
+            const errorMsg = BorrowTextSource.getAmountDecimalsValidationErrorMsg(userInput, 2);
+            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            return;
+        } else if (input > state.maxAllowedAmount) {
             const errorMsg = BorrowTextSource.getAmountValidationErrorMaxAllowedMsg(
                 userInput,
-                maxAllowed
+                state.maxAllowedAmount
             );
             await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            return;
         } else {
             ctx.scene.session.state.borrowAmount = userInput;
             await this.botCommon.executeCurrentStep(ctx);
         }
     }
 
-    private prepareCreditLineSnapshot(cld: CreditLineDetailsExt): CreditLineSnapshot {
-        return {
-            depositCrypto: formatUnitsNumber(
-                cld.lineDetails.rawCollateralAmount,
-                cld.lineDetails.collateralCurrency.decimals
-            ),
-            depositFiat: formatUnitsNumber(cld.lineDetails.fiatCollateralAmount),
-            cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
-            fiatCurrency: cld.lineDetails.debtCurrency.symbol,
-            debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
-            utilizationRate: formatUnitsNumber(cld.lineDetails.utilizationRate) * 100,
-            maxUtilizationRate: formatUnitsNumber(cld.economicalParams.collateralFactor) * 100,
-            maxAllowedAmount: formatUnitsNumber(
-                (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
-                    EXP_SCALE -
-                    cld.lineDetails.debtAmount
-            ),
-        };
-    }
-
     // FIXME: Move to common
     private async retryOrBackHandler(ctx: BorrowContext, errorMsg: string, retryCallbackValue: string) {
         const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-        await ctx.telegram.editMessageText(
-            ctx.chat?.id,
-            editMsgId,
-            undefined,
-            escapeSpecialCharacters(errorMsg),
-            { parse_mode: "MarkdownV2" }
-        );
+        await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, errorMsg, {
+            parse_mode: "MarkdownV2",
+        });
         await ctx.telegram.editMessageReplyMarkup(
             ctx.chat?.id,
             editMsgId,

@@ -9,7 +9,7 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
+import { BorrowRequestStatus, createUserGatewayId, generateReferenceNumber, xor } from "../../common";
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
@@ -98,6 +98,7 @@ export class BotManagerService {
             creditLineId: creditLine.id,
             borrowFiatAmount: null,
             initialRiskStrategy: riskStrategy,
+            borrowRequestStatus: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
         });
     }
 
@@ -166,7 +167,9 @@ export class BotManagerService {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
+        const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
+            creditLineId
+        );
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
@@ -218,6 +221,7 @@ export class BotManagerService {
             creditLineId,
             borrowFiatAmount,
             initialRiskStrategy: null,
+            borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING,
         });
     }
 
@@ -252,6 +256,10 @@ export class BotManagerService {
         return this.requestHandlerService.getOldestPendingBorrowReq(creditLineId);
     }
 
+    async getOldestPendingOrWFDBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestPendingOrWFDBorrowReq(creditLineId);
+    }
+
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
     }
@@ -270,5 +278,8 @@ export class BotManagerService {
 
     async getCreditLineById(creditLineId: number) {
         return this.creditLineService.getCreditLineById(creditLineId);
+    }
+    async getCreditLinesByIdAllSettingsExtended(creditLineId: number) {
+        return this.creditLineService.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
 }

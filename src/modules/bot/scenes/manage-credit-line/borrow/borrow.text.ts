@@ -1,10 +1,9 @@
 import { escapeSpecialCharacters } from "src/common";
 import { BasicSourceText } from "../../common/basic-source.text";
-import { CreditLineSnapshot } from "./borrow.type";
-import { RiskStrategyLevels } from "../../new-credit-request/new-credit-request.types";
+import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
 
 export class BorrowTextSource extends BasicSourceText {
-    static getBorrowTermsText(maxCollateral: number, processingFee: number): string {
+    static getBorrowTermsText(maxCollateral: string, processingFee: string): string {
         return escapeSpecialCharacters(
             "*Borrow info*\n\n" +
                 "📝 The Borrow allows you to increase your debt position.\n\n" +
@@ -17,62 +16,56 @@ export class BorrowTextSource extends BasicSourceText {
         );
     }
 
-    static async getAmountInputText(cls: CreditLineSnapshot): Promise<string> {
+    static async getAmountInputText(state: CreditLineStateMsgData): Promise<string> {
+        const creditLineStateText = this.getCreditLineStateText(state);
         return escapeSpecialCharacters(
-            `*Please enter ${cls.fiatCurrency} amount you want to borrow*\n\n` +
+            `*Please enter ${state.fiatCurrency} amount you want to borrow*\n\n` +
                 "📊 *Current state:*\n" +
-                `Deposit amount: ${cls.depositCrypto} ${cls.cryptoCurrency} / ${cls.depositFiat} ${cls.fiatCurrency}\n` +
-                `Debt amount: ${cls.debtAmount} ${cls.fiatCurrency}\n` +
-                `Utilization rate: ${cls.utilizationRate}%\n` +
-                `Max utilization rate: ${cls.maxUtilizationRate}%\n\n` +
-                `Max allowed amount to borrow: ${cls.maxAllowedAmount} ${cls.fiatCurrency}\n\n` +
+                creditLineStateText +
+                "\n" +
                 `Max accuracy for USD value ia 1 cent.`
         );
     }
 
     static getSignTermsText(
-        before: CreditLineSnapshot,
-        after: CreditLineSnapshot,
+        stateBefore: CreditLineStateMsgData,
+        stateAfter: CreditLineStateMsgData,
         borrowAmount: number,
-        name: string,
-        iban: string
+        processingFee: number,
+        requisites: Requisites
     ): string {
-        const liquidationRiskBefore = BorrowTextSource.getCurrentLiquidationRisk(
-            before.utilizationRate,
-            before.maxUtilizationRate
+        const creditLineStateTextBefore = this.getCreditLineStateText(stateBefore, false);
+        const creditLineStateTextAfter = this.getCreditLineStateText(stateAfter, false);
+        const requisitesText = this.getRequisitesText(requisites);
+        const processingFeeText = BorrowTextSource.getFiatProcessingFeeText(
+            borrowAmount,
+            processingFee,
+            stateBefore.fiatCurrency
         );
-        const liquidationRiskAfter = BorrowTextSource.getCurrentLiquidationRisk(
-            after.utilizationRate,
-            after.maxUtilizationRate
-        );
-
         return escapeSpecialCharacters(
             "*Borrow request details*\n\n" +
-                `You have requested ${borrowAmount} ${after.fiatCurrency} to borrow.\n\n` +
+                `You have requested ${borrowAmount} ${stateBefore.fiatCurrency} to borrow.\n\n` +
                 "📊 *Old state:*\n" +
-                `Deposit amount: ${before.depositCrypto} ${before.cryptoCurrency} / ${before.depositFiat} ${before.fiatCurrency}\n` +
-                `Debt amount: ${before.debtAmount} ${before.fiatCurrency}\n` +
-                `Utilization rate: ${before.utilizationRate}%\n` +
-                `Liquidation risk: ${liquidationRiskBefore}\n\n` +
+                creditLineStateTextBefore +
+                "\n" +
                 "📊 *New state:*\n" +
-                `Deposit amount: ${after.depositCrypto} ${after.cryptoCurrency} / ${after.depositFiat} ${after.fiatCurrency}\n` +
-                `Debt amount: ${after.debtAmount} ${after.fiatCurrency}\n` +
-                `Utilization rate: ${after.utilizationRate.toFixed(2)}%\n` +
-                `Liquidation risk: ${liquidationRiskAfter}\n\n` +
-                "🏦 *Bank account info*:\n" +
-                `IBAN: ${iban}\n` +
-                `Account name: ${name}\n\n` +
+                creditLineStateTextAfter +
+                "\n" +
+                requisitesText +
+                "\n" +
+                processingFeeText +
+                "\n" +
                 "❗️ After you agree to our offer, we will send requested USD amount to your bank account"
         );
     }
 
-    static getBorrowSuccessText(name: string, iban: string): string {
+    static getBorrowSuccessText(requisites: Requisites): string {
+        const requisitesText = this.getRequisitesText(requisites);
         return escapeSpecialCharacters(
             "✅ Done! You've created 'Borrow' request.\n\n" +
                 "We will send requested USD amount to your bank account\n\n" +
-                "🏦 *Bank account info*:\n" +
-                `IBAN: ${iban}\n` +
-                `Account name: ${name}\n\n` +
+                requisitesText +
+                "\n" +
                 "💡 You always can check all you request details.\n" +
                 `To do this go to "View my requests" tab from main menu.\n\n` +
                 "⚠️ The processing time for transfers may vary.\n\n" +
@@ -101,6 +94,16 @@ export class BorrowTextSource extends BasicSourceText {
         );
     }
 
+    static getAmountDecimalsValidationErrorMsg(userInput: string, decimals: number): string {
+        return escapeSpecialCharacters(
+            "❌ *Entered amount is incorrect.* ❌\n\n" +
+                `‼ Amount should have no more than ${decimals} decimals.\n\n` +
+                "For example: *1000* or *1000.91*.\n\n" +
+                `*Entered amount:* ${userInput}\n\n` +
+                "Please try again."
+        );
+    }
+
     static getAmountValidationErrorMaxAllowedMsg(userInput: string, maxAllowed: number): string {
         return escapeSpecialCharacters(
             "❌ *Entered amount is incorrect.* ❌\n\n" +
@@ -111,35 +114,8 @@ export class BorrowTextSource extends BasicSourceText {
         );
     }
 
-    static getExistingBorrowRequestErrorMsg(
-        currency: string,
-        creationDate: string,
-        amount?: number,
-        strategy?: number
-    ): string {
-        if (!amount && !strategy) {
-            throw new Error("Amount or strategy should be defined");
-        }
-
-        let requestDetailsText = "📊 *Your previous request details:*\n\n";
-        if (!amount && strategy) {
-            if (strategy === RiskStrategyLevels.LOW) {
-                requestDetailsText += `🚦 Strategy: 🟢 LOW - ${
-                    RiskStrategyLevels.LOW * 100
-                }% utilization\n`;
-            } else if (strategy === RiskStrategyLevels.MEDIUM) {
-                requestDetailsText += `🚦 Strategy: 🟡 MEDIUM - ${
-                    RiskStrategyLevels.MEDIUM * 100
-                }% utilization\n`;
-            } else if (strategy > RiskStrategyLevels.MEDIUM) {
-                requestDetailsText += `🚦 Strategy: 🔴 HIGH - ${strategy * 100}% utilization\n`;
-            } else {
-                throw new Error("Incorrect strategy value defined");
-            }
-        } else {
-            requestDetailsText += `💲 Amount: ${amount} ${currency}\n`;
-        }
-        requestDetailsText += `🗓️ Creation date: ${creationDate}\n\n`;
+    static getExistingBorrowRequestErrorMsg(data: XLineRequestMsgData): string {
+        const existingReqDetailsText = this.getBorrowRequestMsgText(data);
 
         return escapeSpecialCharacters(
             "❌ *Previously created borrow request is unresolved* ❌\n\n" +
@@ -147,7 +123,18 @@ export class BorrowTextSource extends BasicSourceText {
                 "‼ XLine supports only one active request per credit line at a time.\n" +
                 "‼ You can create a new request after the previous one is resolved.\n" +
                 "💡 Please wait for the previous request to be resolved or contact our customer support team.\n\n" +
-                requestDetailsText
+                "📊 *Your previous request details:*\n\n" +
+                existingReqDetailsText
+        );
+    }
+
+    static getFinalAmountValidationFailedMsg(): string {
+        return escapeSpecialCharacters(
+            "❌ *Borrow amount doesn't pass solvency check* ❌\n\n" +
+                "‼ Amount you request could not be covered by your collateral.\n\n" +
+                "‼ This can happen if your collateral value has decreased since you start created the request.\n" +
+                "💡 It is possible that your collateral value has decreased due to market volatility.\n\n" +
+                "Please try again with a smaller amount or contact our customer support team.\n"
         );
     }
 }

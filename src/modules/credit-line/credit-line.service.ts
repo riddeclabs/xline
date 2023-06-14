@@ -70,4 +70,18 @@ export class CreditLineService {
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
     }
+
+    async getCreditLinesByIdAllSettingsExtended(
+        creditLineId: number
+    ): Promise<CreditLineCurrencyExtended> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .innerJoinAndSelect("creditLine.user", "user")
+            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("creditLine.id = :creditLineId", { creditLineId })
+            .getOneOrFail();
+    }
 }
