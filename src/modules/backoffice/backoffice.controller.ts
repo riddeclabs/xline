@@ -107,7 +107,7 @@ export class BackOfficeController {
                 );
                 return {
                     symbol: item.symbol,
-                    amount: +formatUnits(amountUSD),
+                    amount: Math.trunc(+formatUnits(amountUSD)),
                 };
             })
         );
