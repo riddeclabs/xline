@@ -2,7 +2,7 @@
 
 ## Issue ticket number and link
 
-MIN-XXXX
+XLIN-XXXX
 
 ## Description
 

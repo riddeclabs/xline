@@ -67,13 +67,13 @@ export class RepayTextSource {
 
     private static prepareCreditLineData(creditLineDetails: CreditLineDetails) {
         return {
-            mdDebtSymbol: creditLineDetails.debtToken.symbol,
-            mdCollateralSymbol: creditLineDetails.collateralToken.symbol,
+            mdDebtSymbol: creditLineDetails.debtCurrency.symbol,
+            mdCollateralSymbol: creditLineDetails.collateralCurrency.symbol,
             mdDepositAmountUsd: truncateDecimal(formatUnits(creditLineDetails.fiatCollateralAmount)),
             mdDepositAmountRaw: truncateDecimal(
                 formatUnits(
                     creditLineDetails.rawCollateralAmount,
-                    creditLineDetails.collateralToken.decimals
+                    creditLineDetails.collateralCurrency.decimals
                 )
             ),
             mdDebtAmount: truncateDecimal(formatUnits(creditLineDetails.debtAmount)),
