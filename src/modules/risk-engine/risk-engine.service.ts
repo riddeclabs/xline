@@ -89,7 +89,7 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    async verifyBorrowOrThrow(
+    async verifyBorrowOverCFOrThrow(
         creditLine: CreditLine,
         collateralSymbol: string,
         collateralDecimals: number,
@@ -97,6 +97,24 @@ export class RiskEngineService {
     ) {
         if (
             !(await this.isBorrowPossibleCollateralFactor(
+                creditLine,
+                collateralSymbol,
+                collateralDecimals,
+                borrowAmount
+            ))
+        ) {
+            throw new Error("Insufficient liquidity to process borrow");
+        }
+    }
+
+    async verifyBorrowOverLFOrThrow(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ) {
+        if (
+            !(await this.isBorrowPossibleLiquidationFactor(
                 creditLine,
                 collateralSymbol,
                 collateralDecimals,

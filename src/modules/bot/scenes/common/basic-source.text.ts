@@ -37,10 +37,7 @@ export abstract class BasicSourceText {
         }
     }
 
-    static getCreditLineStateText(
-        data: CreditLineStateMsgData,
-        printMaxAllowed = true
-    ): string {
+    static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed = true): string {
         const maxAllowedText = printMaxAllowed
             ? `Max to borrow:    ${data.maxAllowedAmount} ${data.fiatCurrency}\n`
             : "";

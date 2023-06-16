@@ -47,6 +47,10 @@ export class RequestResolverService {
             throw new Error("Incorrect request received");
         }
 
+        if (request.borrowRequestStatus === BorrowRequestStatus.WAITING_FOR_DEPOSIT) {
+            throw new Error("Initial request could not be resolved");
+        }
+
         if (BigInt(resolveBorrowRequest.rawTransferAmount) !== request.borrowFiatAmount) {
             throw new Error("Incorrect rawTransferAmount amount for fiat transaction");
         }
@@ -59,15 +63,34 @@ export class RequestResolverService {
         );
 
         // Verify borrow request
-        await this.riskEngineService.verifyBorrowOrThrow(
+        await this.riskEngineService.verifyBorrowOverLFOrThrow(
             creditLine,
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
             requestedBorrowAmount
         );
 
+        switch(request.borrowRequestStatus) {
+            case BorrowRequestStatus.FINISHED:
+                await this.creditLineService.increaseDebtAmountById(creditLine, requestedBorrowAmount);
+                // add fee
+                // upd tx
+                // upd request status
+                break;
+            case BorrowRequestStatus.REJECTED:
+                // Update status 
+                // if tz -> upd tx
+                break;
+            case BorrowRequestStatus.MONEY_SENT:
+                // Update status
+                // create tx               
+                break;
+            default:
+                throw new Error("Incorrect request status");
+        }
+
         // Increase debt amount for borrow request
-        await this.creditLineService.increaseDebtAmountById(creditLine, requestedBorrowAmount);
+      
 
         // Update status for borrow req
         const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
@@ -107,7 +130,7 @@ export class RequestResolverService {
         );
 
         try {
-            await this.riskEngineService.verifyBorrowOrThrow(
+            await this.riskEngineService.verifyBorrowOverCFOrThrow(
                 creditLine,
                 collateralToken.symbol,
                 creditLine.collateralCurrency.decimals,
@@ -134,7 +157,7 @@ export class RequestResolverService {
             creditLineId
         );
 
-        await this.riskEngineService.verifyBorrowOrThrow(
+        await this.riskEngineService.verifyBorrowOverCFOrThrow(
             creditLineExtended,
             creditLineExtended.collateralCurrency.symbol,
             creditLineExtended.collateralCurrency.decimals,

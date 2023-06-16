@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsString } from "class-validator";
+import { IsEnum, IsNumber, IsString } from "class-validator";
+import { BorrowRequestStatus } from "src/common";
 
 export class ResolveCryptoBasedRequestDto {
     @IsString()
@@ -47,6 +48,6 @@ export class ResolveFiatBasedRequestDto {
     @IsString()
     rawTransferAmount!: string;
     @ApiProperty({ description: "Status of transfer", example: "PENDING" })
-    @IsString() // FIXME use isEnum
-    status!: string;
+    @IsEnum(BorrowRequestStatus) // FIXME use isEnum
+    status!: BorrowRequestStatus;
 }
