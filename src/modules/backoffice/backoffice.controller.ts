@@ -29,13 +29,6 @@ import { PAGE_LIMIT } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
-
-type CollatetalCurrencyType = {
-    id: number;
-    symbol: string;
-    decimals: number;
-    amount: string;
-};
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
@@ -89,15 +82,10 @@ export class BackOfficeController {
     @Render("backoffice/home")
     async home(@Req() req: Request) {
         const allCustomersLength = await this.backofficeService.getAllCustomersCount();
-        const feeAccumulated: { sum: string } = await this.backofficeService.getFeeAccumulatedAmount();
-        const collateralInitial: CollatetalCurrencyType[] =
-            await this.backofficeService.getCollateralCurrency();
-
-        const debtAllSymbol: { debtCurrency_symbol: string }[] =
-            await this.backofficeService.getDebtAllSymbol();
-        const currenciesAllSymbol: { collateralCurrency_symbol: string }[] =
-            await this.backofficeService.getCollateralsAllSymbol();
-
+        const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
+        const collateralInitial = await this.backofficeService.getCollateralCurrency();
+        const debtAllSymbol = await this.backofficeService.getDebtAllSymbol();
+        const currenciesAllSymbol = await this.backofficeService.getCollateralsAllSymbol();
         const collateralCurrencyAmount = await Promise.all(
             collateralInitial.map(async item => {
                 const amountUSD = await this.priceOracleService.convertCryptoToUsd(
@@ -115,15 +103,14 @@ export class BackOfficeController {
         const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
-        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => a + b, 0);
-
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
             totalDebt,
             debtCurrencyInitial,
-            freeAccum: feeAccumulated.sum,
+            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
             currenciesAllSymbol,
             debtAllSymbol,
         };
