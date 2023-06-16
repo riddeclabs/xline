@@ -17,12 +17,23 @@ export class DepositRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine, creditLine => creditLine.depositRequests, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
+    // Foreign keys
+
+    @Column({ name: "credit_line_id" })
     creditLineId!: number;
 
-    @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.depositRequestId)
+    @ManyToOne(() => CreditLine, creditLine => creditLine.depositRequests, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "credit_line_id" })
+    creditLine!: CreditLine;
+
+    // Child relations
+
+    @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.depositRequest)
     cryptoTransactions!: CryptoTransaction[];
+
+    // Table attributes
 
     @Column({
         name: "deposit_request_status",

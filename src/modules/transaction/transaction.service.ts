@@ -14,19 +14,18 @@ export class TransactionService {
     async getAllTxsByLineId(creditLineId: number) {
         const cryptoTxs = await this.cryptoTransactionRepo
             .createQueryBuilder("ct")
-            // FIXME: mb without `AndSelect` ?
-            .leftJoinAndSelect("ct.withdraw_request_id", "wr")
-            .leftJoinAndSelect("ct.deposit_request_id", "dr")
-            .where("wr.credit_line_id = :creditLineId", { creditLineId })
-            .orWhere("dr.credit_line_id = :creditLineId", { creditLineId })
+            .leftJoin("ct.withdrawRequest", "wr")
+            .leftJoin("ct.depositRequest", "dr")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .orWhere("dr.creditLineId = :creditLineId", { creditLineId })
             .getMany();
 
         const fiatTxs = await this.fiatTransactionRepo
             .createQueryBuilder("ft")
-            .leftJoinAndSelect("ft.borrow_request_id", "br")
-            .leftJoinAndSelect("ft.repay_request_id", "rr")
-            .where("br.credit_line_id = :creditLineId", { creditLineId })
-            .orWhere("rr.credit_line_id = :creditLineId", { creditLineId })
+            .leftJoin("ft.borrowRequest", "br")
+            .leftJoin("ft.repayRequest", "rr")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .orWhere("rr.creditLineId = :creditLineId", { creditLineId })
             .getMany();
 
         return {

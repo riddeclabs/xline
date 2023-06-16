@@ -14,9 +14,16 @@ export class Session {
     @PrimaryColumn()
     id!: number;
 
+    // Foreign keys
+
+    @Column({ name: "user_id", nullable: true })
+    userId!: number | null;
+
     @OneToOne(() => User, user => user.session, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
-    userId!: number;
+    @JoinColumn({ name: "user_id" })
+    user!: User | null;
+
+    // Table attributes
 
     @Column("jsonb")
     data!: Record<string, unknown>;

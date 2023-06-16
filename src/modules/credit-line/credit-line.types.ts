@@ -1,9 +1,6 @@
-import { CollateralCurrency, CreditLine, DebtCurrency } from "../../database/entities";
+import { CreditLine } from "../../database/entities";
 
-export type CreditLineCurrencyExtended = CreditLine & {
-    collateralToken: CollateralCurrency;
-    debtToken: DebtCurrency;
-};
+export type CreditLineCurrencyExtended = CreditLine;
 
 export type CreditLineDetails = CreditLineCurrencyExtended & {
     utilizationRate: bigint;

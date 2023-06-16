@@ -29,8 +29,8 @@ export class PaymentRequisiteService {
     getUserPaymentRequisiteByChatId(chatId: number) {
         return this.userPaymentRepo
             .createQueryBuilder("pr")
-            .leftJoin("pr.userId", "user")
-            .where("user.chat_id = :chatId", { chatId })
+            .leftJoin("pr.user", "user")
+            .where("user.chatId = :chatId", { chatId })
             .getOne();
     }
 
