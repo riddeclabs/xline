@@ -18,7 +18,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { createRepayRequestRefNumber, makePagination, Role } from "src/common";
+import { createRepayRequestRefNumber, formatUnits, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -33,11 +33,15 @@ import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { RepayRequesttDto } from "./dto/repay-request.dto";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(private backofficeService: BackOfficeService) {}
+    constructor(
+        private backofficeService: BackOfficeService,
+        private priceOracleService: PriceOracleService
+    ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -82,9 +86,40 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
     @Render("backoffice/home")
-    home(@Req() req: Request) {
+    async home(@Req() req: Request) {
+        const allCustomersLength = await this.backofficeService.getAllCustomersCount();
+        const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
+        const collateralInitial = await this.backofficeService.getCollateralCurrency();
+        const debtAllSymbol = await this.backofficeService.getDebtAllSymbol();
+        const currenciesAllSymbol = await this.backofficeService.getCollateralsAllSymbol();
+        const collateralCurrencyAmount = await Promise.all(
+            collateralInitial.map(async item => {
+                const amountUSD = await this.priceOracleService.convertCryptoToUsd(
+                    item.symbol,
+                    item.decimals,
+                    BigInt(item.amount)
+                );
+                return {
+                    symbol: item.symbol,
+                    amount: Math.trunc(+formatUnits(amountUSD)),
+                };
+            })
+        );
+
+        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
+
+        const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
+
         return {
-            account: req.user,
+            totalCustomers: allCustomersLength,
+            totalSupply,
+            collateralCurrencyAmount,
+            totalDebt,
+            debtCurrencyInitial,
+            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            currenciesAllSymbol,
+            debtAllSymbol,
         };
     }
 
@@ -139,7 +174,7 @@ export class BackOfficeController {
                 borrow_borrow_fiat_amount: item.borrow_borrow_fiat_amount ?? 0,
             };
         });
-
+        console.log("allBorrowResult", allBorrowResult);
         const totalCount = await this.backofficeService.getBorrowCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
@@ -147,7 +182,6 @@ export class BackOfficeController {
             chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
-        console.log("allBorrowResult", allBorrowResult);
         return {
             allBorrowResult,
             page: {
@@ -176,7 +210,8 @@ export class BackOfficeController {
         const getAllRepay = await this.backofficeService.getAllRepayRequest(
             page - 1,
             sort,
-            chatIdFilter
+            chatIdFilter,
+            refNumberFilter
         );
         const allRepayResult = getAllRepay.map(item => {
             return {
@@ -189,8 +224,6 @@ export class BackOfficeController {
                 ),
             };
         });
-        console.log("allRepayResult", allRepayResult);
-
         const totalCount = await this.backofficeService.getRepayCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
