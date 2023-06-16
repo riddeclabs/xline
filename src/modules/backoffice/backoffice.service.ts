@@ -96,10 +96,10 @@ export class BackOfficeService {
 
         return this.borrowRepo
             .createQueryBuilder("borrow")
-            .leftJoinAndSelect("borrow.creditLineId", "creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
-            .leftJoinAndSelect("creditLine.userId", "user")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .select(["borrow"])
             .addSelect(["collateralCurrency.symbol"])
