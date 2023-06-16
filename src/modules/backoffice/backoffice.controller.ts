@@ -176,8 +176,7 @@ export class BackOfficeController {
         const getAllRepay = await this.backofficeService.getAllRepayRequest(
             page - 1,
             sort,
-            chatIdFilter,
-            refNumberFilter
+            chatIdFilter
         );
         const allRepayResult = getAllRepay.map(item => {
             return {
