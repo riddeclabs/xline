@@ -12,6 +12,7 @@ import {
     ValidationPipe,
     UsePipes,
     Param,
+    Body,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -129,6 +130,7 @@ export class BackOfficeController {
             sort,
             chatIdFilter
         );
+
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
@@ -221,7 +223,6 @@ export class BackOfficeController {
             userFilter,
             chatIdFilter
         );
-
         const customersWithActiveLines = initialCustomers.map(customer => {
             return {
                 id: customer.id,
@@ -252,6 +253,43 @@ export class BackOfficeController {
                 disabled: totalCount > PAGE_LIMIT,
             },
         };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customer-credit-line/:id")
+    @Render("backoffice/customer-credit-line")
+    async customerCreditLine(@Req() req: Request, @Param("id") id: string) {
+        const initialUser: {
+            creditLineRepo_ref_number: string;
+            user_id: number;
+            user_chat_id: number;
+            user_name: string;
+            user_created_at: Date;
+            user_updated_at: Date;
+        }[] = await this.backofficeService.getUserById(id);
+        const resultUser = initialUser.map((user, idx) => {
+            return {
+                ...user,
+                user_created_at: moment(user.user_created_at).format("DD.MM.YYYY HH:mm"),
+                user_updated_at: moment(user.user_updated_at).format("DD.MM.YYYY HH:mm"),
+                serialNumber: idx + 1,
+            };
+        });
+
+        console.log("user", resultUser);
+        // const test = [{}, {}];
+        // const resultTest = test.map((item, idx) => {
+        //     return { ...item, serialNumber: idx + 1 };
+        // });
+        return { customers: resultUser };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Post("/request-resolver/resolve-request/borrow")
+    async requestResolve(@Req() req: Request, @Body() preload: any) {
+        console.log("test", preload);
     }
 
     @Roles(Role.ADMIN)

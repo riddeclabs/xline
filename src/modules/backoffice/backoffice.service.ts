@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { BorrowRequest, Operator, RepayRequest, User } from "src/database/entities";
+import { BorrowRequest, CreditLine, Operator, RepayRequest, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
@@ -31,6 +31,8 @@ export class BackOfficeService {
         private operatorRepo: Repository<Operator>,
         @InjectRepository(User)
         private userRepo: Repository<User>,
+        @InjectRepository(CreditLine)
+        private creditLineRepo: Repository<CreditLine>,
         @InjectRepository(BorrowRequest)
         private borrowRepo: Repository<BorrowRequest>,
         @InjectRepository(RepayRequest)
@@ -143,5 +145,15 @@ export class BackOfficeService {
 
     getRepayCount() {
         return this.repayRepo.createQueryBuilder().getCount();
+    }
+
+    getUserById(id: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .select(["creditLine.refNumber", "user", "userPaymentRequisite.iban"])
+            .where("user.id = :id", { id })
+            .getRawMany();
     }
 }
