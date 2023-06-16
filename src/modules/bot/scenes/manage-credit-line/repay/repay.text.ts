@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-//@ts-nocheck
 import { CreditLineDetails } from "../../../../credit-line/credit-line.types";
 import { truncateDecimal } from "../../../../../common/text-formatter";
 import { bigintToFormattedPercent, escapeSpecialCharacters, formatUnits } from "../../../../../common";
