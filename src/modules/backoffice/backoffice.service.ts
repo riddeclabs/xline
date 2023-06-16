@@ -126,7 +126,7 @@ export class BackOfficeService {
         });
     }
 
-    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
         const sortDate = sort ?? "DESC";
 
         return this.repayRepo
@@ -138,6 +138,7 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
             .select(["repay"])
             .addSelect(["collateralCurrency.symbol"])
             .addSelect(["debtCurrency.symbol"])
@@ -146,7 +147,7 @@ export class BackOfficeService {
             .addSelect(["userPaymentRequisite.iban"])
             .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
-            .take(2)
+            .take(PAGE_LIMIT_REQUEST)
             .orderBy("repay.createdAt", sortDate)
             .getRawMany();
     }

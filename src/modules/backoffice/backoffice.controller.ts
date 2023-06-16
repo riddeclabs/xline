@@ -31,6 +31,8 @@ import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
+import { RepayListQuery } from "./decorators/repay-request.decorators";
+import { RepayRequesttDto } from "./dto/repay-request.dto";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -166,26 +168,37 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("repay-request")
     @Render("backoffice/repay-request")
-    async repayList(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
-        const { page } = query;
+    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequesttDto) {
+        const { page, sort, chatId, refNumber } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
+        const refNumberFilter = refNumber?.trim() ?? "";
 
-        const getAllRepay = await this.backofficeService.getAllRepayRequest(page - 1);
+        const getAllRepay = await this.backofficeService.getAllRepayRequest(
+            page - 1,
+            sort,
+            chatIdFilter,
+            refNumberFilter
+        );
         const allRepayResult = getAllRepay.map(item => {
             return {
                 ...item,
                 repay_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
                 repay_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
                 xlineIban: createRepayRequestRefNumber(
-                    item.credit_line_ref_number,
-                    item.buisiness_payment_requisite_id
+                    item.creditLine_ref_number,
+                    item.businessPaymentRequisite_iban
                 ),
             };
         });
+        console.log("allRepayResult", allRepayResult);
 
         const totalCount = await this.backofficeService.getRepayCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
+            chatId: chatIdFilter ?? undefined,
+            refNumber: refNumberFilter ?? undefined,
+            sort: sort,
         };
         return {
             allRepayResult,
