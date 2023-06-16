@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { Operator, User } from "src/database/entities";
+import { CollateralCurrency, CreditLine, DebtCurrency, Operator, User } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserService } from "../user/user.service";
 import { PAGE_LIMIT } from "src/common/constants";
+import { CollatetalCurrencyType, DebtCurrencyType } from "./backoffice.types";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -25,9 +25,14 @@ export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
         private operatorRepo: Repository<Operator>,
-        private userService: UserService,
         @InjectRepository(User)
-        private userRepo: Repository<User>
+        private userRepo: Repository<User>,
+        @InjectRepository(CreditLine)
+        private creditLineRepo: Repository<CreditLine>,
+        @InjectRepository(CollateralCurrency)
+        private collateralCurrency: Repository<CollateralCurrency>,
+        @InjectRepository(DebtCurrency)
+        private debtCurrency: Repository<DebtCurrency>
     ) {}
 
     accountInfo() {
@@ -80,5 +85,66 @@ export class BackOfficeService {
             .take(PAGE_LIMIT)
             .orderBy("user.name", sortTrim)
             .getManyAndCount();
+    }
+
+    getAllCustomersCount() {
+        return this.userRepo.count();
+    }
+
+    getFeeAccumulatedAmount(): Promise<{ feeAccumulatedUsd: string } | undefined> {
+        return this.creditLineRepo
+            .createQueryBuilder("cl")
+            .select("SUM(cl.feeAccumulatedFiatAmount)", "feeAccumulatedUsd")
+            .getRawOne();
+    }
+
+    getBorrow() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.debtCurrencyId", "borrowRequest")
+            .getMany();
+    }
+
+    getDeposit() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrencyId", "deptCurrenty")
+            .getMany();
+    }
+    getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .select("collateralCurrency.id", "id")
+            .addSelect("collateralCurrency.decimals", "decimals")
+            .addSelect("collateralCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
+            .leftJoin("creditLine.collateralCurrency", "collateralCurrency")
+            .groupBy("collateralCurrency.id")
+            .getRawMany();
+    }
+
+    getDebtCurrency(): Promise<DebtCurrencyType[]> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .select("debtCurrency.id", "id")
+            .addSelect("debtCurrency.decimals", "decimals")
+            .addSelect("debtCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.debtAmount)", "amount")
+            .leftJoin("creditLine.debtCurrency", "debtCurrency")
+            .groupBy("debtCurrency.id")
+            .getRawMany();
+    }
+    getDebtAllSymbol(): Promise<{ debtCurrency_symbol: string }[]> {
+        return this.debtCurrency
+            .createQueryBuilder("debtCurrency")
+            .select("debtCurrency.symbol")
+            .getRawMany();
+    }
+
+    getCollateralsAllSymbol(): Promise<{ collateralCurrency_symbol: string }[]> {
+        return this.collateralCurrency
+            .createQueryBuilder("collateralCurrency")
+            .select("collateralCurrency.symbol")
+            .getRawMany();
     }
 }
