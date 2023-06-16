@@ -18,7 +18,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { makePagination, Role } from "src/common";
+import { createRepayRequestRefNumber, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -145,6 +145,7 @@ export class BackOfficeController {
             chatId: chatIdFilter ?? undefined,
             sort: sort,
         };
+        console.log("allBorrowResult", allBorrowResult);
         return {
             allBorrowResult,
             page: {
@@ -172,8 +173,12 @@ export class BackOfficeController {
         const allRepayResult = getAllRepay.map(item => {
             return {
                 ...item,
-                borrow_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
-                borrow_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
+                repay_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
+                repay_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
+                xlineIban: createRepayRequestRefNumber(
+                    item.credit_line_ref_number,
+                    item.buisiness_payment_requisite_id
+                ),
             };
         });
 

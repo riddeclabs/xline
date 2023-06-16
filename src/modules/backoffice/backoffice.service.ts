@@ -94,20 +94,21 @@ export class BackOfficeService {
 
         return this.borrowRepo
             .createQueryBuilder("borrow")
-            .leftJoinAndSelect("borrow.creditLineId", "creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
-            .leftJoinAndSelect("creditLine.userId", "user")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .select(["borrow"])
             .addSelect(["collateralCurrency.symbol"])
+            .addSelect(["debtCurrency.symbol"])
             .addSelect(["userPaymentRequisite.iban"])
             .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("borrow.createdAt", sortDate)
             .addOrderBy("borrow.updatedAt", sortDate)
-
             .getRawMany();
     }
 
@@ -125,19 +126,28 @@ export class BackOfficeService {
         });
     }
 
-    getAllRepayRequest(page: number) {
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+        const sortDate = sort ?? "DESC";
+
         return this.repayRepo
             .createQueryBuilder("repay")
-            .leftJoinAndSelect("repay.creditLineId", "creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
-            .leftJoinAndSelect("creditLine.userId", "user")
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .select(["repay"])
             .addSelect(["collateralCurrency.symbol"])
+            .addSelect(["debtCurrency.symbol"])
+            .addSelect(["creditLine.refNumber"])
+            .addSelect(["businessPaymentRequisite.id", "businessPaymentRequisite.iban"])
             .addSelect(["userPaymentRequisite.iban"])
             .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(2)
+            .orderBy("repay.createdAt", sortDate)
             .getRawMany();
     }
 

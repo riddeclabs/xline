@@ -33,7 +33,7 @@
             Status
           </th>
           <th scope='col'>
-            Iban 
+            User Iban 
           </th>
           <th scope='col'>
             {% if page.query.sort == "DESC" %}
@@ -65,7 +65,7 @@
                 {{ borrow.user_chat_id }}
               </td>
               <td class='align-middle'>
-                {{ borrow.collateralCurrency_symbol }}
+                {{ borrow.collateralCurrency_symbol }} / {{ borrow.debtCurrency_symbol }}
               </td>
               <td class='align-middle'>
                 {{ borrow.borrow_borrow_fiat_amount }}
@@ -74,7 +74,7 @@
                 {{ borrow.borrow_borrow_request_status }}
               </td>
               <td class='align-middle'>
-                {{ borrow.userPaymentRequisite_iban }}
+                {{ borrow.xlineIban }}
               </td>
               <td class='align-middle'>
                 {{ borrow.borrow_created_at }}
