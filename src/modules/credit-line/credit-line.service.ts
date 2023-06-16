@@ -22,10 +22,11 @@ export class CreditLineService {
         return this.creditLineRepo.save(newLine);
     }
 
-    async increaseDebtAmountById(creditLine: CreditLine, addAmount: bigint) {
+    async increaseDebtAmount(creditLine: CreditLine, addAmount: bigint) {
         creditLine.debtAmount = creditLine.debtAmount + addAmount;
         return this.creditLineRepo.save(creditLine);
     }
+
     async decreaseDebtAmountById(creditLine: CreditLine, subAmount: bigint) {
         creditLine.debtAmount = creditLine.debtAmount - subAmount;
         return this.creditLineRepo.save(creditLine);

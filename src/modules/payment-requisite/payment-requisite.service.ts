@@ -41,7 +41,7 @@ export class PaymentRequisiteService {
 
     // Business requisite handlers
 
-    getAllBusinessPayReqs() {
+    getAllBusinessPayReqs(): Promise<[BusinessPaymentRequisite[], number]> {
         return this.businessPaymentRepo.findAndCount();
     }
 

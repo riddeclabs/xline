@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import {
+    ResolveBorrowRequestDto,
     ResolveCryptoBasedRequestDto,
-    ResolveFiatBasedRequestDto,
     ResolveRepayRequestDto,
 } from "./dto/resolve-request.dto";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
@@ -11,22 +11,25 @@ import {
     ActionTypes,
     BorrowRequestStatus,
     DepositRequestStatus,
+    FiatTransactionStatus,
     parseUnits,
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
 import { TransactionService } from "../transaction/transaction.service";
-import { CurrencyService } from "../currency/currency.service";
 import {
     BorrowRequest,
     CollateralCurrency,
     CreditLine,
     DepositRequest,
+    FiatTransaction,
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
 import { CallbackTypes } from "../payment-processing/constants";
-import { validateIban, validateName } from "../../common/input-validation";
+import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
+import { EXP_SCALE } from "src/common/constants";
+import { validateIban, validateName } from "src/common/input-validation";
 
 @Injectable()
 export class RequestResolverService {
@@ -35,99 +38,227 @@ export class RequestResolverService {
         private creditLineService: CreditLineService,
         private riskEngineService: RiskEngineService,
         private transactionService: TransactionService,
-        private currencyService: CurrencyService
+        private paymentRequisiteService: PaymentRequisiteService
     ) {}
 
-    // Used by operator to resolve pending borrow request after fiat payment occurs.
-    async resolveBorrowRequest(resolveBorrowRequest: ResolveFiatBasedRequestDto) {
+    /**
+     Used by operator to resolve borrow request
+     @param {ResolveBorrowRequestDto} resolveBorrowRequest - The request to resolve
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state or resolveBorrowRequest is incorrect.
+     */
+    async resolveBorrowRequest(
+        resolveBorrowRequest: ResolveBorrowRequestDto
+    ): Promise<{ updatedRequest: BorrowRequest; updatedTransaction: FiatTransaction }> {
         // Accrue interest
         // FIXME: add risk engine call
 
-        const { request, creditLine } = await this.getRequestAndCreditLine(
-            resolveBorrowRequest.requestId,
-            ActionTypes.BORROW
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            resolveBorrowRequest.requestId
+        );
+        const creditLine = borrowRequest.creditLine;
+
+        const [savedBusinessRequisites] = await this.paymentRequisiteService.getAllBusinessPayReqs();
+        const bRequisites = savedBusinessRequisites.filter(
+            br =>
+                br.iban === resolveBorrowRequest.ibanFrom &&
+                br.debtCurrencyId === creditLine.debtCurrencyId
         );
 
-        if (!(request instanceof BorrowRequest)) {
-            throw new Error("Incorrect request received");
+        if (bRequisites.length !== 1) {
+            throw new HttpException(
+                "No business requisites found for this borrow request",
+                HttpStatus.BAD_REQUEST
+            );
         }
 
-        if (request.borrowRequestStatus === BorrowRequestStatus.WAITING_FOR_DEPOSIT) {
-            throw new Error("Initial request could not be resolved");
+        if (borrowRequest.borrowRequestStatus !== BorrowRequestStatus.VERIFICATION_PENDING) {
+            throw new HttpException(
+                "Resolving request requires VERIFICATION_PENDING status",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
         }
 
-        if (BigInt(resolveBorrowRequest.rawTransferAmount) !== request.borrowFiatAmount) {
-            throw new Error("Incorrect rawTransferAmount amount for fiat transaction");
+        if (
+            parseUnits(resolveBorrowRequest.rawTransferAmount, creditLine.debtCurrency.decimals) !==
+            borrowRequest.borrowFiatAmount
+        ) {
+            throw new HttpException("Incorrect rawTransferAmount amount", HttpStatus.BAD_REQUEST);
         }
 
-        const requestedBorrowAmount = await this.getBorrowAmount(
-            request,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
         );
 
-        // Verify borrow request
+        if (pendingTxs.length !== 0) {
+            throw new HttpException(
+                "Resolving request has pending transactions",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // FIXME: Maybe add fee to debt amount here as well?
         await this.riskEngineService.verifyBorrowOverLFOrThrow(
             creditLine,
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            requestedBorrowAmount
+            borrowRequest.borrowFiatAmount
         );
 
-        switch (request.borrowRequestStatus) {
-            case BorrowRequestStatus.FINISHED:
-                await this.creditLineService.increaseDebtAmountById(creditLine, requestedBorrowAmount);
-                // add fee
-                // upd tx
-                // upd request status
-                break;
-            case BorrowRequestStatus.REJECTED:
-                // Update status
-                // if tz -> upd tx
-                break;
-            case BorrowRequestStatus.MONEY_SENT:
-                // Update status
-                // create tx
-                break;
-            default:
-                throw new Error("Incorrect request status");
-        }
-
-        // Increase debt amount for borrow request
-
-        // Update status for borrow req
-        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
-            request.id,
-            BorrowRequestStatus.FINISHED
-        );
-
-        // Create new FiatTransaction
-        const transaction = await this.transactionService.createFiatTransaction({
-            ...resolveBorrowRequest,
-            borrowRequestId: request.id,
+        const updatedTransaction = await this.transactionService.createFiatTransaction({
+            borrowRequestId: borrowRequest.id,
             repayRequestId: null,
-            rawTransferAmount: BigInt(resolveBorrowRequest.rawTransferAmount),
+            ibanFrom: bRequisites[0]!.iban,
+            ibanTo: creditLine.userPaymentRequisite.iban,
+            nameFrom: bRequisites[0]!.bankName,
+            nameTo: creditLine.user.name,
+            rawTransferAmount: borrowRequest.borrowFiatAmount,
         });
+
+        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest,
+            BorrowRequestStatus.MONEY_SENT
+        );
 
         return {
             updatedRequest,
-            transaction,
+            updatedTransaction,
+        };
+    }
+
+    /**
+     Used by operator to finalize borrow request when bank tx is finalized.
+     @param {number} requestId - The ID of the request to finalize.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state
+     */
+    async finalizeBorrowRequest(requestId: number): Promise<{
+        updatedRequest: BorrowRequest;
+        updatedCreditLine: CreditLine;
+        updatedTransaction: FiatTransaction;
+    }> {
+        // Accrue interest
+        // FIXME: add risk engine call
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            requestId
+        );
+        const creditLine = borrowRequest.creditLine;
+
+        if (!borrowRequest.borrowFiatAmount) {
+            throw new HttpException(
+                "Borrow request has no borrowFiatAmount",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        if (borrowRequest.borrowRequestStatus !== BorrowRequestStatus.MONEY_SENT) {
+            throw new HttpException(
+                "Resolving request requires MONEY_SENT status",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
+        );
+
+        if (pendingTxs.length === 0) {
+            throw new HttpException(
+                "Resolving request requires pending transaction",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        } else if (pendingTxs.length > 1) {
+            throw new HttpException(
+                "Resolving request has mode that one pending transaction",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        // Update tx status
+        const pendingTx = pendingTxs[0]!;
+        const updatedTransaction = await this.transactionService.updateFiatTransactionStatus(
+            pendingTx,
+            FiatTransactionStatus.COMPLETED
+        );
+
+        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest,
+            BorrowRequestStatus.FINISHED
+        );
+
+        // Increase debt amount for borrow request on borrow value
+        await this.creditLineService.increaseDebtAmount(creditLine, borrowRequest.borrowFiatAmount);
+
+        // Increase debt amount for borrow request on fee value
+        const feeAmount =
+            (borrowRequest.borrowFiatAmount * creditLine.economicalParameters.fiatProcessingFee) /
+            EXP_SCALE;
+        const updatedCreditLine = await this.creditLineService.increaseDebtAmount(creditLine, feeAmount);
+
+        return {
+            updatedRequest,
+            updatedCreditLine,
+            updatedTransaction,
+        };
+    }
+
+    /**
+     Used by operator to reject borrow request.
+     @param {number} requestId - The ID of the request to reject.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state
+     */
+    async rejectBorrowRequest(requestId: number): Promise<{ updatedRequest: BorrowRequest }> {
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            requestId
+        );
+
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
+        );
+
+        // Update tx status if tx exists
+        if (pendingTxs.length > 0) {
+            if (pendingTxs.length > 1) {
+                throw new HttpException(
+                    "Rejecting request has mode that one pending transaction",
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            const pendingTx = pendingTxs[0]!;
+            await this.transactionService.updateFiatTransactionStatus(
+                pendingTx,
+                FiatTransactionStatus.REJECTED
+            );
+        }
+
+        // Update status for borrow request
+        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest,
+            BorrowRequestStatus.REJECTED
+        );
+
+        return {
+            updatedRequest,
         };
     }
 
     // Used by operator to verify borrow request before transfer the payment
     async verifyBorrowRequest(reqId: number) {
-        const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
-        if (!(request instanceof BorrowRequest)) {
-            throw new Error("Incorrect request received");
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(reqId);
+
+        if (borrowRequest.borrowRequestStatus === BorrowRequestStatus.REJECTED) {
+            throw new HttpException(
+                "Borrow request could not be verified: request status is REJECTED",
+                HttpStatus.BAD_REQUEST
+            );
         }
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
+
+        const creditLine = borrowRequest.creditLine;
 
         const requestedBorrowAmount = await this.getBorrowAmount(
-            request,
+            borrowRequest,
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount
@@ -136,7 +267,7 @@ export class RequestResolverService {
         try {
             await this.riskEngineService.verifyBorrowOverCFOrThrow(
                 creditLine,
-                collateralToken.symbol,
+                creditLine.collateralCurrency.symbol,
                 creditLine.collateralCurrency.decimals,
                 requestedBorrowAmount
             );
@@ -283,22 +414,22 @@ export class RequestResolverService {
             throw new Error("Credit line not found");
         }
 
-        const collateralToken = creditLine.collateralCurrency;
+        const collateralCurrency = creditLine.collateralCurrency;
 
-        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);
+        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralCurrency.decimals);
 
         let depositRequestId;
         let withdrawRequestId;
         if (resolveDto.callbackType === CallbackTypes.DEPOSIT) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
                 creditLine,
-                collateralToken,
+                collateralCurrency,
                 resolveDto.rawTransferAmount
             ));
         } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
                 creditLine,
-                collateralToken,
+                collateralCurrency,
                 resolveDto.rawTransferAmount
             ));
         } else {
@@ -309,7 +440,7 @@ export class RequestResolverService {
         await this.transactionService.createCryptoTransaction({
             depositRequestId,
             withdrawRequestId,
-            rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralToken.decimals),
+            rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralCurrency.decimals),
             // FIXME: maybe calculate usd amount by us?
             usdTransferAmount: parseUnits(resolveDto.usdTransferAmount),
             txHash: resolveDto.txHash,
@@ -367,13 +498,17 @@ export class RequestResolverService {
     private getRequestFnByAction(action: ActionTypes) {
         switch (action) {
             case ActionTypes.DEPOSIT:
-                return this.requestHandlerService.getDepositRequest;
+                return this.requestHandlerService.getDepositRequest.bind(this.requestHandlerService);
             case ActionTypes.WITHDRAW:
-                return this.requestHandlerService.getWithdrawRequest;
+                return this.requestHandlerService.getWithdrawRequest.bind(this.requestHandlerService);
             case ActionTypes.BORROW:
-                return this.requestHandlerService.getBorrowRequest;
+                return this.requestHandlerService.getFullyAssociatedBorrowRequest.bind(
+                    this.requestHandlerService
+                );
             case ActionTypes.REPAY:
-                return this.requestHandlerService.getFullyAssociatedRepayRequest;
+                return this.requestHandlerService.getFullyAssociatedRepayRequest.bind(
+                    this.requestHandlerService
+                );
             default:
                 throw new Error("Unexpected action type");
         }
@@ -383,7 +518,7 @@ export class RequestResolverService {
     // and increasing the supply amount for the associated credit line.
     private async resolveDepositRequest(
         creditLine: CreditLine,
-        collateralToken: CollateralCurrency,
+        collateralCurrency: CollateralCurrency,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
@@ -401,7 +536,7 @@ export class RequestResolverService {
         // Increase supply amount for credit line
         await this.creditLineService.increaseSupplyAmountById(
             creditLine,
-            parseUnits(rawTransferAmount, collateralToken.decimals)
+            parseUnits(rawTransferAmount, collateralCurrency.decimals)
         );
 
         return {
@@ -415,14 +550,14 @@ export class RequestResolverService {
     // and decreasing the supply amount for the associated credit line.
     private async resolveWithdrawRequest(
         creditLine: CreditLine,
-        collateralToken: CollateralCurrency,
+        collateralCurrency: CollateralCurrency,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingWithdrawReq(
             creditLine.id
         );
 
-        this.verifyWithdrawAmount(pendingRequest, collateralToken, rawTransferAmount);
+        this.verifyWithdrawAmount(pendingRequest, collateralCurrency, rawTransferAmount);
 
         const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
             pendingRequest,
@@ -432,7 +567,7 @@ export class RequestResolverService {
         // Decrease supply amount for credit line
         await this.creditLineService.decreaseSupplyAmountById(
             creditLine,
-            parseUnits(rawTransferAmount, collateralToken.decimals)
+            parseUnits(rawTransferAmount, collateralCurrency.decimals)
         );
 
         return {
@@ -445,10 +580,10 @@ export class RequestResolverService {
     // Verifies if the actual withdraw amount matches the expected withdrawal amount specified in the withdrawal request.
     private verifyWithdrawAmount(
         request: WithdrawRequest,
-        collateralToken: CollateralCurrency,
+        collateralCurrency: CollateralCurrency,
         rawTransferAmount: string
     ) {
-        const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralCurrency.decimals);
 
         if (!(request.withdrawAmount === actualWithdrawAmount)) {
             throw new Error("Incorrect withdraw amount received");

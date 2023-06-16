@@ -90,6 +90,19 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.findOneByOrFail({ id: reqId });
     }
 
+    async getFullyAssociatedBorrowRequest(borrowRequestId: number): Promise<BorrowRequest> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .leftJoinAndSelect("br.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("br.fiatTransactions", "ftx")
+            .where("br.id = :borrowRequestId", { borrowRequestId })
+            .getOneOrFail();
+    }
+
     async saveNewBorrowRequest(dto: CreateBorrowRequestHandlerDto) {
         if (!dto.borrowFiatAmount && !dto.initialRiskStrategy) {
             throw new Error("Borrow amount or risk strategy must be provided");
@@ -127,11 +140,9 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateBorrowReqStatus(reqId: number, newStatus: BorrowRequestStatus) {
-        const req = await this.borrowRequestRepo.findOneByOrFail({ id: reqId });
-        req.borrowRequestStatus = newStatus;
-
-        return this.borrowRequestRepo.save(req);
+    async updateBorrowReqStatus(request: BorrowRequest, newStatus: BorrowRequestStatus) {
+        request.borrowRequestStatus = newStatus;
+        return this.borrowRequestRepo.save(request);
     }
 
     // RepayRequest block
