@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { CreateCreditLineDto } from "./dto/create-credit-line.dto";
 import { InjectRepository } from "@nestjs/typeorm";
-import { CollateralCurrency, CreditLine, DebtCurrency } from "../../database/entities";
+import { CreditLine } from "../../database/entities";
 import { Repository } from "typeorm";
 import { CreditLineCurrencyExtended } from "./credit-line.types";
 
@@ -45,41 +45,29 @@ export class CreditLineService {
     ): Promise<CreditLine | null> {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
-            .innerJoin("creditLine.userId", "user")
-            .innerJoinAndSelect("creditLine.collateralCurrencyId", "cc")
-            .where("user.chat_id = :chatId", { chatId })
+            .leftJoin("creditLine.user", "user")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "cc")
+            .where("user.chatId = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();
     }
 
     async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLineCurrencyExtended[]> {
-        const creditLines = await this.creditLineRepo
+        return await this.creditLineRepo
             .createQueryBuilder("creditLine")
-            .innerJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .innerJoinAndSelect("creditLine.debtCurrencyId", "debtCurrency")
-            .leftJoin("creditLine.userId", "user")
-            .where("user.chat_id = :chatId", { chatId })
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoin("creditLine.user", "user")
+            .where("user.chatId = :chatId", { chatId })
             .getMany();
-
-        return creditLines.map(this.extendCreditLineByCurrencies);
     }
 
     async getCreditLinesByIdCurrencyExtended(creditLineId: number): Promise<CreditLineCurrencyExtended> {
-        const creditLine = await this.creditLineRepo
+        return this.creditLineRepo
             .createQueryBuilder("creditLine")
-            .innerJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .innerJoinAndSelect("creditLine.debtCurrencyId", "debtCurrency")
+            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
-
-        return this.extendCreditLineByCurrencies(creditLine);
-    }
-
-    private extendCreditLineByCurrencies(creditLine: CreditLine): CreditLineCurrencyExtended {
-        return {
-            ...creditLine,
-            collateralToken: creditLine.collateralCurrencyId as unknown as CollateralCurrency,
-            debtToken: creditLine.debtCurrencyId as unknown as DebtCurrency,
-        };
     }
 }

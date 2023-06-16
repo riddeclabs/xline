@@ -18,12 +18,23 @@ export class WithdrawRequest {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => CreditLine, creditLine => creditLine.withdrawRequests, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "credit_line_id", referencedColumnName: "id" })
+    // Foreign keys
+
+    @Column({ name: "credit_line_id" })
     creditLineId!: number;
 
-    @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.withdrawRequestId)
+    @ManyToOne(() => CreditLine, creditLine => creditLine.withdrawRequests, {
+        onDelete: "CASCADE",
+    })
+    @JoinColumn({ name: "credit_line_id" })
+    creditLine!: CreditLine;
+
+    // Child relations
+
+    @OneToMany(() => CryptoTransaction, cryptoTransaction => cryptoTransaction.withdrawRequest)
     cryptoTransactions!: CryptoTransaction[];
+
+    // Table attributes
 
     @Column({
         name: "withdraw_request_status",

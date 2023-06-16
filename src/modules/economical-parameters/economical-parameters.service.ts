@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { EconomicalParameters } from "../../database/entities";
 import { Repository } from "typeorm";
 import { CreateEconomicalParameterDto } from "./dto/create-economical-parameter.dto";
-import { parseUnits } from "../../common/fixed-number";
+import { parseUnits } from "../../common";
 
 @Injectable()
 export class EconomicalParametersService {
@@ -18,9 +18,9 @@ export class EconomicalParametersService {
     ): Promise<EconomicalParameters> {
         return this.economicalParamsRepo
             .createQueryBuilder("ep")
-            .where("ep.collateral_currency_id = :collateralId", { collateralId: collateralCurrencyId })
-            .andWhere("ep.debt_currency_id = :debtId", { debtId: debtCurrencyId })
-            .orderBy("created_at", "DESC")
+            .where("ep.collateralCurrencyId = :collateralId", { collateralId: collateralCurrencyId })
+            .andWhere("ep.debtCurrencyId = :debtId", { debtId: debtCurrencyId })
+            .orderBy("ep.createdAt", "DESC")
             .getOneOrFail();
     }
 

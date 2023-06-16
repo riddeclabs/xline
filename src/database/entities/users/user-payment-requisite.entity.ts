@@ -17,18 +17,30 @@ export class UserPaymentRequisite {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => User, user => user.userPaymentRequisites, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "user_id", referencedColumnName: "id" })
+    // Foreign keys
+
+    @Column({ name: "user_id" })
     userId!: number;
+
+    @ManyToOne(() => User, user => user.userPaymentRequisites, { onDelete: "CASCADE" })
+    @JoinColumn({ name: "user_id" })
+    user!: User;
+
+    @Column({ name: "debt_currency_id" })
+    debtCurrencyId!: number;
 
     @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.userPaymentRequisites, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
-    debtCurrencyId!: number;
+    @JoinColumn({ name: "debt_currency_id" })
+    debtCurrency!: DebtCurrency;
 
-    @OneToMany(() => CreditLine, creditLine => creditLine.userPaymentRequisiteId)
+    // Child relations
+
+    @OneToMany(() => CreditLine, creditLine => creditLine.userPaymentRequisite)
     creditLines!: CreditLine[];
+
+    // Table attributes
 
     @Column("varchar", { name: "iban" })
     iban!: string;

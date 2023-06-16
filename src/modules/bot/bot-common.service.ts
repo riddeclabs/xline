@@ -120,6 +120,9 @@ export class BotCommonService {
                 ...(scenePartialDto.collateralSymbol && {
                     collateralSymbol: scenePartialDto.collateralSymbol,
                 }),
+                ...(scenePartialDto.debtSymbol && {
+                    debtSymbol: scenePartialDto.debtSymbol,
+                }),
             },
         };
     }
@@ -134,6 +137,12 @@ export class BotCommonService {
         const clCollateralSymbol = ctx.session.sceneTransferObject?.creditLineData?.collateralSymbol;
         if (!clCollateralSymbol) throw new Error("collateralSymbol is missed in scene DTO");
         return clCollateralSymbol;
+    }
+
+    getDebtSymbolFromSceneDto(ctx: ExtendedWizardContext) {
+        const clDebtSymbol = ctx.session.sceneTransferObject?.creditLineData?.debtSymbol;
+        if (!clDebtSymbol) throw new Error("collateralSymbol is missed in scene DTO");
+        return clDebtSymbol;
     }
 
     clearSceneDto(ctx: ExtendedWizardContext) {

@@ -16,14 +16,18 @@ export class User {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @OneToMany(() => CreditLine, creditLine => creditLine.userId)
+    // Child relations
+
+    @OneToMany(() => CreditLine, creditLine => creditLine.user)
     creditLines!: CreditLine[];
 
-    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.userId)
+    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.user)
     userPaymentRequisites!: UserPaymentRequisite[];
 
-    @OneToOne(() => Session, session => session.userId, { onDelete: "CASCADE" })
+    @OneToOne(() => Session, session => session.user, { onDelete: "CASCADE" })
     session?: Session;
+
+    // Table attributes
 
     @Column("int", { name: "chat_id", unique: true })
     chatId!: number;

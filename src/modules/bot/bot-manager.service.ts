@@ -163,8 +163,8 @@ export class BotManagerService {
         const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
-            creditLine.collateralToken.symbol,
-            creditLine.collateralToken.decimals,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount
         );
 
@@ -223,8 +223,11 @@ export class BotManagerService {
         await this.requestResolverService.verifyHypWithdrawRequest(creditLineId, withdrawAmount);
     }
 
-    async saveNewRepayRequest(creditLineId: number, paymentRequisiteId: number) {
-        await this.requestHandlerService.saveNewRepayRequest({ creditLineId, paymentRequisiteId });
+    async saveNewRepayRequest(creditLineId: number, businessPaymentRequisiteId: number) {
+        return await this.requestHandlerService.saveNewRepayRequest({
+            creditLineId,
+            businessPaymentRequisiteId,
+        });
     }
 
     async getCollateralTokenBySymbol(tokenSymbol: string) {
@@ -241,5 +244,21 @@ export class BotManagerService {
 
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
+    }
+
+    async getOldestPendingRepayReq(creditLineId: number) {
+        return this.requestHandlerService.getOldestPendingRepayReq(creditLineId);
+    }
+
+    async getFreshBusinessPayReqByDebtSymbol(debtSymbol: string) {
+        return this.paymentRequisiteService.getFreshBusinessPayReqByDebtSymbol(debtSymbol);
+    }
+
+    async getBusinessPayReqByRequestId(repayRequestId: number) {
+        return this.paymentRequisiteService.getBusinessPayReqByRequestId(repayRequestId);
+    }
+
+    async getCreditLineById(creditLineId: number) {
+        return this.creditLineService.getCreditLineById(creditLineId);
     }
 }

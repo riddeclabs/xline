@@ -8,15 +8,13 @@ export class ResolveCryptoBasedRequestDto {
     @IsString()
     callbackType!: string;
     @IsString()
-    from!: string;
-    @IsString()
-    to!: string;
-    @IsString()
     rawTransferAmount!: string;
     @IsString()
     usdTransferAmount!: string;
     @IsString()
     txHash!: string;
+    @IsString()
+    paymentProcessingTxId!: string;
 }
 
 export class ResolveFiatBasedRequestDto {

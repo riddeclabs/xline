@@ -28,6 +28,7 @@ export type SceneTransferObject = {
 export type CreditLineSceneData = {
     creditLineId?: number;
     collateralSymbol?: string;
+    debtSymbol?: string;
 };
 
 export type CallbackButton = InlineKeyboardButton.CallbackButton;
