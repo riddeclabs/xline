@@ -152,7 +152,12 @@ export class BackOfficeService {
             .createQueryBuilder("user")
             .leftJoinAndSelect("user.creditLines", "creditLine")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
-            .select(["creditLine.refNumber", "user", "userPaymentRequisite.iban"])
+            .select([
+                "creditLine.refNumber",
+                "creditLine.healthyFactor",
+                "user",
+                "userPaymentRequisite.iban",
+            ])
             .where("user.id = :id", { id })
             .getRawMany();
     }

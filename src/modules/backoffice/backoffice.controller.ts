@@ -276,12 +276,6 @@ export class BackOfficeController {
                 serialNumber: idx + 1,
             };
         });
-
-        console.log("user", resultUser);
-        // const test = [{}, {}];
-        // const resultTest = test.map((item, idx) => {
-        //     return { ...item, serialNumber: idx + 1 };
-        // });
         return { customers: resultUser };
     }
 
@@ -289,7 +283,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("/request-resolver/resolve-request/borrow")
     async requestResolve(@Req() req: Request, @Body() preload: any) {
-        console.log("test", preload);
+        return;
     }
 
     @Roles(Role.ADMIN)
