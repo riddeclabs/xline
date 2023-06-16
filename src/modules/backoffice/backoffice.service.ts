@@ -143,10 +143,10 @@ export class BackOfficeService {
     getAllRepayRequest(page: number) {
         return this.repayRepo
             .createQueryBuilder("repay")
-            .leftJoinAndSelect("repay.creditLineId", "creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "collateralCurrency")
-            .leftJoinAndSelect("creditLine.userPaymentRequisiteId", "userPaymentRequisite")
-            .leftJoinAndSelect("creditLine.userId", "user")
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
             .select(["repay"])
             .addSelect(["collateralCurrency.symbol"])
             .addSelect(["userPaymentRequisite.iban"])
