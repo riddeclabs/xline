@@ -3,7 +3,7 @@
   <h1 class='pb-3 text-white fs-1'>Customer credit lines</h1>
   <h1 class='pb-1 text-white fs-5'>User name: {{ customers[0].user_name }}</h1>
   <h1 class='pb-1 text-white fs-5'>Chat ID: {{ customers[0].user_chat_id }}</h1>
-  {% for customer in customers %}
+  {% for customer in resultTableObject %}
     <div class='card bg-dark shadow-sm wrapper-table p-4 mt-5'>
       <h1 class='text-white fs-5'>#{{ customer.serialNumber }} ETH / USD</h1>
       <div class="customer-CL-wrapper">

@@ -294,9 +294,9 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customer-credit-line/:id")
+    @Get("customer-credit-line/:creditLineId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(creditLineId: number) {
+    async customerCreditLine(@Param("creditLineId") creditLineId: number) {
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             creditLineId
         );
@@ -332,7 +332,7 @@ export class BackOfficeController {
                 debtCurrency, // Currency entity
             },
         };
-
+        console.log(resultTableObject);
         return resultTableObject;
     }
 
