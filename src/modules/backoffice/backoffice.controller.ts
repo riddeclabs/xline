@@ -32,8 +32,9 @@ import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
-import { RepayRequesttDto } from "./dto/repay-request.dto";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
+import { BorrowRequest } from "./decorators/borrow-request.decorators";
+import { RepayRequestDto } from "./dto/repay-request.dto";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -157,7 +158,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request")
     @Render("backoffice/borrow-request")
-    async borrowList(@Req() req: Request, @CustomersListQuery() query: BorrowRequestDto) {
+    async borrowList(@Req() req: Request, @BorrowRequest() query: BorrowRequestDto) {
         const { page, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
 
@@ -174,7 +175,6 @@ export class BackOfficeController {
                 borrow_borrow_fiat_amount: item.borrow_borrow_fiat_amount ?? 0,
             };
         });
-        console.log("allBorrowResult", allBorrowResult);
         const totalCount = await this.backofficeService.getBorrowCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
@@ -202,7 +202,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("repay-request")
     @Render("backoffice/repay-request")
-    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequesttDto) {
+    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequestDto) {
         const { page, sort, chatId, refNumber } = query;
         const chatIdFilter = chatId?.trim() ?? "";
         const refNumberFilter = refNumber?.trim() ?? "";
@@ -218,12 +218,11 @@ export class BackOfficeController {
                 ...item,
                 repay_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
                 repay_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
-                xlineIban: createRepayRequestRefNumber(
-                    item.creditLine_ref_number,
-                    item.businessPaymentRequisite_iban
-                ),
+                xlineIban: item.businessPaymentRequisite_iban,
+                refNumber: createRepayRequestRefNumber(item.creditLine_ref_number, item.repay_id),
             };
         });
+
         const totalCount = await this.backofficeService.getRepayCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {

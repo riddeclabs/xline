@@ -12,7 +12,12 @@ import {
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
-import { CollatetalCurrencyType, DebtCurrencyType } from "./backoffice.types";
+import {
+    CollatetalCurrencyType,
+    DebtCurrencyType,
+    GetAllBorrowRequestType,
+    GetAllRepayRequestType,
+} from "./backoffice.types";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -104,7 +109,11 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+    getAllBorrowRequest(
+        page: number,
+        sort?: "ASC" | "DESC",
+        chatId?: string
+    ): Promise<GetAllBorrowRequestType[]> {
         const sortDate = sort ?? "DESC";
 
         return this.borrowRepo
@@ -131,17 +140,12 @@ export class BackOfficeService {
         return this.borrowRepo.createQueryBuilder().getCount();
     }
 
-    getBorrowById(id: string) {
-        return this.borrowRepo.findOneBy({
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            where: {
-                id: id,
-            },
-        });
-    }
-
-    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
+    getAllRepayRequest(
+        page: number,
+        sort?: "ASC" | "DESC",
+        chatId?: string,
+        refNumber?: string
+    ): Promise<GetAllRepayRequestType[]> {
         const sortDate = sort ?? "DESC";
 
         return this.repayRepo
