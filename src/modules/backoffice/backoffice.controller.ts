@@ -17,7 +17,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { makePagination, Role } from "src/common";
+import { formatUnits, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -28,11 +28,14 @@ import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
 import { PAGE_LIMIT } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
-
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(private backofficeService: BackOfficeService) {}
+    constructor(
+        private backofficeService: BackOfficeService,
+        private priceOracleService: PriceOracleService
+    ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -77,9 +80,39 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
     @Render("backoffice/home")
-    home(@Req() req: Request) {
+    async home(@Req() req: Request) {
+        const allCustomersLength = await this.backofficeService.getAllCustomersCount();
+        const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
+        const collateralInitial = await this.backofficeService.getCollateralCurrency();
+        const debtAllSymbol = await this.backofficeService.getDebtAllSymbol();
+        const currenciesAllSymbol = await this.backofficeService.getCollateralsAllSymbol();
+        const collateralCurrencyAmount = await Promise.all(
+            collateralInitial.map(async item => {
+                const amountUSD = await this.priceOracleService.convertCryptoToUsd(
+                    item.symbol,
+                    item.decimals,
+                    BigInt(item.amount)
+                );
+                return {
+                    symbol: item.symbol,
+                    amount: Math.trunc(+formatUnits(amountUSD)),
+                };
+            })
+        );
+
+        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
+
+        const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
-            account: req.user,
+            totalCustomers: allCustomersLength,
+            totalSupply,
+            collateralCurrencyAmount,
+            totalDebt,
+            debtCurrencyInitial,
+            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            currenciesAllSymbol,
+            debtAllSymbol,
         };
     }
 
