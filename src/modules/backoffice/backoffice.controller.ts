@@ -249,6 +249,14 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("repay-request/:id")
+    @Render("backoffice/repay-request-item")
+    async repayItem(@Req() req: Request, @Param("id") id: string) {
+        return {};
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request/:id")
     @Render("backoffice/unresolved-request-borrow")
     async borrowRequest(@Req() req: Request, @Param("id") id: string) {

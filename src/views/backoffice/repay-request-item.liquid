@@ -1,0 +1,66 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <h1 class='pb-3 text-white fs-1'>Repay request resolve page.</h1>
+  <div class='pb-1 text-white fs-5'>Step 1: Confirm the payment</div>
+  <ul>
+    <li>
+      <div class='text-white fs-6'>
+        Please make sure that the user has sent the amount to pay off the debt position to the current account corresponding to the request.
+      </div>
+    </li>
+    <li>
+      <div class='text-white fs-6'>
+        To validate a transaction from a specific user, use its unique Reference number.
+      </div>
+    </li>
+  </ul>
+
+  <div class='content-wrapper-request mt-4'>
+    <div class="req-bor-wrapper">
+
+      <div class="wrapper-count">
+        <h1 class='text-white fs-5'>Payment requisites</h1>
+        <p>User unique reference number: {{ refNumber }}</p>
+        <p>IBAN to receive funds: {{ iban }}</p>
+      </div>
+
+      <div class="wrapper-count">
+        <p>The maximum amount receivable is equal to the amount of the user's debt</p>
+        <p>User debt amount: {{ debtAmountUSD }}</p>
+      </div>
+
+      <div class="wrapper-table mt-3" style="width: 100%">
+        <div class='text-white fs-5 title-form'>Resolve request form:</div>
+        <div class="wrapper-count">
+          <div class="label-input">
+            IBAN the funds received from:
+          </div>
+          <input type="text" class="form-input">
+          <div class="label-input">
+            Bank account name the funds received from:
+          </div>
+          <input type="text" class="form-input">
+          <div class="label-input">
+            Transfer amount:
+          </div>
+          <input type="text" class="form-input">
+        </div>
+        <div class="wrapper-count mt-4">
+          <div>If a significant amount of time has passed since the creation of the Repay request and funds have not been received, the request may be closed.
+          </div>
+          <div class="mt-4">
+            This can happen if the request was opened by accident, or the bank canceled the transaction.
+          </div>
+        </div>
+        <div class="form-buttons">
+          <button class="accept-button" style="padding: 5px 60px; margin-right: 15px">Confirm</button>
+          <a href='/backoffice/repay-request'>
+            <button class="reject-button" style="padding: 5px 62px; margin-left: 15px;">Reject</button>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+{% endblock %}

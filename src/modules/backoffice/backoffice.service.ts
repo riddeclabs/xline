@@ -234,4 +234,8 @@ export class BackOfficeService {
             .select("collateralCurrency.symbol")
             .getRawMany();
     }
+
+    getRepayRequestById(id: string) {
+        return this.repayRepo.createQueryBuilder("repay").getMany();
+    }
 }
