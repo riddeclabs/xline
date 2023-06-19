@@ -289,19 +289,68 @@ export class BotManagerService {
     async getCreditLinesByIdAllSettingsExtended(creditLineId: number) {
         return this.creditLineService.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
-    async getNewestDepositReq(creditLineId: number): Promise<DepositRequest | null> {
-        return this.requestHandlerService.getNewestDepositReq(creditLineId);
+
+    async getFullyAssociatedDepositRequest(depositRequestId: number): Promise<DepositRequest> {
+        return await this.requestHandlerService.getFullyAssociatedDepositRequest(depositRequestId);
     }
 
-    async getNewestWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
-        return this.requestHandlerService.getNewestWithdrawReq(creditLineId);
+    async getFullyAssociatedWithdrawRequest(withdrawRequestId: number): Promise<WithdrawRequest> {
+        return await this.requestHandlerService.getFullyAssociatedWithdrawRequest(withdrawRequestId);
     }
 
-    async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
-        return this.requestHandlerService.getNewestBorrowReq(creditLineId);
+    async getFullyAssociatedBorrowRequest(borrowRequestId: number): Promise<BorrowRequest> {
+        return await this.requestHandlerService.getFullyAssociatedBorrowRequest(borrowRequestId);
     }
 
-    async getNewestRepayReq(creditLineId: number): Promise<RepayRequest | null> {
-        return this.requestHandlerService.getNewestRepayReq(creditLineId);
+    async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
+        return await this.requestHandlerService.getFullyAssociatedRepayRequest(repayRequestId);
+    }
+
+    async getLatestFullyAssociatedDepositReq(creditLineId: number): Promise<DepositRequest | null> {
+        const req = await this.requestHandlerService.getNewestDepositReq(creditLineId);
+        if (!req) return null;
+        return await this.requestHandlerService.getFullyAssociatedDepositRequest(req.id);
+    }
+
+    async getLatestFullyAssociatedWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
+        const req = await this.requestHandlerService.getNewestWithdrawReq(creditLineId);
+        if (!req) return null;
+        return await this.requestHandlerService.getFullyAssociatedWithdrawRequest(req.id);
+    }
+
+    async getLatestFullyAssociatedBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        const req = await this.requestHandlerService.getNewestBorrowReq(creditLineId);
+        if (!req) return null;
+        return await this.requestHandlerService.getFullyAssociatedBorrowRequest(req.id);
+    }
+
+    async getLatestFullyAssociatedRepayReq(creditLineId: number): Promise<RepayRequest | null> {
+        const req = await this.requestHandlerService.getNewestRepayReq(creditLineId);
+        if (!req) return null;
+        return await this.requestHandlerService.getFullyAssociatedRepayRequest(req.id);
+    }
+
+    async getAllBorrowRequestsByCreditLineId(
+        creditLineId: number
+    ): Promise<[BorrowRequest[], number] | null> {
+        return await this.requestHandlerService.getAllBorrowReqByLineId(creditLineId);
+    }
+
+    async getAllDepositRequestsByCreditLineId(
+        creditLineId: number
+    ): Promise<[DepositRequest[], number] | null> {
+        return await this.requestHandlerService.getAllDepositReqByLineId(creditLineId);
+    }
+
+    async getAllWithdrawRequestsByCreditLineId(
+        creditLineId: number
+    ): Promise<[WithdrawRequest[], number] | null> {
+        return await this.requestHandlerService.getAllWithdrawReqByLineId(creditLineId);
+    }
+
+    async getAllRepayRequestsByCreditLineId(
+        creditLineId: number
+    ): Promise<[RepayRequest[], number] | null> {
+        return await this.requestHandlerService.getAllRepayReqByLineId(creditLineId);
     }
 }

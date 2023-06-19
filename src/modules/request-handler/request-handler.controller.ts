@@ -35,15 +35,17 @@ export class RequestHandlerController {
     async getAllBorrowReqByLineId(@Param("lineId") creditLineId: string) {
         const entities = await this.requestHandlerService.getAllBorrowReqByLineId(+creditLineId);
 
-        return entities.map(ent => {
-            return {
-                ...ent,
-                borrowFiatAmount: ent.borrowFiatAmount ? formatUnits(ent.borrowFiatAmount) : null,
-                initialRiskStrategy: ent.initialRiskStrategy
-                    ? formatUnits(ent.initialRiskStrategy)
-                    : null,
-            };
-        });
+        return entities
+            ? entities[0].map(ent => {
+                  return {
+                      ...ent,
+                      borrowFiatAmount: ent.borrowFiatAmount ? formatUnits(ent.borrowFiatAmount) : null,
+                      initialRiskStrategy: ent.initialRiskStrategy
+                          ? formatUnits(ent.initialRiskStrategy)
+                          : null,
+                  };
+              })
+            : null;
     }
     @Get("borrow/pending/:lineId")
     getOldestPendingBorrowReq(@Param("lineId") creditLineId: string) {

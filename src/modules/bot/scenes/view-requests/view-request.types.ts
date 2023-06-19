@@ -1,20 +1,6 @@
-export enum RequestTypes {
+export enum SceneRequestTypes {
     REPAY = "repay",
     WITHDRAW = "withdraw",
-    BORROW = "BorrowRequest",
+    BORROW = "borrow",
     DEPOSIT = "deposit",
-}
-
-export interface Requisites {
-    iban: string;
-    accountName: string;
-}
-
-export interface XLineRequestMsgData {
-    status: string;
-    amountOrStrategy?: number | string;
-    currency: string;
-    created: string;
-    updated: string;
-    requisitesOrWallet?: string | Requisites;
 }

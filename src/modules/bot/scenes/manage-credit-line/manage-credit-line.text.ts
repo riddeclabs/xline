@@ -2,7 +2,7 @@ import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
 import { BasicSourceText } from "../common/basic-source.text";
-import { getCreditLineState } from "../common/utils";
+import { getCreditLineStateMsgData } from "../common/utils";
 
 export class ManageCreditLineText extends BasicSourceText {
     static getChoseCreditLineText() {
@@ -24,7 +24,7 @@ export class ManageCreditLineText extends BasicSourceText {
                 ? ""
                 : `Healthy Factor: ${bigintToFormattedPercent(cld.healthyFactor, 3)}}\n`;
 
-        const state = getCreditLineState({ economicalParams: ep, lineDetails: cld });
+        const state = getCreditLineStateMsgData({ economicalParams: ep, lineDetails: cld });
         const creditLineStateText = this.getCreditLineStateText(state);
 
         return escapeSpecialCharacters(

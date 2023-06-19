@@ -35,8 +35,11 @@ export class RequestHandlerService {
         return this.depositRequestRepo.save(newReq);
     }
 
-    async getAllDepositReqByLineId(creditLineId: number) {
-        return this.depositRequestRepo.findAndCount({ where: { creditLineId } });
+    async getAllDepositReqByLineId(creditLineId: number): Promise<[DepositRequest[], number]> {
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .getManyAndCount();
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
@@ -58,6 +61,19 @@ export class RequestHandlerService {
             .getOne();
     }
 
+    async getFullyAssociatedDepositRequest(depositRequestId: number): Promise<DepositRequest> {
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .leftJoinAndSelect("dr.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("dr.cryptoTransactions", "ctx")
+            .where("dr.id = :depositRequestId", { depositRequestId })
+            .getOneOrFail();
+    }
+
     async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
         request.depositRequestStatus = newStatus;
         return this.depositRequestRepo.save(request);
@@ -74,8 +90,11 @@ export class RequestHandlerService {
         return this.withdrawRequestRepo.save(newReq);
     }
 
-    async getAllWithdrawReqByLineId(creditLineId: number) {
-        return this.withdrawRequestRepo.findOne({ where: { creditLineId } });
+    async getAllWithdrawReqByLineId(creditLineId: number): Promise<[WithdrawRequest[], number] | null> {
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .getManyAndCount();
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number) {
@@ -93,6 +112,19 @@ export class RequestHandlerService {
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .orderBy("wr.createdAt", "DESC")
             .getOne();
+    }
+
+    async getFullyAssociatedWithdrawRequest(withdrawRequestId: number): Promise<WithdrawRequest> {
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .leftJoinAndSelect("wr.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("wr.cryptoTransactions", "ctx")
+            .where("wr.id = :withdrawRequestId", { withdrawRequestId })
+            .getOneOrFail();
     }
 
     async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
@@ -127,8 +159,11 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.save(newReq);
     }
 
-    async getAllBorrowReqByLineId(creditLineId: number) {
-        return this.borrowRequestRepo.find({ where: { creditLineId } });
+    async getAllBorrowReqByLineId(creditLineId: number): Promise<[BorrowRequest[], number] | null> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .getManyAndCount();
     }
 
     async getOldestPendingBorrowReq(creditLineId: number) {
@@ -152,6 +187,11 @@ export class RequestHandlerService {
     async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
+            .leftJoinAndSelect("br.creditLine", "cl")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
             .where("br.borrowRequestStatus = :statusVP", {
                 statusVP: BorrowRequestStatus.VERIFICATION_PENDING,
             })
@@ -186,8 +226,11 @@ export class RequestHandlerService {
         return this.repayRequestRepo.save(newReq);
     }
 
-    async getAllRepayReqByLineId(creditLineId: number) {
-        return this.repayRequestRepo.findAndCount({ where: { creditLineId } });
+    async getAllRepayReqByLineId(creditLineId: number): Promise<[RepayRequest[], number] | null> {
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .getManyAndCount();
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {

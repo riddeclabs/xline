@@ -9,9 +9,9 @@ import { SUPPORTED_TOKENS } from "../../constants";
 import { CustomExceptionFilter } from "../../exception-filter";
 import { ViewRequestText } from "./view-request.text";
 import { BotManagerService } from "../../bot-manager.service";
-import { RequestTypes, XLineRequestMsgData } from "./view-request.types";
-import { CollateralCurrency } from "src/database/entities";
-import { formatUnitsNumber } from "src/common";
+import { SceneRequestTypes } from "./view-request.types";
+import { XLineRequestsTypes, getXLineRequestMsgData } from "../common/utils";
+import { escapeSpecialCharacters } from "src/common";
 
 enum ViewRequestSteps {
     CHOSE_COLLATERAL_TYPE,
@@ -27,7 +27,7 @@ enum ViewRequestCallbacks {
 }
 type ViewRequestSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
-        requestType?: RequestTypes;
+        requestType?: SceneRequestTypes;
         collateralType?: SUPPORTED_TOKENS;
         creditLineId?: string;
     };
@@ -48,25 +48,25 @@ export class ViewRequestWizard {
 
     @WizardStep(ViewRequestSteps.CHOSE_REQUEST_TYPE)
     async onChoseRequestType(@Ctx() ctx: ViewRequestContext) {
-        const msg = await ctx.reply(
+        const msg = await ctx.replyWithMarkdownV2(
             "📋 Choose the request type you want to see" + "\n" + "\n",
             Markup.inlineKeyboard(
                 [
                     {
                         text: "Deposit",
-                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${RequestTypes.DEPOSIT}`,
+                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${SceneRequestTypes.DEPOSIT}`,
                     },
                     {
                         text: "Withdraw",
-                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${RequestTypes.WITHDRAW}`,
+                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${SceneRequestTypes.WITHDRAW}`,
                     },
                     {
                         text: "Borrow",
-                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${RequestTypes.BORROW}`,
+                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${SceneRequestTypes.BORROW}`,
                     },
                     {
                         text: "Repay",
-                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${RequestTypes.REPAY}`,
+                        callback_data: `${ViewRequestCallbacks.REQUEST_TYPE}:${SceneRequestTypes.REPAY}`,
                     },
                     this.botCommon.goBackButton(),
                 ],
@@ -79,7 +79,7 @@ export class ViewRequestWizard {
 
     @WizardStep(ViewRequestSteps.CHOSE_COLLATERAL_TYPE)
     async onChoseCollateralType(@Ctx() ctx: ViewRequestContext) {
-        const msg = await ctx.reply(
+        const msg = await ctx.replyWithMarkdownV2(
             `💰 Chose the collateral type\n\n`,
             Markup.inlineKeyboard(
                 [
@@ -104,16 +104,12 @@ export class ViewRequestWizard {
 
     @WizardStep(ViewRequestSteps.VIEW_REQUEST)
     async onViewRequest(@Ctx() ctx: ViewRequestContext) {
-        const requestType = ctx.scene.session.state.requestType;
+        const requestType = ctx.scene.session.state.requestType!;
         const collateralType = ctx.scene.session.state.collateralType;
         const chat_id = ctx.chat?.id;
         const creditLine = await this.botManagerService.getCreditLineByChatIdAndColSymbol(
             Number(chat_id),
             collateralType!
-        );
-        const clId = creditLine?.id!;
-        const collateralCurrency = await this.botManagerService.getCollateralTokenBySymbol(
-            collateralType as string
         );
 
         if (!creditLine) {
@@ -122,63 +118,156 @@ export class ViewRequestWizard {
             );
         }
 
-        const data = await this.getXLineRequestData(
-            requestType!,
-            clId,
-            collateralType!,
-            collateralCurrency
-        );
+        const clId = creditLine?.id;
+
+        let request: XLineRequestsTypes | null;
+
+        switch (requestType) {
+            case SceneRequestTypes.DEPOSIT:
+                request = await this.botManagerService.getLatestFullyAssociatedDepositReq(clId);
+                break;
+            case SceneRequestTypes.WITHDRAW:
+                request = await this.botManagerService.getLatestFullyAssociatedWithdrawReq(clId);
+                break;
+            case SceneRequestTypes.BORROW:
+                request = await this.botManagerService.getLatestFullyAssociatedBorrowReq(clId);
+                break;
+            case SceneRequestTypes.REPAY:
+                request = await this.botManagerService.getLatestFullyAssociatedRepayReq(clId);
+                break;
+            default:
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const _: never = requestType;
+                throw new Error(`Request type ${requestType} is not supported`);
+        }
 
         let msgText =
             `🤷 You don't have ${requestType} requests.\n\n` +
             `🆕 You can create a new one from the main menu interface`;
-
         const buttons = [];
 
-        if (data) {
-            msgText = ViewRequestText.getRequestMsgText(data, requestType!);
+        if (request) {
+            const data = getXLineRequestMsgData(request);
+            msgText = ViewRequestText.getRequestMsgText(data, requestType);
             buttons.push({
                 text: `View all ${requestType} request`,
                 callback_data: `${ViewRequestCallbacks.VIEW_ALL}:${requestType}`,
             });
         }
 
-        const introduceMsg = await ctx.reply(
+        const introduceMsg = await ctx.replyWithMarkdownV2(
             `📒 Here you go.\n` + `This is your last ${requestType} request data`
         );
 
         buttons.push(this.botCommon.goBackButton());
 
-        const mainMsg = await ctx.reply(msgText, Markup.inlineKeyboard(buttons, { columns: 1 }));
+        const mainMsg = await ctx.replyWithMarkdownV2(
+            msgText,
+            Markup.inlineKeyboard(buttons, { columns: 1 })
+        );
         this.botCommon.tryToSaveSceneMessage(ctx, [introduceMsg, mainMsg]);
         ctx.wizard.next();
     }
-    /*
+
     @WizardStep(ViewRequestSteps.VIEW_ALL_REQUESTS)
     async onViewAllRequests(@Ctx() ctx: ViewRequestContext) {
-        const requestType = ctx.scene.session.state.requestType;
+        const requestType = ctx.scene.session.state.requestType!;
         const collateralType = ctx.scene.session.state.collateralType;
         const chat_id = ctx.chat?.id;
+        const creditLine = await this.botManagerService.getCreditLineByChatIdAndColSymbol(
+            Number(chat_id),
+            collateralType!
+        );
 
-        // TODO: get actual data from the database
-        const allUserRequests = this.getAllUserRequests(chat_id, requestType, collateralType);
+        if (!creditLine) {
+            throw new Error(
+                `Credit line not found for chat_id: ${chat_id} and collateralType: ${collateralType}`
+            );
+        }
+
+        const clId = creditLine?.id;
+
+        let requests: XLineRequestsTypes[] | null;
+        console.log("requestType", requestType);
+        console.log("clId", clId);
+
+        switch (requestType) {
+            case SceneRequestTypes.DEPOSIT:
+                const tempDReq = await this.botManagerService.getAllDepositRequestsByCreditLineId(clId);
+                requests = tempDReq
+                    ? await Promise.all(
+                          tempDReq[0].map(
+                              async req =>
+                                  await this.botManagerService.getFullyAssociatedDepositRequest(req.id)
+                          )
+                      )
+                    : null;
+                break;
+            case SceneRequestTypes.WITHDRAW:
+                const tempWReq = await this.botManagerService.getAllWithdrawRequestsByCreditLineId(clId);
+                requests = tempWReq
+                    ? await Promise.all(
+                          tempWReq[0].map(
+                              async req =>
+                                  await this.botManagerService.getFullyAssociatedWithdrawRequest(req.id)
+                          )
+                      )
+                    : null;
+                break;
+            case SceneRequestTypes.BORROW:
+                const tempBReq = await this.botManagerService.getAllBorrowRequestsByCreditLineId(clId);
+                console.log("tempBReq", tempBReq);
+                requests = tempBReq
+                    ? await Promise.all(
+                          tempBReq[0].map(
+                              async req =>
+                                  await this.botManagerService.getFullyAssociatedBorrowRequest(req.id)
+                          )
+                      )
+                    : null;
+                console.log("requests", requests);
+                break;
+            case SceneRequestTypes.REPAY:
+                const tempRReq = await this.botManagerService.getAllRepayRequestsByCreditLineId(clId);
+                requests = tempRReq
+                    ? await Promise.all(
+                          tempRReq[0].map(
+                              async req =>
+                                  await this.botManagerService.getFullyAssociatedRepayRequest(req.id)
+                          )
+                      )
+                    : null;
+                break;
+            default:
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const _: never = requestType;
+                throw new Error(`Request type ${requestType} is not supported`);
+        }
+
+        if (!requests) {
+            throw new Error(`Requests not found for credit line id: ${clId}`);
+        }
 
         const msgs = [];
-        for (const req of allUserRequests) {
-            const msgText = this.getMsgByRequestType(req, collateralType, requestType);
+        for (const req of requests) {
+            const data = getXLineRequestMsgData(req);
+            const msgText = ViewRequestText.getRequestMsgText(data, requestType);
 
-            const msg = await ctx.reply(msgText);
+            const msg = await ctx.replyWithMarkdownV2(msgText);
             msgs.push(msg);
         }
 
-        const introduceMsg = await ctx.reply(
-            `📒 Here you go.\n` + `\n` + `This are all your ${requestType} requests data`,
+        const introduceMsg = await ctx.replyWithMarkdownV2(
+            escapeSpecialCharacters(
+                `📒 Here you go.\n` + `\n` + `This are all your ${requestType} requests data`
+            ),
             Markup.inlineKeyboard([this.botCommon.goBackButton()])
         );
 
         msgs.push(introduceMsg);
+        console.log(msgs);
         this.botCommon.tryToSaveSceneMessage(ctx, msgs);
-    }*/
+    }
 
     @Action(/.*/)
     async onActionHandler(@Ctx() ctx: ViewRequestContext) {
@@ -218,7 +307,10 @@ export class ViewRequestWizard {
     }
 
     private async collateralTypeActionHandler(ctx: ViewRequestContext, callbackValue?: string) {
-        if (!callbackValue && !Object.values(RequestTypes).includes(callbackValue as RequestTypes)) {
+        if (
+            !callbackValue &&
+            !Object.values(SceneRequestTypes).includes(callbackValue as SceneRequestTypes)
+        ) {
             throw new Error("Unexpected collateral type value");
         }
         ctx.scene.session.state.collateralType = callbackValue as SUPPORTED_TOKENS;
@@ -226,91 +318,13 @@ export class ViewRequestWizard {
     }
 
     private async requestTypeActionHandler(ctx: ViewRequestContext, callbackValue?: string) {
-        if (!callbackValue && !Object.values(RequestTypes).includes(callbackValue as RequestTypes)) {
+        if (
+            !callbackValue &&
+            !Object.values(SceneRequestTypes).includes(callbackValue as SceneRequestTypes)
+        ) {
             throw new Error("Unexpected request type value");
         }
-        ctx.scene.session.state.requestType = callbackValue as RequestTypes;
+        ctx.scene.session.state.requestType = callbackValue as SceneRequestTypes;
         await this.botCommon.executeCurrentStep(ctx);
-    }
-
-    private async getXLineRequestData(
-        requestType: RequestTypes,
-        clId: number,
-        collateralType: SUPPORTED_TOKENS,
-        collateralCurrency: CollateralCurrency
-    ): Promise<XLineRequestMsgData | null> {
-        let data: XLineRequestMsgData | null = null;
-        switch (requestType) {
-            case RequestTypes.DEPOSIT:
-                const dr = await this.botManagerService.getNewestDepositReq(clId);
-                if (dr) {
-                    data = {
-                        status: dr.depositRequestStatus as string,
-                        currency: collateralType as string,
-                        created: dr.createdAt.toDateString(),
-                        updated: dr.updatedAt.toDateString(),
-                    };
-                }
-                break;
-            case RequestTypes.WITHDRAW:
-                const wr = await this.botManagerService.getNewestWithdrawReq(clId);
-                if (wr) {
-                    data = {
-                        status: wr.withdrawRequestStatus as string,
-                        currency: collateralType as string,
-                        amountOrStrategy: formatUnitsNumber(
-                            wr.withdrawAmount,
-                            collateralCurrency.decimals
-                        ),
-                        requisitesOrWallet: wr.walletToWithdraw,
-                        created: wr.createdAt.toDateString(),
-                        updated: wr.updatedAt.toDateString(),
-                    };
-                }
-                break;
-            case RequestTypes.BORROW:
-                const br = await this.botManagerService.getNewestBorrowReq(clId);
-                if (br) {
-                    data = {
-                        status: br.borrowRequestStatus as string,
-                        currency: collateralType as string,
-
-                        requisitesOrWallet: {
-                            iban: "IBAN", //FIXME
-                            accountName: "Account name", //FIXME
-                        },
-                        created: br.createdAt.toDateString(),
-                        updated: br.updatedAt.toDateString(),
-                    };
-
-                    // To add Initial risk strategy was an EXCELLENT idea!
-                    if (br?.initialRiskStrategy) {
-                        data.amountOrStrategy = br.initialRiskStrategy.toString(); //FIXME
-                    } else if (br?.borrowFiatAmount) {
-                        data.amountOrStrategy = formatUnitsNumber(br.borrowFiatAmount);
-                    }
-                }
-                break;
-            case RequestTypes.REPAY:
-                const rr = await this.botManagerService.getNewestRepayReq(clId);
-                if (rr) {
-                    data = {
-                        status: rr.repayRequestStatus as string,
-                        currency: collateralType as string,
-                        requisitesOrWallet: {
-                            iban: "IBAN", //FIXME
-                            accountName: "Account name", //FIXME
-                        },
-                        created: rr.createdAt.toDateString(),
-                        updated: rr.updatedAt.toDateString(),
-                    };
-                }
-                break;
-            default:
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _: never = requestType;
-                throw new Error(`Unknown request type: ${requestType}`);
-        }
-        return data;
     }
 }

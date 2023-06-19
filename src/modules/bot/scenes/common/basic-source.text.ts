@@ -58,6 +58,8 @@ export abstract class BasicSourceText {
     }
 
     static getBorrowRequestMsgText(data: XLineRequestMsgData): string {
+        const msgHeader = "*Borrow request*\n\n";
+
         if (!data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
             throw new Error("Invalid borrow request");
         }
@@ -72,11 +74,60 @@ export abstract class BasicSourceText {
         const requisitesText = BasicSourceText.getRequisitesText(data.requisitesOrWallet);
 
         return (
-            "*Borrow request*\n" +
+            msgHeader +
             `Status: ${data.status}\n` +
             borrowAmountText +
             requisitesText +
             "\n" +
+            `Created: ${data.created}\n` +
+            `Updated: ${data.updated}\n\n`
+        );
+    }
+
+    static getDepositRequestMsgText(data: XLineRequestMsgData): string {
+        const msgHeader = "*Deposit request*\n\n";
+
+        if (data.amountOrStrategy || data.requisitesOrWallet) {
+            throw new Error("Invalid deposit request");
+        }
+
+        return (
+            msgHeader +
+            `Status: ${data.status}\n\n` +
+            `Created: ${data.created}\n` +
+            `Updated: ${data.updated}\n\n`
+        );
+    }
+
+    static getWithdrawRequestMsgText(data: XLineRequestMsgData): string {
+        const msgHeader = "*Withdraw request*\n\n";
+
+        if (typeof data.amountOrStrategy !== "number" || typeof data.requisitesOrWallet !== "string") {
+            throw new Error("Invalid withdraw request");
+        }
+
+        return (
+            msgHeader +
+            `Status: ${data.status}\n` +
+            `Withdraw amount: ${data.amountOrStrategy} ${data.currency}\n\n` +
+            "*Requisites*\n" +
+            `Wallet: ${data.requisitesOrWallet}\n\n` +
+            `Created: ${data.created}\n` +
+            `Updated: ${data.updated}\n\n`
+        );
+    }
+
+    static getRepayRequestMsgText(data: XLineRequestMsgData): string {
+        if (data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
+            throw new Error("Invalid repay request");
+        }
+
+        return (
+            "*Repay request*\n\n" +
+            `Status: ${data.status}\n` +
+            "*Bank requisites*\n" +
+            `IBAN: ${data.requisitesOrWallet.iban}\n` +
+            `Account Name: ${data.requisitesOrWallet.accountName}\n\n` +
             `Created: ${data.created}\n` +
             `Updated: ${data.updated}\n\n`
         );
