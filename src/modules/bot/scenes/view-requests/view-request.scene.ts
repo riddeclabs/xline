@@ -156,7 +156,9 @@ export class ViewRequestWizard {
         }
 
         const introduceMsg = await ctx.replyWithMarkdownV2(
-            `📒 Here you go.\n` + `This is your last ${requestType} request data`
+            escapeSpecialCharacters(
+                `📒 Here you go.\n` + `This is your last ${requestType} request data`
+            )
         );
 
         buttons.push(this.botCommon.goBackButton());
@@ -188,8 +190,6 @@ export class ViewRequestWizard {
         const clId = creditLine?.id;
 
         let requests: XLineRequestsTypes[] | null;
-        console.log("requestType", requestType);
-        console.log("clId", clId);
 
         switch (requestType) {
             case SceneRequestTypes.DEPOSIT:
@@ -216,7 +216,6 @@ export class ViewRequestWizard {
                 break;
             case SceneRequestTypes.BORROW:
                 const tempBReq = await this.botManagerService.getAllBorrowRequestsByCreditLineId(clId);
-                console.log("tempBReq", tempBReq);
                 requests = tempBReq
                     ? await Promise.all(
                           tempBReq[0].map(
@@ -225,7 +224,6 @@ export class ViewRequestWizard {
                           )
                       )
                     : null;
-                console.log("requests", requests);
                 break;
             case SceneRequestTypes.REPAY:
                 const tempRReq = await this.botManagerService.getAllRepayRequestsByCreditLineId(clId);
@@ -265,7 +263,6 @@ export class ViewRequestWizard {
         );
 
         msgs.push(introduceMsg);
-        console.log(msgs);
         this.botCommon.tryToSaveSceneMessage(ctx, msgs);
     }
 

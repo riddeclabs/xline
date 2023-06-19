@@ -39,6 +39,7 @@ export class RequestHandlerService {
         return this.depositRequestRepo
             .createQueryBuilder("dr")
             .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("dr.createdAt", "DESC")
             .getManyAndCount();
     }
 
@@ -94,6 +95,7 @@ export class RequestHandlerService {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
             .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("wr.createdAt", "DESC")
             .getManyAndCount();
     }
 
@@ -163,6 +165,7 @@ export class RequestHandlerService {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
             .where("br.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("br.createdAt", "DESC")
             .getManyAndCount();
     }
 
@@ -230,6 +233,7 @@ export class RequestHandlerService {
         return this.repayRequestRepo
             .createQueryBuilder("rr")
             .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("rr.createdAt", "DESC")
             .getManyAndCount();
     }
 
