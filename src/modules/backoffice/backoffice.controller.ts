@@ -35,6 +35,7 @@ import { BorrowRequestDto } from "./dto/borrow-request.dto";
 
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { BotManagerService } from "../bot/bot-manager.service";
+import { CreditLineDetailsType } from "./backoffice.types";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
@@ -275,7 +276,6 @@ export class BackOfficeController {
             sort: sort,
         };
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
-
         return {
             customers: customersWithActiveLines,
             page: {
@@ -294,46 +294,67 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customer-credit-line/:creditLineId")
+    @Get("customer-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Param("creditLineId") creditLineId: number) {
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            creditLineId
-        );
-        const collateralCurrency = lineDetails.collateralCurrency;
-        const debtCurrency = lineDetails.debtCurrency;
-
+    async customerCreditLine(@Param("userId") userId: string) {
+        const getAllCreditLinesByUserId = await this.backofficeService.getUserById(userId);
+        //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
         //     collateralCurrency.symbol,
         //     collateralCurrency.decimals,
         //     lineDetails.maxAllowedCryptoToWithdraw,
         //     scaledTokenPrice
         // );
+        let allCreditLine: CreditLineDetailsType[] = [];
+        if (getAllCreditLinesByUserId?.creditLines.length) {
+            allCreditLine = await Promise.all(
+                getAllCreditLinesByUserId?.creditLines.map(async (item, idx) => {
+                    const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+                        item.id
+                    );
+                    return {
+                        serialNumber: idx + 1,
+                        amountsTable: {
+                            rawSupplyAmount: formatUnits(lineDetails.rawCollateralAmount), // raw collateral amount, use collateral decimals to convert to float
+                            usdSupplyAmount: formatUnits(lineDetails.fiatCollateralAmount), // raw fiat amount, use debt currency decimals to convert to float
+                            usdCollateralAmount: formatUnits(
+                                (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) /
+                                    EXP_SCALE
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            debtAmount: formatUnits(lineDetails.debtAmount), // raw fiat amount, use debt currency decimals to convert to float
+                            //TODO: fix after PR will be merged
+                            usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
+                        },
+                        currentState: {
+                            utilizationFactor: formatUnits(lineDetails.utilizationRate), // All rates have 18 decimals accuracy
+                            healthyFactor: formatUnits(lineDetails.healthyFactor), // All rates have 18 decimals accuracy
+                        },
+                        appliedRates: {
+                            collateralFactor: formatUnits(economicalParams.collateralFactor), // All rates have 18 decimals accuracy
+                            liquidationFactor: formatUnits(economicalParams.liquidationFactor), // All rates have 18 decimals accuracy
+                        },
+                        dates: {
+                            createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                            updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                        },
+                        associatedRequisites: {
+                            iban: item.userPaymentRequisite.iban,
+                            refNumber: item.refNumber,
+                        },
+                    };
+                })
+            );
+        }
 
-        const resultTableObject = {
-            firstTable: {
-                rawSupplyAmount: lineDetails.rawCollateralAmount, // raw collateral amount, use collateral decimals to convert to float
-                usdSupplyAmount: lineDetails.fiatCollateralAmount, // raw fiat amount, use debt currency decimals to convert to float
-                usdCollateralAmount:
-                    (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE, // raw fiat amount, use debt currency decimals to convert to float
-                debtAmount: lineDetails.debtAmount, // raw fiat amount, use debt currency decimals to convert to float
-                usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
+        const resultTablesData = {
+            mainInfo: {
+                name: getAllCreditLinesByUserId?.name,
+                chatId: getAllCreditLinesByUserId?.chatId,
             },
-            secondTable: {
-                utilizationFactor: lineDetails.utilizationRate, // All rates have 18 decimals accuracy
-                healthyFactor: lineDetails.healthyFactor, // All rates have 18 decimals accuracy
-            },
-            thirdTable: {
-                collateralFactor: economicalParams.collateralFactor, // All rates have 18 decimals accuracy
-                liquidationFactor: economicalParams.liquidationFactor, // All rates have 18 decimals accuracy
-            },
-            currencies: {
-                collateralCurrency, // Currency entity
-                debtCurrency, // Currency entity
-            },
+            allCreditLine,
         };
-        console.log(resultTableObject);
-        return resultTableObject;
+
+        return resultTablesData;
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)

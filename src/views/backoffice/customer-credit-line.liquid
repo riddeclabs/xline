@@ -1,9 +1,9 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
   <h1 class='pb-3 text-white fs-1'>Customer credit lines</h1>
-  <h1 class='pb-1 text-white fs-5'>User name: {{ customers[0].user_name }}</h1>
-  <h1 class='pb-1 text-white fs-5'>Chat ID: {{ customers[0].user_chat_id }}</h1>
-  {% for customer in resultTableObject %}
+  <h1 class='pb-1 text-white fs-5'>User name: {{ mainInfo.name }}</h1>
+  <h1 class='pb-1 text-white fs-5'>Chat ID: {{ mainInfo.chatId }}</h1>
+  {% for customer in allCreditLine %}
     <div class='card bg-dark shadow-sm wrapper-table p-4 mt-5'>
       <h1 class='text-white fs-5'>#{{ customer.serialNumber }} ETH / USD</h1>
       <div class="customer-CL-wrapper">
@@ -11,23 +11,23 @@
           <p class='text-white fs-6'>Amounts</p>
           <div class="row-container">
             <div class="left-row">Raw supply amount</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.amountsTable.rawSupplyAmount }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Usd supply amount</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.amountsTable.usdSupplyAmount }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Usd collateral amount</div>
-            <div class="right-row">{{ customer.creditLine_raw_collateral_amount }}</div>
+            <div class="right-row">{{ customer.amountsTable.usdCollateralAmount }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Debt amount</div>
-            <div class="right-row">{{ customer.creditLine_debt_amount }}</div>
+            <div class="right-row">{{ customer.amountsTable.debtAmount }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Available liquidity</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.amountsTable.usdAvailableLiquidity }}</div>
           </div>
         </div>
 
@@ -35,20 +35,20 @@
           <p class='text-white fs-6'>Current state</p>
           <div class="row-container">
             <div class="left-row">Utilization Factor</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.currentState.utilizationFactor }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Healthy Factor</div>
-            <div class="right-row">{{ customer.creditLine_healthy_factor }}</div>
+            <div class="right-row">{{ customer.currentState.healthyFactor }}</div>
           </div>
           <div class='text-white mt-2 mb-2 fs-6'>Applied rates</div>
           <div class="row-container">
             <div class="left-row">Collateral Factor</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.appliedRates.collateralFactor }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Liquidation factor</div>
-            <div class="right-row">-</div>
+            <div class="right-row">{{ customer.appliedRates.liquidationFactor }}</div>
           </div>
         </div>
 
@@ -56,20 +56,20 @@
           <p class='text-white fs-6'>Associated requisites</p>
           <div class="row-container">
             <div class="left-row">IBAN</div>
-            <div class="right-row">{{ customer.userPaymentRequisite_iban }}</div>
+            <div class="right-row">{{ customer.associatedRequisites.iban }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Base Ref Number</div>
-            <div class="right-row">{{ customer.creditLine_ref_number }}</div>
+            <div class="right-row">{{ customer.associatedRequisites.refNumber }}</div>
           </div>
           <div class='text-white mt-2 mb-2 fs-6'>Dates</div>
           <div class="row-container">
             <div class="left-row">Created At</div>
-            <div class="right-row">{{ customer.user_created_at }}</div>
+            <div class="right-row">{{ customer.dates.createdAt }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Updated At</div>
-            <div class="right-row">{{ customer.user_updated_at }}</div>
+            <div class="right-row">{{ customer.dates.updatedAt }}</div>
           </div>
         </div>
 

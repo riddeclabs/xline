@@ -163,18 +163,10 @@ export class BackOfficeService {
     getUserById(id: string) {
         return this.userRepo
             .createQueryBuilder("user")
+            .where("user.id = :id", { id })
             .leftJoinAndSelect("user.creditLines", "creditLine")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
-            .select([
-                "creditLine.refNumber",
-                "creditLine.healthyFactor",
-                "user",
-                "userPaymentRequisite.iban",
-                "creditLine.rawCollateralAmount",
-                "creditLine.debtAmount",
-            ])
-            .where("user.id = :id", { id })
-            .getRawMany();
+            .getOne();
     }
     getAllCustomersCount() {
         return this.userRepo.count();
