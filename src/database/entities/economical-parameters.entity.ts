@@ -17,22 +17,32 @@ export class EconomicalParameters {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    @Column({ name: "collateral_currency_id" })
+    collateralCurrencyId!: number;
+
     @ManyToOne(() => CollateralCurrency, collateralCurrency => collateralCurrency.economicalParameters, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "collateral_currency_id", referencedColumnName: "id" })
-    collateralCurrencyId!: number;
+    @JoinColumn({ name: "collateral_currency_id" })
+    collateralCurrency!: CollateralCurrency;
+
+    @Column({ name: "debt_currency_id" })
+    debtCurrencyId!: number;
 
     @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.economicalParameters, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
-    debtCurrencyId!: number;
+    @JoinColumn({ name: "debt_currency_id" })
+    debtCurrency!: DebtCurrency;
 
-    @OneToMany(() => CreditLine, creditLine => creditLine.economicalParametersId, {
+    // Child relations
+
+    @OneToMany(() => CreditLine, creditLine => creditLine.economicalParameters, {
         onDelete: "CASCADE",
     })
     creditLines!: CreditLine[];
+
+    // Table attributes
 
     @Column("numeric", { ...uint256(), name: "apr" })
     apr!: bigint;

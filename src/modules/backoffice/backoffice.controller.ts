@@ -17,7 +17,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { makePagination, Role } from "src/common";
+import { formatUnits, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -25,11 +25,17 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
-
+import { PAGE_LIMIT } from "src/common/constants";
+import { CustomersListDto } from "./dto/customers.dto";
+import { CustomersListQuery } from "./decorators/customers.decorators";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
-    constructor(private backofficeService: BackOfficeService) {}
+    constructor(
+        private backofficeService: BackOfficeService,
+        private priceOracleService: PriceOracleService
+    ) {}
 
     @Get("/auth")
     @Render("backoffice/auth")
@@ -65,18 +71,136 @@ export class BackOfficeController {
 
     @UseGuards(AuthenticatedGuard)
     @Get("/")
-    @Redirect("backoffice/dashboard")
+    @Redirect("backoffice/home")
     root() {
         // some code here
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("dashboard")
-    @Render("backoffice/dashboard")
-    dashboard(@Req() req: Request) {
+    @Get("home")
+    @Render("backoffice/home")
+    async home(@Req() req: Request) {
+        const allCustomersLength = await this.backofficeService.getAllCustomersCount();
+        const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
+        const collateralInitial = await this.backofficeService.getCollateralCurrency();
+        const debtAllSymbol = await this.backofficeService.getDebtAllSymbol();
+        const currenciesAllSymbol = await this.backofficeService.getCollateralsAllSymbol();
+        const collateralCurrencyAmount = await Promise.all(
+            collateralInitial.map(async item => {
+                const amountUSD = await this.priceOracleService.convertCryptoToUsd(
+                    item.symbol,
+                    item.decimals,
+                    BigInt(item.amount)
+                );
+                return {
+                    symbol: item.symbol,
+                    amount: Math.trunc(+formatUnits(amountUSD)),
+                };
+            })
+        );
+
+        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
+
+        const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
+        return {
+            totalCustomers: allCustomersLength,
+            totalSupply,
+            collateralCurrencyAmount,
+            totalDebt,
+            debtCurrencyInitial,
+            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            currenciesAllSymbol,
+            debtAllSymbol,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("supported")
+    @Render("backoffice/supported")
+    supported(@Req() req: Request) {
         return {
             account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("economical")
+    @Render("backoffice/economical")
+    economical(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("xline-request")
+    @Render("backoffice/xline-request")
+    xlineRequest(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("unresolved-request")
+    @Render("backoffice/unresolved-request")
+    table(@Req() req: Request) {
+        return {
+            account: req.user,
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers")
+    @Render("backoffice/customers")
+    async getCustomers(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+        const { page, username, sort, chatId } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
+        const userFilter = username?.trim() ?? "";
+
+        const [initialCustomers, totalCount] = await this.backofficeService.getCustomers(
+            page - 1,
+            sort,
+            userFilter,
+            chatIdFilter
+        );
+
+        const customersWithActiveLines = initialCustomers.map(customer => {
+            return {
+                id: customer.id,
+                chatId: customer.chatId,
+                name: customer.name,
+                activeLines: customer.creditLines.length,
+            };
+        });
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            username: userFilter ?? undefined,
+            chatId: chatIdFilter ?? undefined,
+            sort: sort,
+        };
+        const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
+
+        return {
+            customers: customersWithActiveLines,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: totalCount > PAGE_LIMIT,
+            },
         };
     }
 
@@ -113,7 +237,6 @@ export class BackOfficeController {
             [], // MOCKED
         ]);
         const totalPageCount = Math.ceil(totalCount / takePerPage);
-
         return {
             account: req.user,
             operators,

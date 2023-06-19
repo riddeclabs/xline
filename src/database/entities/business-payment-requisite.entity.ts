@@ -16,14 +16,23 @@ export class BusinessPaymentRequisite {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    // Foreign keys
+
+    @Column({ name: "debt_currency_id" })
+    debtCurrencyId!: number;
+
     @ManyToOne(() => DebtCurrency, debtCurrency => debtCurrency.businessPaymentRequisites, {
         onDelete: "CASCADE",
     })
-    @JoinColumn({ name: "debt_currency_id", referencedColumnName: "id" })
-    debtCurrencyId!: number;
+    @JoinColumn({ name: "debt_currency_id" })
+    debtCurrency!: DebtCurrency;
 
-    @OneToMany(() => RepayRequest, repayRequest => repayRequest.businessPaymentRequisiteId)
+    // Child relations
+
+    @OneToMany(() => RepayRequest, repayRequest => repayRequest.businessPaymentRequisite)
     repayRequests!: RepayRequest[];
+
+    // Table attributes
 
     @Column("varchar", { name: "bank_name" })
     bankName!: string;

@@ -102,9 +102,9 @@ export class MainScene {
     async onContactSupport(@Ctx() ctx: MainSceneContext) {
         const op = this.configService.get<string>("SUPPORT_USERNAME");
         const text =
-            escapeSpecialCharacters(`Here is your Reference number (click to copy):`) +
-            ` \`${ctx.chat?.id}\`\n\n` +
-            `Please send it to our [support](https://telegram.me/${op}) to get help\n`;
+            escapeSpecialCharacters(
+                `Here is your Reference number (click to copy):` + ` \`${ctx.chat?.id}\`\n\n`
+            ) + `Please send it to our [support](https://telegram.me/${op}) to get help\n`;
 
         await ctx.editMessageText(text, { parse_mode: "MarkdownV2" });
 

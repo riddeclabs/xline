@@ -40,12 +40,14 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
-        return this.depositRequestRepo.findOne({
-            where: { creditLineId, depositRequestStatus: DepositRequestStatus.PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("dr.depositRequestStatus = :status", {
+                status: DepositRequestStatus.PENDING,
+            })
+            .orderBy("dr.createdAt", "ASC")
+            .getOne();
     }
 
     async getNewestDepositReq(creditLineId: number): Promise<DepositRequest | null> {
@@ -77,12 +79,12 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number) {
-        return this.withdrawRequestRepo.findOneOrFail({
-            where: { creditLineId, withdrawRequestStatus: WithdrawRequestStatus.PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
+            .orderBy("wr.createdAt", "ASC")
+            .getOneOrFail();
     }
 
     async getNewestWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
@@ -114,12 +116,14 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingBorrowReq(creditLineId: number) {
-        return this.borrowRequestRepo.findOne({
-            where: { creditLineId, borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("br.borrowRequestStatus = :status", {
+                status: BorrowRequestStatus.VERIFICATION_PENDING,
+            })
+            .orderBy("br.createdAt", "ASC")
+            .getOne();
     }
 
     async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
@@ -139,8 +143,15 @@ export class RequestHandlerService {
 
     // RepayRequest block
 
-    async getRepayRequest(reqId: number) {
-        return this.repayRequestRepo.findOneByOrFail({ id: reqId });
+    async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .leftJoinAndSelect("rr.creditLine", "cl")
+            .leftJoinAndSelect("rr.businessPaymentRequisite", "brp")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .where("rr.id = :repayRequestId", { repayRequestId })
+            .getOneOrFail();
     }
 
     async saveNewRepayRequest(dto: CreateRepayRequestHandlerDto) {
@@ -153,14 +164,15 @@ export class RequestHandlerService {
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {
-        return this.repayRequestRepo.findOne({
-            where: { creditLineId, repayRequestStatus: RepayRequestStatus.VERIFICATION_PENDING },
-            order: {
-                createdAt: "ASC",
-            },
-        });
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("rr.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .orderBy("rr.createdAt", "ASC")
+            .getOne();
     }
-
     async getNewestRepayReq(creditLineId: number): Promise<RepayRequest | null> {
         return this.repayRequestRepo
             .createQueryBuilder("rr")
@@ -169,10 +181,8 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {
-        const req = await this.repayRequestRepo.findOneByOrFail({ id: reqId });
-        req.repayRequestStatus = newStatus;
-
-        return this.repayRequestRepo.save(req);
+    async updateRepayReqStatus(request: RepayRequest, newStatus: RepayRequestStatus) {
+        request.repayRequestStatus = newStatus;
+        return this.repayRequestRepo.save(request);
     }
 }

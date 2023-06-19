@@ -30,30 +30,30 @@ export class BaseCurrency {
 
 @Entity()
 export class DebtCurrency extends BaseCurrency {
-    @OneToMany(() => CreditLine, creditLine => creditLine.debtCurrencyId)
+    @OneToMany(() => CreditLine, creditLine => creditLine.debtCurrency)
     creditLines!: CreditLine[];
 
     @OneToMany(
         () => BusinessPaymentRequisite,
-        businessPaymentRequisite => businessPaymentRequisite.debtCurrencyId
+        businessPaymentRequisite => businessPaymentRequisite.debtCurrency
     )
     businessPaymentRequisites!: BusinessPaymentRequisite[];
 
-    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.debtCurrencyId)
+    @OneToMany(() => UserPaymentRequisite, userPaymentRequisite => userPaymentRequisite.debtCurrency)
     userPaymentRequisites!: UserPaymentRequisite[];
 
-    @OneToMany(() => EconomicalParameters, economicalParameters => economicalParameters.debtCurrencyId)
+    @OneToMany(() => EconomicalParameters, economicalParameters => economicalParameters.debtCurrency)
     economicalParameters!: EconomicalParameters[];
 }
 
 @Entity()
 export class CollateralCurrency extends BaseCurrency {
-    @OneToMany(() => CreditLine, creditLine => creditLine.collateralCurrencyId)
+    @OneToMany(() => CreditLine, creditLine => creditLine.collateralCurrency)
     creditLines!: CreditLine[];
 
     @OneToMany(
         () => EconomicalParameters,
-        economicalParameters => economicalParameters.collateralCurrencyId
+        economicalParameters => economicalParameters.collateralCurrency
     )
     economicalParameters!: EconomicalParameters[];
 }

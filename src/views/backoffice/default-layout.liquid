@@ -23,6 +23,87 @@
         overflow-x: auto;
         overflow-y: hidden;
       }
+  tbody {
+    border: 1px solid #fff !important;
+    background: #212529 !important;
+  }
+  th, td {
+     border: 1px solid #fff;
+     color: #CDCCCD;
+  }
+  .table-column:hover {
+    -webkit-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    -moz-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    background: #000;
+    color: #fff !important;
+  }
+  table {
+    font-style: normal;
+    font-weight: 400;
+    font-size: 12px;
+  }
+  .wrapper-table {
+    background: #34373B !important;
+    border: none;
+    border-radius: 8px;;
+  }
+  .blue-button {
+    color: #fff;
+    border: 1px solid #0d6efd;
+    background: #0d6efd;
+  }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+  .blue-button:hover {
+    color: #0d6efd;
+    background: #fff;
+    border: 1px solid #0d6efd !important;
+    -webkit-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    -moz-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+
+  }
+  .clear-btn {
+    margin-left: auto;
+    margin-right: 12px;
+  }
+  .icon-button {
+    border: none;
+    background: linear-gradient(113.87deg, #DDE1EC 0.34%, #C2CAD6 99.13%);;
+    color: #0D6EFD;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 2px 18px;
+    border-radius: 10px;
+  }
+  .icon-button:hover {
+    -webkit-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    -moz-box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
+    background: #fff;
+  }
+  table {
+    border-radius: 8px !important;
+  }
+
+  .home-wrapper {
+    display: flex;
+    justify-content: space-around;
+  }
+  .total-home, .suported-home {
+    width: 47%;
+    max-width: 600px;
+    color: #fff;
+  }
+
+  hr {
+    color: #fff;
+  }
+  
     </style>
   </head>
 
@@ -33,32 +114,70 @@
         style='width: 280px;'
       >
         <a
-          href='/backoffice/dashboard'
+          href='/backoffice/home'
           class='d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none'
         >
-          <span class='fs-4'>Backoffice</span>
+          <span class='fs-4'>Xline</span>
         </a>
         <hr>
         <ul class='nav nav-pills flex-column mb-auto'>
           <li class='nav-item'>
             <a
-              href='/backoffice/dashboard'
-              class='nav-link text-white {% if current_url == '/backoffice/dashboard'%}active{% endif %}'
+              href='/backoffice/home'
+              class='nav-link text-white {% if current_url == '/backoffice/home'%}active{% endif %}'
               aria-current='page'
-              ><i class='bi-house'></i>
-              Dashboard
+              >
+              Home
+            </a>
+            <a
+            href='/backoffice/unresolved-request'
+            class='nav-link text-white {% if current_url == '/backoffice/unresolved-request'%}active{% endif %}'
+            aria-current='page'
+            >
+            Unresolved requests
+          </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/customers'
+              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              >
+              Customers
             </a>
           </li>
-          {% if account.role == 'admin' %}
-            <li>
-              <a
-                href='/backoffice/operators'
-                class='nav-link text-white {% if current_url == '/backoffice/operators'%}active{% endif %}'
-                ><i class='bi-key'></i>
-                Operators
-              </a>
-            </li>
-          {% endif %}
+          <li>
+            <a
+              href='/backoffice/operators'
+              class='nav-link text-white {% if current_url == '/backoffice/operators'%}active{% endif %}'
+              >
+              Operators
+            </a>
+          </li>
+          <hr>
+          <li>
+            <a
+              href='/backoffice/xline-request'
+              class='nav-link text-white {% if current_url == '/backoffice/xline-request'%}active{% endif %}'
+              >
+              Xline reuqisites
+            </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/economical'
+              class='nav-link text-white {% if current_url == '/backoffice/economical'%}active{% endif %}'
+              >
+              Economical params
+            </a>
+          </li>
+          <li>
+            <a
+              href='/backoffice/supported'
+              class='nav-link text-white {% if current_url == '/backoffice/supported'%}active{% endif %}'
+              >
+              Supported currencies
+            </a>
+          </li>
         </ul>
         <p class='font-weight-light font-monospace text-muted mb-0'>
           v{{ version }}
