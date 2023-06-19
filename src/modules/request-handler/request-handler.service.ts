@@ -129,11 +129,11 @@ export class RequestHandlerService {
     async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
-            .where("br.borrowRequestStatus = :statusVP", {
-                statusVP: BorrowRequestStatus.VERIFICATION_PENDING,
+            .where("br.borrowRequestStatus != :statusRej", {
+                statusRej: BorrowRequestStatus.REJECTED,
             })
-            .orWhere("br.borrowRequestStatus = :statusWFD", {
-                statusWFD: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+            .andWhere("br.borrowRequestStatus != :statusFin", {
+                statusFin: BorrowRequestStatus.FINISHED,
             })
             .andWhere("br.creditLineId = :creditLineId", { creditLineId })
             .orderBy("br.createdAt", "ASC")
