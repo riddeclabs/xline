@@ -27,19 +27,21 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
-import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
+import { EXP_SCALE, PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
 
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
+import { BotManagerService } from "../bot/bot-manager.service";
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
-        private priceOracleService: PriceOracleService
+        private priceOracleService: PriceOracleService,
+        private readonly botManager: BotManagerService
     ) {}
 
     @Get("/auth")
@@ -265,6 +267,7 @@ export class BackOfficeController {
                 activeLines: customer.creditLines.length,
             };
         });
+
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
             username: userFilter ?? undefined,
@@ -293,24 +296,44 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customer-credit-line/:id")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Req() req: Request, @Param("id") id: string) {
-        const initialUser: {
-            creditLineRepo_ref_number: string;
-            user_id: number;
-            user_chat_id: number;
-            user_name: string;
-            user_created_at: Date;
-            user_updated_at: Date;
-        }[] = await this.backofficeService.getUserById(id);
-        const resultUser = initialUser.map((user, idx) => {
-            return {
-                ...user,
-                user_created_at: moment(user.user_created_at).format("DD.MM.YYYY HH:mm"),
-                user_updated_at: moment(user.user_updated_at).format("DD.MM.YYYY HH:mm"),
-                serialNumber: idx + 1,
-            };
-        });
-        return { customers: resultUser };
+    async customerCreditLine(creditLineId: number) {
+        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+            creditLineId
+        );
+        const collateralCurrency = lineDetails.collateralCurrency;
+        const debtCurrency = lineDetails.debtCurrency;
+
+        // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
+        //     collateralCurrency.symbol,
+        //     collateralCurrency.decimals,
+        //     lineDetails.maxAllowedCryptoToWithdraw,
+        //     scaledTokenPrice
+        // );
+
+        const resultTableObject = {
+            firstTable: {
+                rawSupplyAmount: lineDetails.rawCollateralAmount, // raw collateral amount, use collateral decimals to convert to float
+                usdSupplyAmount: lineDetails.fiatCollateralAmount, // raw fiat amount, use debt currency decimals to convert to float
+                usdCollateralAmount:
+                    (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE, // raw fiat amount, use debt currency decimals to convert to float
+                debtAmount: lineDetails.debtAmount, // raw fiat amount, use debt currency decimals to convert to float
+                usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
+            },
+            secondTable: {
+                utilizationFactor: lineDetails.utilizationRate, // All rates have 18 decimals accuracy
+                healthyFactor: lineDetails.healthyFactor, // All rates have 18 decimals accuracy
+            },
+            thirdTable: {
+                collateralFactor: economicalParams.collateralFactor, // All rates have 18 decimals accuracy
+                liquidationFactor: economicalParams.liquidationFactor, // All rates have 18 decimals accuracy
+            },
+            currencies: {
+                collateralCurrency, // Currency entity
+                debtCurrency, // Currency entity
+            },
+        };
+
+        return resultTableObject;
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)

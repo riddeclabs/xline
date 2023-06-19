@@ -170,6 +170,8 @@ export class BackOfficeService {
                 "creditLine.healthyFactor",
                 "user",
                 "userPaymentRequisite.iban",
+                "creditLine.rawCollateralAmount",
+                "creditLine.debtAmount",
             ])
             .where("user.id = :id", { id })
             .getRawMany();
