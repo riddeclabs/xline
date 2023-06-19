@@ -106,7 +106,23 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.findOneByOrFail({ id: reqId });
     }
 
+    async getFullyAssociatedBorrowRequest(borrowRequestId: number): Promise<BorrowRequest> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .leftJoinAndSelect("br.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("br.fiatTransactions", "ftx")
+            .where("br.id = :borrowRequestId", { borrowRequestId })
+            .getOneOrFail();
+    }
+
     async saveNewBorrowRequest(dto: CreateBorrowRequestHandlerDto) {
+        if (!dto.borrowFiatAmount && !dto.initialRiskStrategy) {
+            throw new Error("Borrow amount or risk strategy must be provided");
+        }
         const newReq = this.borrowRequestRepo.create(dto);
         return this.borrowRequestRepo.save(newReq);
     }
@@ -125,7 +141,6 @@ export class RequestHandlerService {
             .orderBy("br.createdAt", "ASC")
             .getOne();
     }
-
     async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
@@ -134,11 +149,23 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateBorrowReqStatus(reqId: number, newStatus: BorrowRequestStatus) {
-        const req = await this.borrowRequestRepo.findOneByOrFail({ id: reqId });
-        req.borrowRequestStatus = newStatus;
+    async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.borrowRequestStatus = :statusVP", {
+                statusVP: BorrowRequestStatus.VERIFICATION_PENDING,
+            })
+            .orWhere("br.borrowRequestStatus = :statusWFD", {
+                statusWFD: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+            })
+            .andWhere("br.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("br.createdAt", "ASC")
+            .getOne();
+    }
 
-        return this.borrowRequestRepo.save(req);
+    async updateBorrowReqStatus(request: BorrowRequest, newStatus: BorrowRequestStatus) {
+        request.borrowRequestStatus = newStatus;
+        return this.borrowRequestRepo.save(request);
     }
 
     // RepayRequest block

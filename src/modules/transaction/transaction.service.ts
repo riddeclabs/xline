@@ -3,6 +3,7 @@ import { CreateCryptoTransactionDto, CreateFiatTransactionDto } from "./dto/crea
 import { InjectRepository } from "@nestjs/typeorm";
 import { CryptoTransaction, FiatTransaction } from "../../database/entities";
 import { Repository } from "typeorm";
+import { FiatTransactionStatus } from "src/common";
 
 @Injectable()
 export class TransactionService {
@@ -34,12 +35,24 @@ export class TransactionService {
         };
     }
 
-    async createFiatTransaction(createFiatTransactionDto: CreateFiatTransactionDto) {
+    async createFiatTransaction(
+        createFiatTransactionDto: CreateFiatTransactionDto
+    ): Promise<FiatTransaction> {
         const fiatTx = this.fiatTransactionRepo.create(createFiatTransactionDto);
         return this.fiatTransactionRepo.save(fiatTx);
     }
 
-    async createCryptoTransaction(createCryptoTransactionDto: CreateCryptoTransactionDto) {
+    async updateFiatTransactionStatus(
+        fiatTx: FiatTransaction,
+        newStatus: FiatTransactionStatus
+    ): Promise<FiatTransaction> {
+        fiatTx.status = newStatus;
+        return this.fiatTransactionRepo.save(fiatTx);
+    }
+
+    async createCryptoTransaction(
+        createCryptoTransactionDto: CreateCryptoTransactionDto
+    ): Promise<CryptoTransaction> {
         const cryptoTx = this.cryptoTransactionRepo.create(createCryptoTransactionDto);
         return this.cryptoTransactionRepo.save(cryptoTx);
     }

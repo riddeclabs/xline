@@ -89,18 +89,87 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    async verifyBorrowOrThrow(
+    async verifyBorrowOverCFOrThrow(
         creditLine: CreditLine,
         collateralSymbol: string,
         collateralDecimals: number,
         borrowAmount: bigint
     ) {
+        if (
+            !(await this.isBorrowPossibleCollateralFactor(
+                creditLine,
+                collateralSymbol,
+                collateralDecimals,
+                borrowAmount
+            ))
+        ) {
+            throw new Error("Insufficient liquidity to process borrow");
+        }
+    }
+
+    async verifyBorrowOverLFOrThrow(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ) {
+        if (
+            !(await this.isBorrowPossibleLiquidationFactor(
+                creditLine,
+                collateralSymbol,
+                collateralDecimals,
+                borrowAmount
+            ))
+        ) {
+            throw new Error("Insufficient liquidity to process borrow");
+        }
+    }
+
+    async isBorrowPossibleCollateralFactor(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ): Promise<boolean> {
         const economicalParams = await this.economicalParamsService.getParamsById(
             creditLine.economicalParametersId
         );
+        return this.isBorrowPossible(
+            creditLine,
+            collateralSymbol,
+            collateralDecimals,
+            borrowAmount,
+            economicalParams.collateralFactor
+        );
+    }
 
+    async isBorrowPossibleLiquidationFactor(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ): Promise<boolean> {
+        const economicalParams = await this.economicalParamsService.getParamsById(
+            creditLine.economicalParametersId
+        );
+        return this.isBorrowPossible(
+            creditLine,
+            collateralSymbol,
+            collateralDecimals,
+            borrowAmount,
+            economicalParams.liquidationFactor
+        );
+    }
+
+    async isBorrowPossible(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint,
+        collateralOrLiquidationFactor: bigint
+    ): Promise<boolean> {
         const collateralAmount =
-            (creditLine.rawCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE;
+            (creditLine.rawCollateralAmount * collateralOrLiquidationFactor) / EXP_SCALE;
 
         const usdCollateralAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralSymbol,
@@ -109,9 +178,6 @@ export class RiskEngineService {
         );
 
         const hypotheticalUsdBorrowAmount = creditLine.debtAmount + borrowAmount;
-
-        if (hypotheticalUsdBorrowAmount > usdCollateralAmount) {
-            throw new Error("Insufficient liquidity to process borrow");
-        }
+        return hypotheticalUsdBorrowAmount <= usdCollateralAmount;
     }
 }

@@ -47,7 +47,7 @@ export class BorrowRequest {
     @Column("numeric", { ...uint256OrNull(), name: "borrow_fiat_amount", nullable: true })
     borrowFiatAmount!: bigint | null;
 
-    @Column("numeric", { ...uint256OrNull, name: "initial_risk_strategy", nullable: true })
+    @Column("numeric", { ...uint256OrNull(), name: "initial_risk_strategy", nullable: true })
     initialRiskStrategy!: bigint | null;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

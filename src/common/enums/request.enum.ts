@@ -11,6 +11,7 @@ export enum DepositRequestStatus {
 }
 
 export enum BorrowRequestStatus {
+    WAITING_FOR_DEPOSIT = "WAITING_FOR_DEPOSIT",
     VERIFICATION_PENDING = "VERIFICATION_PENDING",
     MONEY_SENT = "MONEY_SENT",
     FINISHED = "FINISHED",
