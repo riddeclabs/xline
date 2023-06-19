@@ -73,25 +73,25 @@
           {% for repay in allRepayResult %}
             <tr style='height:50px' class="table-column">
               <td class='align-middle'>
-                {{ repay.user_chat_id }}
+                {{ repay.creditLine.user.chatId }}
               </td>
               <td class='align-middle'>
-                {{ repay.collateralCurrency_symbol }} / {{ repay.debtCurrency_symbol }}
+                {{ repay.creditLine.collateralCurrency.symbol }} / {{ repay.creditLine.debtCurrency.symbol }}
               </td>
               <td class='align-middle'>
                 {{ repay.xlineIban }}
               </td>
               <td class='align-middle td-status'>
-                {{ repay.repay_repay_request_status }}
+                {{ repay.repayRequestStatus }}
               </td>
               <td class='align-middle'>
                 {{ repay.refNumber }}
               </td>
               <td class='align-middle'>
-                {{ repay.repay_created_at }}
+                {{ repay.createdAt }}
               </td>
               <td class='align-middle'>
-                {{ repay.repay_updated_at }}
+                {{ repay.updatedAt }}
               </td>
               <td class='align-middle'>
                 <a href='/backoffice/repay-request/{{ repay.id }}'>

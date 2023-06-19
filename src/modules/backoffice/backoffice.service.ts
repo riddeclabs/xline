@@ -12,12 +12,7 @@ import {
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
-import {
-    CollatetalCurrencyType,
-    DebtCurrencyType,
-    GetAllBorrowRequestType,
-    GetAllRepayRequestType,
-} from "./backoffice.types";
+import { CollatetalCurrencyType, DebtCurrencyType } from "./backoffice.types";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -109,11 +104,7 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(
-        page: number,
-        sort?: "ASC" | "DESC",
-        chatId?: string
-    ): Promise<GetAllBorrowRequestType[]> {
+    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
         const sortDate = sort ?? "DESC";
 
         return this.borrowRepo
@@ -124,28 +115,18 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-            .select(["borrow"])
-            .addSelect(["collateralCurrency.symbol"])
-            .addSelect(["debtCurrency.symbol"])
-            .addSelect(["userPaymentRequisite.iban"])
-            .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("borrow.createdAt", sortDate)
             .addOrderBy("borrow.updatedAt", sortDate)
-            .getRawMany();
+            .getMany();
     }
 
     getBorrowCount() {
         return this.borrowRepo.createQueryBuilder().getCount();
     }
 
-    getAllRepayRequest(
-        page: number,
-        sort?: "ASC" | "DESC",
-        chatId?: string,
-        refNumber?: string
-    ): Promise<GetAllRepayRequestType[]> {
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
         const sortDate = sort ?? "DESC";
 
         return this.repayRepo
@@ -158,17 +139,10 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
-            .select(["repay"])
-            .addSelect(["collateralCurrency.symbol"])
-            .addSelect(["debtCurrency.symbol"])
-            .addSelect(["creditLine.refNumber"])
-            .addSelect(["businessPaymentRequisite.id", "businessPaymentRequisite.iban"])
-            .addSelect(["userPaymentRequisite.iban"])
-            .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("repay.createdAt", sortDate)
-            .getRawMany();
+            .getMany();
     }
 
     getRepayCount() {
