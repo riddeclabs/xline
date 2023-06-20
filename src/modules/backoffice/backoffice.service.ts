@@ -236,6 +236,11 @@ export class BackOfficeService {
     }
 
     getRepayRequestById(id: string) {
-        return this.repayRepo.createQueryBuilder("repay").getMany();
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .getOne();
     }
 }
