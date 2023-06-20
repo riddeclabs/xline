@@ -1,6 +1,12 @@
 import { formatUnitsNumber } from "src/common";
 import { RiskStrategyLevels } from "../new-credit-request/new-credit-request.types";
-import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "./types";
+import {
+    CreditLineStateMsgData,
+    CryptoTxMsgData,
+    FiatTxMsgData,
+    Requisites,
+    XLineRequestMsgData,
+} from "./types";
 import { truncateDecimals } from "./utils";
 
 export abstract class BasicSourceText {
@@ -137,5 +143,37 @@ export abstract class BasicSourceText {
         const feeNum = typeof fee === "number" ? fee : formatUnitsNumber(fee);
         const feeAmount = truncateDecimals(feeNum * amount, 2);
         return `*Processing fee:* ${feeAmount} ${fiatCurrency}\n`;
+    }
+
+    static getFiatTxMsgText(data: FiatTxMsgData, num?: number): string {
+        return num
+            ? `${num}. `
+            : `` + "*Fiat transaction*" + num
+            ? `*[${num}]*`
+            : `` +
+              "\n\n" +
+              `Status: ${data.status}\n` +
+              `Amount: ${data.amount} ${data.currency}\n\n` +
+              "From:\n" +
+              `Name: ${data.nameFrom}\n` +
+              `IBAN: ${data.nameFrom}\n\n` +
+              "To:\n" +
+              `Name: ${data.nameTo}\n` +
+              `IBAN: ${data.nameTo}\n\n` +
+              `Created: ${data.created}\n` +
+              `Updated: ${data.updated}\n\n`;
+    }
+
+    static getCryptoTxMsgText(data: CryptoTxMsgData, num?: number): string {
+        return num
+            ? `${num}. `
+            : `` + "*Crypto transaction*" + num
+            ? `*[${num}]*`
+            : `` +
+              "\n\n" +
+              `TxHash: ${data.txHash}\n` +
+              `Amount: ${data.amount} ${data.currency}\n` +
+              `Created: ${data.created}\n` +
+              `Updated: ${data.updated}\n\n`;
     }
 }

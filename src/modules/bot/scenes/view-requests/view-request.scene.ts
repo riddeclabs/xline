@@ -10,7 +10,7 @@ import { CustomExceptionFilter } from "../../exception-filter";
 import { ViewRequestText } from "./view-request.text";
 import { BotManagerService } from "../../bot-manager.service";
 import { SceneRequestTypes } from "./view-request.types";
-import { XLineRequestsTypes, getXLineRequestMsgData } from "../common/utils";
+import { XLineRequestsTypes, getTxDataForRequest, getXLineRequestMsgData } from "../common/utils";
 import { escapeSpecialCharacters } from "src/common";
 
 enum ViewRequestSteps {
@@ -118,28 +118,7 @@ export class ViewRequestWizard {
             );
         }
 
-        const clId = creditLine?.id;
-
-        let request: XLineRequestsTypes | null;
-
-        switch (requestType) {
-            case SceneRequestTypes.DEPOSIT:
-                request = await this.botManagerService.getLatestFullyAssociatedDepositReq(clId);
-                break;
-            case SceneRequestTypes.WITHDRAW:
-                request = await this.botManagerService.getLatestFullyAssociatedWithdrawReq(clId);
-                break;
-            case SceneRequestTypes.BORROW:
-                request = await this.botManagerService.getLatestFullyAssociatedBorrowReq(clId);
-                break;
-            case SceneRequestTypes.REPAY:
-                request = await this.botManagerService.getLatestFullyAssociatedRepayReq(clId);
-                break;
-            default:
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _: never = requestType;
-                throw new Error(`Request type ${requestType} is not supported`);
-        }
+        const request = await this.getLatestRequestByType(requestType, creditLine?.id);
 
         let msgText =
             `🤷 You don't have ${requestType} requests.\n\n` +
@@ -147,8 +126,10 @@ export class ViewRequestWizard {
         const buttons = [];
 
         if (request) {
-            const data = getXLineRequestMsgData(request);
-            msgText = ViewRequestText.getRequestMsgText(data, requestType);
+            const requestMsgData = getXLineRequestMsgData(request);
+            const associatedTxsData = getTxDataForRequest(request);
+
+            msgText = ViewRequestText.getRequestMsgText(requestMsgData, requestType, associatedTxsData);
             buttons.push({
                 text: `View all ${requestType} request`,
                 callback_data: `${ViewRequestCallbacks.VIEW_ALL}:${requestType}`,
@@ -249,7 +230,9 @@ export class ViewRequestWizard {
         const msgs = [];
         for (const req of requests) {
             const data = getXLineRequestMsgData(req);
-            const msgText = ViewRequestText.getRequestMsgText(data, requestType);
+            const associatedTxsData = getTxDataForRequest(req);
+
+            const msgText = ViewRequestText.getRequestMsgText(data, requestType, associatedTxsData);
 
             const msg = await ctx.replyWithMarkdownV2(msgText);
             msgs.push(msg);
@@ -323,5 +306,31 @@ export class ViewRequestWizard {
         }
         ctx.scene.session.state.requestType = callbackValue as SceneRequestTypes;
         await this.botCommon.executeCurrentStep(ctx);
+    }
+
+    private async getLatestRequestByType(
+        requestType: SceneRequestTypes,
+        creditLineId: number
+    ): Promise<XLineRequestsTypes | null> {
+        let request: XLineRequestsTypes | null = null;
+        switch (requestType) {
+            case SceneRequestTypes.DEPOSIT:
+                request = await this.botManagerService.getLatestFullyAssociatedDepositReq(creditLineId);
+                break;
+            case SceneRequestTypes.WITHDRAW:
+                request = await this.botManagerService.getLatestFullyAssociatedWithdrawReq(creditLineId);
+                break;
+            case SceneRequestTypes.BORROW:
+                request = await this.botManagerService.getLatestFullyAssociatedBorrowReq(creditLineId);
+                break;
+            case SceneRequestTypes.REPAY:
+                request = await this.botManagerService.getLatestFullyAssociatedRepayReq(creditLineId);
+                break;
+            default:
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const _: never = requestType;
+                throw new Error(`Request type ${requestType} is not supported`);
+        }
+        return request;
     }
 }

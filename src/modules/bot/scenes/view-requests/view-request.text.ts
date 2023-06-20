@@ -1,23 +1,69 @@
 import { escapeSpecialCharacters } from "src/common";
 import { SceneRequestTypes } from "./view-request.types";
 import { BasicSourceText } from "../common/basic-source.text";
-import { XLineRequestMsgData } from "../common/types";
+import {
+    CryptoTxMsgData,
+    FiatTxMsgData,
+    XLineRequestMsgData,
+    isCryptoTxMsgData,
+    isFiatTxMsgData,
+} from "../common/types";
+
+function isFiatTxMsgDataArray(txs: FiatTxMsgData[] | CryptoTxMsgData[]): txs is FiatTxMsgData[] {
+    return txs[0] ? isFiatTxMsgData(txs[0]) : false;
+}
+
+function isCryptoTxMsgDataArray(txs: FiatTxMsgData[] | CryptoTxMsgData[]): txs is CryptoTxMsgData[] {
+    return txs[0] ? !isCryptoTxMsgData(txs[0]) : false;
+}
 
 export class ViewRequestText extends BasicSourceText {
-    static getRequestMsgText(data: XLineRequestMsgData, requestType: SceneRequestTypes): string {
+    static getRequestMsgText(
+        data: XLineRequestMsgData,
+        requestType: SceneRequestTypes,
+        txList: FiatTxMsgData[] | CryptoTxMsgData[]
+    ): string {
+        let requestMsgText = "";
+
         switch (requestType) {
             case SceneRequestTypes.REPAY:
-                return escapeSpecialCharacters(this.getRepayRequestMsgText(data));
+                requestMsgText = this.getRepayRequestMsgText(data);
+                break;
             case SceneRequestTypes.WITHDRAW:
-                return escapeSpecialCharacters(this.getWithdrawRequestMsgText(data));
+                requestMsgText = this.getWithdrawRequestMsgText(data);
+                break;
             case SceneRequestTypes.BORROW:
-                return escapeSpecialCharacters(this.getBorrowRequestMsgText(data));
+                requestMsgText = this.getBorrowRequestMsgText(data);
+                break;
             case SceneRequestTypes.DEPOSIT:
-                return escapeSpecialCharacters(this.getDepositRequestMsgText(data));
+                requestMsgText = this.getDepositRequestMsgText(data);
+                break;
             default:
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const _: never = requestType;
                 throw new Error("Unrecognized request type");
         }
+
+        if (txList.length > 0) {
+            requestMsgText += "\n----\n";
+            if (
+                (requestType === SceneRequestTypes.REPAY || requestType === SceneRequestTypes.BORROW) &&
+                isFiatTxMsgDataArray(txList)
+            ) {
+                requestMsgText += txList
+                    .map(tx => this.getFiatTxMsgText(tx, txList.indexOf(tx) + 1))
+                    .join("\n\n");
+            } else if (
+                (requestType === SceneRequestTypes.DEPOSIT ||
+                    requestType === SceneRequestTypes.WITHDRAW) &&
+                isCryptoTxMsgDataArray(txList)
+            ) {
+                requestMsgText += txList
+                    .map(tx => this.getCryptoTxMsgText(tx, txList.indexOf(tx) + 1))
+                    .join("\n\n");
+            }
+        }
+
+        return escapeSpecialCharacters(requestMsgText);
     }
 }

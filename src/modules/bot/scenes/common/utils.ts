@@ -1,9 +1,51 @@
 import { bigintToFormattedPercent, formatUnitsNumber } from "src/common";
 import { CreditLineDetailsExt } from "../../bot-manager.service";
-import { CreditLineStateMsgData, XLineRequestMsgData } from "./types";
+import {
+    CreditLineStateMsgData,
+    CryptoTxMsgData,
+    FiatTxMsgData,
+    XLineRequestMsgData,
+    XLineRequestsTypes,
+    isBorrowRequest,
+    isDepositRequest,
+    isRepayRequest,
+    isWithdrawRequest,
+} from "./types";
 import { EXP_SCALE } from "src/common/constants";
 import { BasicSourceText } from "./basic-source.text";
-import { BorrowRequest, DepositRequest, RepayRequest, WithdrawRequest } from "src/database/entities";
+import {
+    CollateralCurrency,
+    CryptoTransaction,
+    DebtCurrency,
+    FiatTransaction,
+} from "src/database/entities";
+
+export function getFiatTxMsgData(tx: FiatTransaction, currency: DebtCurrency): FiatTxMsgData {
+    return {
+        ibanFrom: tx.ibanFrom,
+        ibanTo: tx.ibanTo,
+        nameFrom: tx.nameFrom,
+        nameTo: tx.nameTo,
+        amount: formatUnitsNumber(tx.rawTransferAmount),
+        currency: currency.symbol,
+        status: tx.status,
+        created: tx.createdAt.toDateString(),
+        updated: tx.updatedAt.toDateString(),
+    };
+}
+
+export function getCryptoTxMsgData(
+    tx: CryptoTransaction,
+    currency: CollateralCurrency
+): CryptoTxMsgData {
+    return {
+        txHash: tx.txHash,
+        amount: formatUnitsNumber(tx.rawTransferAmount, currency.decimals),
+        currency: currency.symbol,
+        created: tx.createdAt.toDateString(),
+        updated: tx.updatedAt.toDateString(),
+    };
+}
 
 export function getCreditLineStateMsgData(cld: CreditLineDetailsExt): CreditLineStateMsgData {
     const maxAllowedBorrowAmount = formatUnitsNumber(
@@ -29,8 +71,6 @@ export function getCreditLineStateMsgData(cld: CreditLineDetailsExt): CreditLine
         hasBeenLiquidated: cld.lineDetails.isLiquidated ? "yes" : "no",
     };
 }
-
-export type XLineRequestsTypes = BorrowRequest | DepositRequest | RepayRequest | WithdrawRequest;
 
 // TODO: Explanation about join
 export function getXLineRequestMsgData(request: XLineRequestsTypes): XLineRequestMsgData {
@@ -90,20 +130,29 @@ export function getXLineRequestMsgData(request: XLineRequestsTypes): XLineReques
     }
 }
 
-export function isBorrowRequest(req: XLineRequestsTypes): req is BorrowRequest {
-    return "borrowRequestStatus" in req;
-}
+export function getTxDataForRequest(request: XLineRequestsTypes): FiatTxMsgData[] | CryptoTxMsgData[] {
+    let associatedTxsData: FiatTxMsgData[] | CryptoTxMsgData[] = [];
 
-export function isDepositRequest(req: XLineRequestsTypes): req is DepositRequest {
-    return "depositRequestStatus" in req;
-}
-
-export function isRepayRequest(req: XLineRequestsTypes): req is RepayRequest {
-    return "repayRequestStatus" in req;
-}
-
-export function isWithdrawRequest(req: XLineRequestsTypes): req is WithdrawRequest {
-    return "withdrawRequestStatus" in req;
+    if (isBorrowRequest(request) || isRepayRequest(request)) {
+        const fiatTxs = request.fiatTransactions;
+        if (fiatTxs) {
+            associatedTxsData = fiatTxs.map(tx =>
+                getFiatTxMsgData(tx, request!.creditLine.debtCurrency)
+            );
+        }
+    } else if (isDepositRequest(request) || isWithdrawRequest(request)) {
+        const cryptoTxs = request.cryptoTransactions;
+        if (cryptoTxs) {
+            associatedTxsData = cryptoTxs.map(tx =>
+                getCryptoTxMsgData(tx, request!.creditLine.collateralCurrency)
+            );
+        }
+    } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _: never = request;
+        throw new Error(`Request type is not supported`);
+    }
+    return associatedTxsData;
 }
 
 export function truncateDecimals(value: number | string, decimals: number): number {
@@ -115,3 +164,4 @@ export function truncateDecimals(value: number | string, decimals: number): numb
     const valueStrTruncated = valueStr.slice(0, dotIndex + decimals + 1);
     return Number(valueStrTruncated);
 }
+export { XLineRequestsTypes };
