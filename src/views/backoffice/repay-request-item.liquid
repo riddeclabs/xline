@@ -35,15 +35,24 @@
           <div class="label-input">
             IBAN the funds received from:
           </div>
-          <input type="text" class="form-input">
+          <input
+            id="iban"
+            type="text"
+            class="form-input">
           <div class="label-input">
             Bank account name the funds received from:
           </div>
-          <input type="text" class="form-input">
+          <input
+            id="name"
+            type="text"
+            class="form-input">
           <div class="label-input">
             Transfer amount:
           </div>
-          <input type="text" class="form-input">
+          <input
+            id="transferAmount"
+            type="text"
+            class="form-input">
         </div>
         <div class="wrapper-count mt-4">
           <div>If a significant amount of time has passed since the creation of the Repay request and funds have not been received, the request may be closed.
@@ -53,14 +62,33 @@
           </div>
         </div>
         <div class="form-buttons">
-          <button class="accept-button" style="padding: 5px 60px; margin-right: 15px">Confirm</button>
+          <button
+            id="accept-btn"
+            class="accept-button"
+            style="padding: 5px 60px; margin-right: 15px">Confirm</button>
           <a href='/backoffice/repay-request'>
             <button class="reject-button" style="padding: 5px 62px; margin-left: 15px;">Reject</button>
           </a>
         </div>
       </div>
-
     </div>
-
   </div>
+  <script>
+    const ibanInput = document.getElementById('iban');
+    const nameInput = document.getElementById('name');
+    const transferInput = document.getElementById('transferAmount');
+    const acceptBtn = document.getElementById('accept-btn');
+    acceptBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {requestId: 1, ibanFrom: ibanInput.value, nameFrom: nameInput.value, rawTransferAmount: transferInput.value}
+        )
+      };
+      fetch('http://localhost:3000/request-resolver/resolve-request/repay', requestOptions).then(response => console.log(response.json()));
+    })
+  </script>
 {% endblock %}
