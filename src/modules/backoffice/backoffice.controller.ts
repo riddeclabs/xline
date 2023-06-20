@@ -19,7 +19,7 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { formatUnits, makePagination, Role } from "src/common";
+import { createRepayRequestRefNumber, formatUnits, makePagination, Role } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -32,10 +32,13 @@ import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
-
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { BotManagerService } from "../bot/bot-manager.service";
 import { CreditLineDetailsType } from "./backoffice.types";
+import { RepayListQuery } from "./decorators/repay-request.decorators";
+import { BorrowRequest } from "./decorators/borrow-request.decorators";
+import { RepayRequestDto } from "./dto/repay-request.dto";
+
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
@@ -112,6 +115,7 @@ export class BackOfficeController {
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
         const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
+
         return {
             totalCustomers: allCustomersLength,
             totalSupply,
@@ -158,7 +162,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request")
     @Render("backoffice/borrow-request")
-    async borrowList(@Req() req: Request, @CustomersListQuery() query: BorrowRequestDto) {
+    async borrowList(@Req() req: Request, @BorrowRequest() query: BorrowRequestDto) {
         const { page, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
 
@@ -167,16 +171,16 @@ export class BackOfficeController {
             sort,
             chatIdFilter
         );
-
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
-                borrow_created_at: moment(item.borrow_created_at).format("DD.MM.YYYY HH:mm"),
-                borrow_updated_at: moment(item.borrow_updated_at).format("DD.MM.YYYY HH:mm"),
-                borrow_borrow_fiat_amount: item.borrow_borrow_fiat_amount ?? 0,
+                createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                borrowFiatAmount: item.borrowFiatAmount ?? 0,
             };
         });
-
         const totalCount = await this.backofficeService.getBorrowCount();
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
@@ -204,15 +208,24 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("repay-request")
     @Render("backoffice/repay-request")
-    async repayList(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
-        const { page } = query;
+    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequestDto) {
+        const { page, sort, chatId, refNumber } = query;
+        const chatIdFilter = chatId?.trim() ?? "";
+        const refNumberFilter = refNumber?.trim() ?? "";
 
-        const getAllRepay = await this.backofficeService.getAllRepayRequest(page - 1);
+        const getAllRepay = await this.backofficeService.getAllRepayRequest(
+            page - 1,
+            sort,
+            chatIdFilter,
+            refNumberFilter
+        );
         const allRepayResult = getAllRepay.map(item => {
             return {
                 ...item,
-                borrow_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
-                borrow_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
+                createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                xlineIban: item.businessPaymentRequisite.iban,
+                refNumber: createRepayRequestRefNumber(item.creditLine.refNumber, item.id),
             };
         });
 
@@ -220,6 +233,9 @@ export class BackOfficeController {
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
+            chatId: chatIdFilter ?? undefined,
+            refNumber: refNumberFilter ?? undefined,
+            sort: sort,
         };
         return {
             allRepayResult,

@@ -33,7 +33,7 @@
             Status
           </th>
           <th scope='col'>
-            Iban 
+            User Iban 
           </th>
           <th scope='col'>
             {% if page.query.sort == "DESC" %}
@@ -62,28 +62,28 @@
           {% for borrow in allBorrowResult %}
             <tr style='height:50px' class="table-column">
               <td class='align-middle'>
-                {{ borrow.user_chat_id }}
+                {{ borrow.creditLine.user.chatId }}
               </td>
               <td class='align-middle'>
-                {{ borrow.collateralCurrency_symbol }}
+                {{ borrow.creditLine.collateralCurrency.symbol }} / {{ borrow.creditLine.debtCurrency.symbol }}
               </td>
               <td class='align-middle'>
-                {{ borrow.borrow_borrow_fiat_amount }}
+                {{ borrow.borrowFiatAmount }}
               </td>
               <td class='align-middle td-status'>
-                {{ borrow.borrow_borrow_request_status }}
+                {{ borrow.borrowRequestStatus }}
               </td>
               <td class='align-middle'>
-                {{ borrow.userPaymentRequisite_iban }}
+                {{ borrow.creditLine.userPaymentRequisite.iban }}
               </td>
               <td class='align-middle'>
-                {{ borrow.borrow_created_at }}
+                {{ borrow.createdAt }}
               </td>
               <td class='align-middle'>
-                {{ borrow.borrow_updated_at }}
+                {{ borrow.updatedAt }}
               </td>
               <td class='align-middle'>
-                <a href='/backoffice/borrow-request-step2/{{ borrow.borrow_id }}'>
+                <a href='/backoffice/unresolved-request/borrow/{{ borrow.id }}'>
                   <button class="blue-button">
                     Resolve
                   </button>

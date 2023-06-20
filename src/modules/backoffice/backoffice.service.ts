@@ -40,12 +40,12 @@ export class BackOfficeService {
         private operatorRepo: Repository<Operator>,
         @InjectRepository(User)
         private userRepo: Repository<User>,
-        @InjectRepository(CreditLine)
-        private creditLineRepo: Repository<CreditLine>,
         @InjectRepository(BorrowRequest)
         private borrowRepo: Repository<BorrowRequest>,
         @InjectRepository(RepayRequest)
         private repayRepo: Repository<RepayRequest>,
+        @InjectRepository(CreditLine)
+        private creditLineRepo: Repository<CreditLine>,
         @InjectRepository(CollateralCurrency)
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
@@ -111,49 +111,38 @@ export class BackOfficeService {
             .createQueryBuilder("borrow")
             .leftJoinAndSelect("borrow.creditLine", "creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
             .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-            .select(["borrow"])
-            .addSelect(["collateralCurrency.symbol"])
-            .addSelect(["userPaymentRequisite.iban"])
-            .addSelect(["user.chatId"])
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("borrow.createdAt", sortDate)
             .addOrderBy("borrow.updatedAt", sortDate)
-
-            .getRawMany();
+            .getMany();
     }
 
     getBorrowCount() {
         return this.borrowRepo.createQueryBuilder().getCount();
     }
 
-    getBorrowById(id: string) {
-        return this.borrowRepo.findOneBy({
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            where: {
-                id: id,
-            },
-        });
-    }
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
+        const sortDate = sort ?? "DESC";
 
-    getAllRepayRequest(page: number) {
         return this.repayRepo
             .createQueryBuilder("repay")
             .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
-            .select(["repay"])
-            .addSelect(["collateralCurrency.symbol"])
-            .addSelect(["userPaymentRequisite.iban"])
-            .addSelect(["user.chatId"])
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
             .skip(page * PAGE_LIMIT_REQUEST)
-            .take(2)
-            .getRawMany();
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("repay.createdAt", sortDate)
+            .getMany();
     }
 
     getRepayCount() {
@@ -195,11 +184,11 @@ export class BackOfficeService {
     getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
+            .leftJoin("creditLine.collateralCurrency", "collateralCurrency")
             .select("collateralCurrency.id", "id")
             .addSelect("collateralCurrency.decimals", "decimals")
             .addSelect("collateralCurrency.symbol", "symbol")
             .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
-            .leftJoin("creditLine.collateralCurrency", "collateralCurrency")
             .groupBy("collateralCurrency.id")
             .getRawMany();
     }
