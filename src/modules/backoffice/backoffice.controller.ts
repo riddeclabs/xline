@@ -334,9 +334,7 @@ export class BackOfficeController {
                         debtSymbol: item.debtCurrency.symbol,
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
-                            rawSupplyAmount: truncateDecimal(
-                                formatUnits(lineDetails.rawCollateralAmount)
-                            ), // raw collateral amount, use collateral decimals to convert to float
+                            rawSupplyAmount: formatUnits(lineDetails.rawCollateralAmount), // raw collateral amount, use collateral decimals to convert to float
                             usdSupplyAmount: truncateDecimal(
                                 formatUnits(lineDetails.fiatCollateralAmount)
                             ), // raw fiat amount, use debt currency decimals to convert to float
@@ -352,16 +350,12 @@ export class BackOfficeController {
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: truncateDecimal(formatUnits(lineDetails.utilizationRate)), // All rates have 18 decimals accuracy
+                            utilizationFactor: formatUnits(lineDetails.utilizationRate), // All rates have 18 decimals accuracy
                             healthyFactor: truncateDecimal(formatUnits(lineDetails.healthyFactor)), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: truncateDecimal(
-                                formatUnits(economicalParams.collateralFactor)
-                            ), // All rates have 18 decimals accuracy
-                            liquidationFactor: truncateDecimal(
-                                formatUnits(economicalParams.liquidationFactor)
-                            ), // All rates have 18 decimals accuracy
+                            collateralFactor: formatUnits(economicalParams.collateralFactor), // All rates have 18 decimals accuracy
+                            liquidationFactor: formatUnits(economicalParams.liquidationFactor), // All rates have 18 decimals accuracy
                         },
                         dates: {
                             createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
