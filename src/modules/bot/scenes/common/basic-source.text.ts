@@ -85,6 +85,6 @@ export abstract class BasicSourceText {
     static getFiatProcessingFeeText(fee: bigint | number, amount: number, fiatCurrency: string): string {
         const feeNum = typeof fee === "number" ? fee : formatUnitsNumber(fee);
         const feeAmount = truncateDecimals(feeNum * amount, 2);
-        return `*Processing fee:* ${feeAmount} ${fiatCurrency}\n`;
+        return `*💸 Processing fee:* ${feeAmount} ${fiatCurrency}\n`;
     }
 }
