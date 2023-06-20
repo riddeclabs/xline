@@ -42,7 +42,9 @@ export class RequestResolverService {
     ) {}
 
     /**
-     Used by operator to resolve borrow request
+     Used by operator to resolve borrow request. Resolves request by creating a fiat transaction and updating the request status.
+     Should be used for "initial" request resolving. 
+     To finalize resolving process use finalizeBorrowRequest or rejectBorrowRequest functions.
      @param {ResolveBorrowRequestDto} resolveBorrowRequest - The request to resolve
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state or resolveBorrowRequest is incorrect.
@@ -98,12 +100,16 @@ export class RequestResolverService {
         }
 
         // FIXME: Maybe add fee to debt amount here as well?
-        await this.riskEngineService.verifyBorrowOverLFOrThrow(
-            creditLine,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            borrowRequest.borrowFiatAmount
-        );
+        try {
+            await this.riskEngineService.verifyBorrowOverLFOrThrow(
+                creditLine,
+                creditLine.collateralCurrency.symbol,
+                creditLine.collateralCurrency.decimals,
+                borrowRequest.borrowFiatAmount
+            );
+        } catch (e) {
+            throw new HttpException("Err", HttpStatus.BAD_REQUEST);
+        }
 
         const updatedTransaction = await this.transactionService.createFiatTransaction({
             borrowRequestId: borrowRequest.id,

@@ -126,7 +126,7 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
+    async getOldestUnfinalizedBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
             .where("br.borrowRequestStatus != :statusRej", {

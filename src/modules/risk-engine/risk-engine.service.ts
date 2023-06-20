@@ -89,6 +89,8 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
+    // Verify if borrow is possible over collateral factor
+    // Utilization after borrow must be less or equal than collateral factor
     async verifyBorrowOverCFOrThrow(
         creditLine: CreditLine,
         collateralSymbol: string,
@@ -107,6 +109,9 @@ export class RiskEngineService {
         }
     }
 
+    // Verify if borrow is possible over liquidation factor
+    // Utilization after borrow must be less or equal than liquidation factor
+    // In that case utilization after borrow could be greater than collateral factor
     async verifyBorrowOverLFOrThrow(
         creditLine: CreditLine,
         collateralSymbol: string,

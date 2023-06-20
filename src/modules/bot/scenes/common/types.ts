@@ -13,13 +13,13 @@ export interface XLineRequestMsgData {
 }
 
 export interface CreditLineStateMsgData {
-    supplyCrypto: number;
-    supplyFiat: number;
+    supplyAmountCrypto: number;
+    supplyAmountFiat: number;
     cryptoCurrency: string;
-    fiatCurrency: string;
+    debtCurrency: string;
     debtAmount: number;
     utilizationRatePercent: string;
-    maxAllowedAmount: number;
+    maxAllowedBorrowAmount: number;
     liquidationRisk: string;
-    hasBeenLiquidated: "yes" | "no";
+    hasBeenLiquidated: "Yes" | "No";
 }

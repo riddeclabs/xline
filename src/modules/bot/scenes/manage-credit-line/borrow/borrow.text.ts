@@ -18,7 +18,7 @@ export class BorrowTextSource extends BasicSourceText {
     static async getAmountInputText(state: CreditLineStateMsgData): Promise<string> {
         const creditLineStateText = this.getCreditLineStateText(state);
         return escapeSpecialCharacters(
-            `*Please enter ${state.fiatCurrency} amount you want to borrow*\n\n` +
+            `*Please enter ${state.debtCurrency} amount you want to borrow*\n\n` +
                 "📊 *Current state:*\n" +
                 creditLineStateText +
                 "\n" +
@@ -39,11 +39,11 @@ export class BorrowTextSource extends BasicSourceText {
         const processingFeeText = BorrowTextSource.getFiatProcessingFeeText(
             borrowAmount,
             processingFee,
-            stateBefore.fiatCurrency
+            stateBefore.debtCurrency
         );
         return escapeSpecialCharacters(
             "📜 *Borrow request details*\n\n" +
-                `💱 You have requested * ${borrowAmount} ${stateBefore.fiatCurrency} * to borrow.\n\n` +
+                `💱 You have requested * ${borrowAmount} ${stateBefore.debtCurrency} * to borrow.\n\n` +
                 "📉 *Current state:*\n" +
                 creditLineStateTextBefore +
                 "\n" +

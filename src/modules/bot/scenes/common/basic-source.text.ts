@@ -39,11 +39,11 @@ export abstract class BasicSourceText {
 
     static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed = true): string {
         const maxAllowedText = printMaxAllowed
-            ? `Max to borrow:    ${data.maxAllowedAmount} ${data.fiatCurrency}\n`
+            ? `Max to borrow:    ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
             : "";
         return (
-            `Deposit amount: ${data.supplyCrypto} ${data.cryptoCurrency} / ${data.supplyFiat} ${data.fiatCurrency}\n` +
-            `Debt amount:      ${data.debtAmount} ${data.fiatCurrency}\n` +
+            `Deposit amount: ${data.supplyAmountCrypto} ${data.cryptoCurrency} / ${data.supplyAmountFiat} ${data.debtCurrency}\n` +
+            `Debt amount:      ${data.debtAmount} ${data.debtCurrency}\n` +
             `Utilization rate:    ${data.utilizationRatePercent}%\n` +
             maxAllowedText +
             `Liquidation risk:    ${data.liquidationRisk}\n` +

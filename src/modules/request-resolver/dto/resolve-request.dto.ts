@@ -27,7 +27,7 @@ export class ResolveFiatBasedRequestDto {
     requestId!: number;
 
     @ApiProperty({
-        description: "IBAN from which the money was received",
+        description: "IBAN from which the money were sent",
         example: "AD14 0008 0001 0012 3456 7890",
     })
     @IsString()
@@ -45,7 +45,7 @@ export class ResolveBorrowRequestDto extends ResolveFiatBasedRequestDto {}
 
 export class ResolveRepayRequestDto extends ResolveFiatBasedRequestDto {
     @ApiProperty({
-        description: "Bank account name from which the money was received",
+        description: "Bank account name from which the money were sent",
         example: "John Doe",
     })
     @IsString()

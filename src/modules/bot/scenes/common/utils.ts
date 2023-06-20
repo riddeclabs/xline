@@ -11,21 +11,21 @@ export function getCreditLineState(cld: CreditLineDetailsExt): CreditLineStateMs
     );
 
     return {
-        supplyCrypto: formatUnitsNumber(
+        supplyAmountCrypto: formatUnitsNumber(
             cld.lineDetails.rawCollateralAmount,
             cld.lineDetails.collateralCurrency.decimals
         ),
-        supplyFiat: truncateDecimals(formatUnitsNumber(cld.lineDetails.fiatCollateralAmount), 2),
+        supplyAmountFiat: truncateDecimals(formatUnitsNumber(cld.lineDetails.fiatCollateralAmount), 2),
         cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
-        fiatCurrency: cld.lineDetails.debtCurrency.symbol,
+        debtCurrency: cld.lineDetails.debtCurrency.symbol,
         debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
         utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
-        maxAllowedAmount: truncateDecimals(maxAllowedBorrowAmount, 2),
+        maxAllowedBorrowAmount: truncateDecimals(maxAllowedBorrowAmount, 2),
         liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
             cld.lineDetails.utilizationRate,
             cld.economicalParams.collateralFactor
         ),
-        hasBeenLiquidated: cld.lineDetails.isLiquidated ? "yes" : "no",
+        hasBeenLiquidated: cld.lineDetails.isLiquidated ? "Yes" : "No",
     };
 }
 

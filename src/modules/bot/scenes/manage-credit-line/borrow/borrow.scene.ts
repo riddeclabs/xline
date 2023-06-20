@@ -30,14 +30,15 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_PENDING_REQUESTS)
     async onVerifyPendingRequests(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
-        const pendingRequest = await this.botManager.getOldestPendingOrWFDBorrowReq(creditLineId);
+        const pendingRequest = await this.botManager.getOldestUnfinalizedBorrowReq(creditLineId);
 
         if (!pendingRequest) {
             ctx.wizard.next();
             await this.botCommon.executeCurrentStep(ctx);
             return;
         }
+
+        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
         const data: XLineRequestMsgData = {
             status: pendingRequest.borrowRequestStatus as string,
@@ -148,7 +149,7 @@ export class BorrowActionWizard {
             2
         );
         stateAfter.utilizationRatePercent = bigintToFormattedPercent(
-            parseUnits(stateAfter.debtAmount / stateAfter.supplyFiat)
+            parseUnits(stateAfter.debtAmount / stateAfter.supplyAmountFiat)
         );
 
         const requisites: Requisites = {
@@ -313,10 +314,10 @@ export class BorrowActionWizard {
             const errorMsg = BorrowTextSource.getAmountDecimalsValidationErrorMsg(userInput, 2);
             await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;
-        } else if (input > state.maxAllowedAmount) {
+        } else if (input > state.maxAllowedBorrowAmount) {
             const errorMsg = BorrowTextSource.getAmountValidationErrorMaxAllowedMsg(
                 userInput,
-                state.maxAllowedAmount
+                state.maxAllowedBorrowAmount
             );
             await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;

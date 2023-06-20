@@ -256,8 +256,8 @@ export class BotManagerService {
         return this.requestHandlerService.getOldestPendingBorrowReq(creditLineId);
     }
 
-    async getOldestPendingOrWFDBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
-        return this.requestHandlerService.getOldestPendingOrWFDBorrowReq(creditLineId);
+    async getOldestUnfinalizedBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestUnfinalizedBorrowReq(creditLineId);
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {
