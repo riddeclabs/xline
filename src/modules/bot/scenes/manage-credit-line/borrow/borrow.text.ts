@@ -5,13 +5,12 @@ import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../c
 export class BorrowTextSource extends BasicSourceText {
     static getBorrowTermsText(maxCollateral: string, processingFee: string): string {
         return escapeSpecialCharacters(
-            "*Borrow info*\n\n" +
-                "📝 The Borrow allows you to increase your debt position.\n\n" +
-                "After confirmation of your request by the system, the requested amount of USD will be sent to your IBAN\n\n" +
-                "⚠️ Be careful! \n" +
-                "Borrow operation increases the utilization rate of your position and increases the risk of liquidation.\n\n" +
-                `The total debt for your position cannot exceed ${maxCollateral}% of the remaining deposit.\n` +
-                `⚠️ ${processingFee}% of borrowed amount will be apply as processing fee.\n` +
+            "📜 *BORROW TERMS*\n\n" +
+                "📝 The Borrow allows you to increase your debt position.\n" +
+                "After confirmation of your request by the system, the requested amount of *${debtSymbol}* will be sent to your IBAN\n\n" +
+                "⚠️ Borrow operation increases the utilization rate of your position and *increases the risk of liquidation*.\n\n" +
+                `️️⚠ The total debt for your position cannot exceed *${maxCollateral} %* of the remaining deposit.\n\n` +
+                `⚠️ *${processingFee} %* of the borrowed amount will be applied as a processing fee.\n` +
                 "An amount equal to the fee will be added to your debt position.\n"
         );
     }
