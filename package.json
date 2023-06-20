@@ -39,6 +39,7 @@
     "express-session": "^1.17.3",
     "ibantools": "^4.3.3",
     "liquidjs": "^10.6.2",
+    "moment": "^2.29.4",
     "nestjs-telegraf": "^2.6.3",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",

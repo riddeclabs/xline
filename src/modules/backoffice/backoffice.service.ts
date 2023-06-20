@@ -1,9 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { CollateralCurrency, CreditLine, DebtCurrency, Operator, User } from "src/database/entities";
+import {
+    BorrowRequest,
+    Operator,
+    RepayRequest,
+    User,
+    CollateralCurrency,
+    CreditLine,
+    DebtCurrency,
+} from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { PAGE_LIMIT } from "src/common/constants";
+import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import { CollatetalCurrencyType, DebtCurrencyType } from "./backoffice.types";
 
 export enum OperatorsListColumns {
@@ -13,6 +21,11 @@ export enum OperatorsListColumns {
 
 export enum CustomersListColumns {
     name = "DESC",
+}
+
+export enum BorrowRequestColumns {
+    createdAt = "DESC",
+    updatedAt = "DESC",
 }
 
 export enum ModifyReserveDirection {
@@ -27,6 +40,10 @@ export class BackOfficeService {
         private operatorRepo: Repository<Operator>,
         @InjectRepository(User)
         private userRepo: Repository<User>,
+        @InjectRepository(BorrowRequest)
+        private borrowRepo: Repository<BorrowRequest>,
+        @InjectRepository(RepayRequest)
+        private repayRepo: Repository<RepayRequest>,
         @InjectRepository(CreditLine)
         private creditLineRepo: Repository<CreditLine>,
         @InjectRepository(CollateralCurrency)
@@ -87,6 +104,50 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
+    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+        const sortDate = sort ?? "DESC";
+
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("borrow.createdAt", sortDate)
+            .addOrderBy("borrow.updatedAt", sortDate)
+            .getMany();
+    }
+
+    getBorrowCount() {
+        return this.borrowRepo.createQueryBuilder().getCount();
+    }
+
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
+        const sortDate = sort ?? "DESC";
+
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("repay.createdAt", sortDate)
+            .getMany();
+    }
+
+    getRepayCount() {
+        return this.repayRepo.createQueryBuilder().getCount();
+    }
     getAllCustomersCount() {
         return this.userRepo.count();
     }
