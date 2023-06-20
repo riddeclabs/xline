@@ -42,19 +42,19 @@ export class BorrowTextSource extends BasicSourceText {
             stateBefore.fiatCurrency
         );
         return escapeSpecialCharacters(
-            "*Borrow request details*\n\n" +
-                `You have requested ${borrowAmount} ${stateBefore.fiatCurrency} to borrow.\n\n` +
-                "📊 *Old state:*\n" +
+            "📜 *Borrow request details*\n\n" +
+                `💱 You have requested * ${borrowAmount} ${stateBefore.fiatCurrency} * to borrow.\n\n` +
+                "📉 *Current state:*\n" +
                 creditLineStateTextBefore +
                 "\n" +
-                "📊 *New state:*\n" +
+                "📈 *New state:*\n" +
                 creditLineStateTextAfter +
                 "\n" +
                 requisitesText +
                 "\n" +
                 processingFeeText +
                 "\n" +
-                "❗️ After you agree to our offer, we will send requested USD amount to your bank account"
+                "✅ After you agree to our offer, we will send the requested ${debtSymbol} amount to your bank account"
         );
     }
 
