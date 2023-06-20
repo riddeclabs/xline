@@ -38,6 +38,7 @@ import { CreditLineDetailsType } from "./backoffice.types";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { truncateDecimal } from "src/common/text-formatter";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -313,7 +314,7 @@ export class BackOfficeController {
     @Get("customer-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
     async customerCreditLine(@Param("userId") userId: string) {
-        const getAllCreditLinesByUserId = await this.backofficeService.getUserById(userId);
+        const allCreditLinesByUserId = await this.backofficeService.getUserById(userId);
         //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
         //     collateralCurrency.symbol,
@@ -322,9 +323,9 @@ export class BackOfficeController {
         //     scaledTokenPrice
         // );
         let allCreditLine: CreditLineDetailsType[] = [];
-        if (getAllCreditLinesByUserId?.creditLines.length) {
+        if (allCreditLinesByUserId?.creditLines.length) {
             allCreditLine = await Promise.all(
-                getAllCreditLinesByUserId?.creditLines.map(async (item, idx) => {
+                allCreditLinesByUserId?.creditLines.map(async (item, idx) => {
                     const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
                         item.id
                     );
@@ -333,27 +334,34 @@ export class BackOfficeController {
                         debtSymbol: item.debtCurrency.symbol,
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
-                            rawSupplyAmount: (+formatUnits(lineDetails.rawCollateralAmount)).toFixed(2), // raw collateral amount, use collateral decimals to convert to float
-                            usdSupplyAmount: (+formatUnits(lineDetails.fiatCollateralAmount)).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
-                            usdCollateralAmount: (+formatUnits(
-                                (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) /
-                                    EXP_SCALE
-                            )).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
-                            debtAmount: (+formatUnits(lineDetails.debtAmount)).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
+                            rawSupplyAmount: truncateDecimal(
+                                formatUnits(lineDetails.rawCollateralAmount)
+                            ), // raw collateral amount, use collateral decimals to convert to float
+                            usdSupplyAmount: truncateDecimal(
+                                formatUnits(lineDetails.fiatCollateralAmount)
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            usdCollateralAmount: truncateDecimal(
+                                formatUnits(
+                                    (lineDetails.fiatCollateralAmount *
+                                        economicalParams.collateralFactor) /
+                                        EXP_SCALE
+                                )
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            debtAmount: truncateDecimal(formatUnits(lineDetails.debtAmount)), // raw fiat amount, use debt currency decimals to convert to float
                             //TODO: fix after PR will be merged
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: (+formatUnits(lineDetails.utilizationRate)).toFixed(2), // All rates have 18 decimals accuracy
-                            healthyFactor: (+formatUnits(lineDetails.healthyFactor)).toFixed(2), // All rates have 18 decimals accuracy
+                            utilizationFactor: truncateDecimal(formatUnits(lineDetails.utilizationRate)), // All rates have 18 decimals accuracy
+                            healthyFactor: truncateDecimal(formatUnits(lineDetails.healthyFactor)), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: (+formatUnits(economicalParams.collateralFactor)).toFixed(
-                                2
+                            collateralFactor: truncateDecimal(
+                                formatUnits(economicalParams.collateralFactor)
                             ), // All rates have 18 decimals accuracy
-                            liquidationFactor: (+formatUnits(
-                                economicalParams.liquidationFactor
-                            )).toFixed(2), // All rates have 18 decimals accuracy
+                            liquidationFactor: truncateDecimal(
+                                formatUnits(economicalParams.liquidationFactor)
+                            ), // All rates have 18 decimals accuracy
                         },
                         dates: {
                             createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
@@ -370,8 +378,8 @@ export class BackOfficeController {
 
         const resultTablesData = {
             mainInfo: {
-                name: getAllCreditLinesByUserId?.name,
-                chatId: getAllCreditLinesByUserId?.chatId,
+                name: allCreditLinesByUserId?.name,
+                chatId: allCreditLinesByUserId?.chatId,
             },
             allCreditLine,
         };
