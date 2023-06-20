@@ -78,6 +78,11 @@
     const nameInput = document.getElementById('name');
     const transferInput = document.getElementById('transferAmount');
     const acceptBtn = document.getElementById('accept-btn');
+    const repayId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-1)[0];
     acceptBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -85,7 +90,12 @@
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(
-          {requestId: 1, ibanFrom: ibanInput.value, nameFrom: nameInput.value, rawTransferAmount: transferInput.value}
+          {
+            requestId: + repayId,
+            ibanFrom: ibanInput.value,
+            nameFrom: nameInput.value,
+            rawTransferAmount: transferInput.value
+          }
         )
       };
       fetch('http://localhost:3000/request-resolver/resolve-request/repay', requestOptions).then(response => console.log(response.json()));
