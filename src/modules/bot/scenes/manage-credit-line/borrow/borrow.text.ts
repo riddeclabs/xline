@@ -61,13 +61,13 @@ export class BorrowTextSource extends BasicSourceText {
     static getBorrowSuccessText(requisites: Requisites): string {
         const requisitesText = this.getRequisitesText(requisites);
         return escapeSpecialCharacters(
-            "✅ Done! You've created 'Borrow' request.\n\n" +
-                "We will send requested USD amount to your bank account\n\n" +
+            "✅ * Done! You've created a new 'Borrow' request!*\n\n" +
+                "💸 We will send the requested USD amount to your bank account\n\n" +
                 requisitesText +
                 "\n" +
                 "💡 You always can check all you request details.\n" +
                 `To do this go to "View my requests" tab from main menu.\n\n` +
-                "⚠️ The processing time for transfers may vary.\n\n" +
+                "⚠️ The processing time for transfer may vary.\n" +
                 "Factors influencing transfer speed include:\n" +
                 " - Banking provider\n" +
                 " - Timing of payment initiation\n" +
