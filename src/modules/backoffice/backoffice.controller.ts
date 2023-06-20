@@ -35,6 +35,7 @@ import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { truncateDecimal } from "src/common/text-formatter";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -256,7 +257,9 @@ export class BackOfficeController {
         const resultRepayRequestById = {
             refNumber: getRepayRequestById?.creditLine.refNumber,
             iban: getRepayRequestById?.creditLine.userPaymentRequisite.iban,
-            debtAmountUSD: formatUnits(getRepayRequestById?.creditLine.debtAmount || 0n),
+            debtAmountUSD: truncateDecimal(
+                formatUnits(getRepayRequestById?.creditLine.debtAmount || 0n)
+            ),
         };
         return resultRepayRequestById;
     }
