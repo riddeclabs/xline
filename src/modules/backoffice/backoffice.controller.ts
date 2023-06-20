@@ -330,6 +330,8 @@ export class BackOfficeController {
                     );
                     return {
                         serialNumber: idx + 1,
+                        debtSymbol: item.debtCurrency.symbol,
+                        collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
                             rawSupplyAmount: (+formatUnits(lineDetails.rawCollateralAmount)).toFixed(2), // raw collateral amount, use collateral decimals to convert to float
                             usdSupplyAmount: (+formatUnits(lineDetails.fiatCollateralAmount)).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float

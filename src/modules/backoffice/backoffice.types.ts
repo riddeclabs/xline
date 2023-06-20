@@ -9,6 +9,8 @@ export type DebtCurrencyType = { id: number; symbol: string; decimals: number; a
 
 export type CreditLineDetailsType = {
     serialNumber: number;
+    debtSymbol: string;
+    collateralSymbol: string;
     amountsTable: {
         rawSupplyAmount: string;
         usdSupplyAmount: string;

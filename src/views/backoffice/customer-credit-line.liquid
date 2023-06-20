@@ -5,7 +5,7 @@
   <h1 class='pb-1 text-white fs-5'>Chat ID: {{ mainInfo.chatId }}</h1>
   {% for customer in allCreditLine %}
     <div class='card bg-dark shadow-sm wrapper-table p-4 mt-5'>
-      <h1 class='text-white fs-5'>#{{ customer.serialNumber }} ETH / USD</h1>
+      <h1 class='text-white fs-5'>#{{ customer.serialNumber }} {{ customer.collateralSymbol }} / {{ customer.debtSymbol }}</h1>
       <div class="customer-CL-wrapper">
         <div>
           <p class='text-white fs-6'>Amounts</p>

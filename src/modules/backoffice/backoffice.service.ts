@@ -155,6 +155,8 @@ export class BackOfficeService {
             .where("user.id = :id", { id })
             .leftJoinAndSelect("user.creditLines", "creditLine")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .getOne();
     }
     getAllCustomersCount() {
