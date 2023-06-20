@@ -331,23 +331,27 @@ export class BackOfficeController {
                     return {
                         serialNumber: idx + 1,
                         amountsTable: {
-                            rawSupplyAmount: formatUnits(lineDetails.rawCollateralAmount), // raw collateral amount, use collateral decimals to convert to float
-                            usdSupplyAmount: formatUnits(lineDetails.fiatCollateralAmount), // raw fiat amount, use debt currency decimals to convert to float
-                            usdCollateralAmount: formatUnits(
+                            rawSupplyAmount: (+formatUnits(lineDetails.rawCollateralAmount)).toFixed(2), // raw collateral amount, use collateral decimals to convert to float
+                            usdSupplyAmount: (+formatUnits(lineDetails.fiatCollateralAmount)).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
+                            usdCollateralAmount: (+formatUnits(
                                 (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) /
                                     EXP_SCALE
-                            ), // raw fiat amount, use debt currency decimals to convert to float
-                            debtAmount: formatUnits(lineDetails.debtAmount), // raw fiat amount, use debt currency decimals to convert to float
+                            )).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
+                            debtAmount: (+formatUnits(lineDetails.debtAmount)).toFixed(2), // raw fiat amount, use debt currency decimals to convert to float
                             //TODO: fix after PR will be merged
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: formatUnits(lineDetails.utilizationRate), // All rates have 18 decimals accuracy
-                            healthyFactor: formatUnits(lineDetails.healthyFactor), // All rates have 18 decimals accuracy
+                            utilizationFactor: (+formatUnits(lineDetails.utilizationRate)).toFixed(2), // All rates have 18 decimals accuracy
+                            healthyFactor: (+formatUnits(lineDetails.healthyFactor)).toFixed(2), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: formatUnits(economicalParams.collateralFactor), // All rates have 18 decimals accuracy
-                            liquidationFactor: formatUnits(economicalParams.liquidationFactor), // All rates have 18 decimals accuracy
+                            collateralFactor: (+formatUnits(economicalParams.collateralFactor)).toFixed(
+                                2
+                            ), // All rates have 18 decimals accuracy
+                            liquidationFactor: (+formatUnits(
+                                economicalParams.liquidationFactor
+                            )).toFixed(2), // All rates have 18 decimals accuracy
                         },
                         dates: {
                             createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
