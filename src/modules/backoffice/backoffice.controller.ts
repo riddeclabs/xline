@@ -171,9 +171,9 @@ export class BackOfficeController {
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
-                borrow_created_at: moment(item.borrow_created_at).format("DD.MM.YYYY HH:mm"),
-                borrow_updated_at: moment(item.borrow_updated_at).format("DD.MM.YYYY HH:mm"),
-                borrow_borrow_fiat_amount: item.borrow_borrow_fiat_amount ?? 0,
+                createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                borrowFiatAmount: item.borrowFiatAmount ?? 0,
             };
         });
         const totalCount = await this.backofficeService.getBorrowCount();
@@ -217,10 +217,10 @@ export class BackOfficeController {
         const allRepayResult = getAllRepay.map(item => {
             return {
                 ...item,
-                repay_created_at: moment(item.repay_created_at).format("DD.MM.YYYY HH:mm"),
-                repay_updated_at: moment(item.repay_updated_at).format("DD.MM.YYYY HH:mm"),
-                xlineIban: item.businessPaymentRequisite_iban,
-                refNumber: createRepayRequestRefNumber(item.creditLine_ref_number, item.repay_id),
+                createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                xlineIban: item.businessPaymentRequisite.iban,
+                refNumber: createRepayRequestRefNumber(item.creditLine.refNumber, item.id),
             };
         });
 

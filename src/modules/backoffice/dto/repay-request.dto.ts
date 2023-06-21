@@ -6,6 +6,7 @@ export class RepayRequestDto {
     @IsNumber()
     page = 1;
 
+    @IsOptional()
     @IsEnum(BorrowRequestColumns)
     sort: BorrowRequestColumns = BorrowRequestColumns.createdAt;
 
