@@ -1,5 +1,7 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
+  <div class="success-mess" id="success">Successfully!</div>
+  <div class="error-mess" id="error">Something went wrong!</div>
   <h1 class='pb-3 text-white fs-1'>Repay request resolve page.</h1>
   <div class='pb-1 text-white fs-5'>Step 1: Confirm the payment</div>
   <ul>
@@ -73,32 +75,46 @@
       </div>
     </div>
   </div>
-  <script>
+  <script type="text/javascript">
     const ibanInput = document.getElementById('iban');
     const nameInput = document.getElementById('name');
-    const transferInput = document.getElementById('transferAmount');
-    const acceptBtn = document.getElementById('accept-btn');
-    const repayId = document
-      .location
-      .pathname
-      .split("/")
-      .slice(-1)[0];
-    acceptBtn.addEventListener('click', () => {
-      const requestOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(
-          {
-            requestId: + repayId,
-            ibanFrom: ibanInput.value,
-            nameFrom: nameInput.value,
-            rawTransferAmount: transferInput.value
-          }
-        )
-      };
-      fetch('http://localhost:3000/request-resolver/resolve-request/repay', requestOptions).then(response => console.log(response.json()));
-    })
-  </script>
+        const transferInput = document.getElementById('transferAmount');
+        const acceptBtn = document.getElementById('accept-btn');
+        const success = document.getElementById('success');
+        const error = document.getElementById('error');
+        const repayId = document
+          .location
+          .pathname
+          .split("/")
+          .slice(-1)[0];
+        acceptBtn.addEventListener('click', () => {
+          const requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(
+              {
+                requestId: + repayId,
+                ibanFrom: ibanInput.value,
+                nameFrom: nameInput.value,
+                rawTransferAmount: transferInput.value
+              }
+            )
+          };
+          fetch('http://localhost:3000/request-resolver/resolve-request/repay', requestOptions).then(response => response.json()).then(resJSON => {
+            if (resJSON.statusCode > 199 && resJSON.statusCode < 300) {
+              success.style.right = "30px"
+              setTimeout(() => {
+                success.style.right = "-300px"
+              }, 3000)
+            } else {
+              error.style.right = "30px"
+              error.innerText = resJSON.message
+                setTimeout(() => {
+                  error.style.right = "-300px"
+                }, 3000)
+              }
+            });
+          })</script>
 {% endblock %}
