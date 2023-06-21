@@ -20,6 +20,12 @@ export class RequestResolverController {
         return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
     }
 
+    @Post("reject-request/repay")
+    @UsePipes(ValidationPipe)
+    async rejectRepayRequest(@Body() rejectBody: { repayId: number }) {
+        return this.requestResolverService.rejectRepayRequest(rejectBody.repayId);
+    }
+
     @Get("verify/borrow:reqId")
     async verifyBorrowRequest(@Param("reqId") reqId: string) {
         return this.requestResolverService.verifyBorrowRequest(+reqId);
