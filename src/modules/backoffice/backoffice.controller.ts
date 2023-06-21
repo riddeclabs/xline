@@ -331,6 +331,7 @@ export class BackOfficeController {
                     );
                     return {
                         serialNumber: idx + 1,
+                        creditLineId: item.id,
                         debtSymbol: item.debtCurrency.symbol,
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
@@ -369,7 +370,6 @@ export class BackOfficeController {
                 })
             );
         }
-
         const resultTablesData = {
             mainInfo: {
                 name: allCreditLinesByUserId?.name,

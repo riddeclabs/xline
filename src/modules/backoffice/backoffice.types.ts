@@ -11,6 +11,7 @@ export type CreditLineDetailsType = {
     serialNumber: number;
     debtSymbol: string;
     collateralSymbol: string;
+    creditLineId: number;
     amountsTable: {
         rawSupplyAmount: string;
         usdSupplyAmount: string;
