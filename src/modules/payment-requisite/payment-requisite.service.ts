@@ -69,4 +69,13 @@ export class PaymentRequisiteService {
         const newReq = this.businessPaymentRepo.create(dto);
         return this.businessPaymentRepo.save(newReq);
     }
+
+    async getBusinessPayReqWithCurrencyByIban(iban: string): Promise<BusinessPaymentRequisite | null> {
+        const formattedIban = iban.replace(/\s/g, "").toUpperCase();
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .leftJoin("bpr.debtCurrencyId", "debtCurrency")
+            .where("bpr.iban = :formattedIban", { formattedIban })
+            .getOne();
+    }
 }

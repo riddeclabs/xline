@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Controller, Post, Body, Param, UsePipes, ValidationPipe } from "@nestjs/common";
 import { RequestResolverService } from "./request-resolver.service";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ResolveFiatBasedRequestDto, ResolveRepayRequestDto } from "./dto/resolve-request.dto";
@@ -16,16 +16,25 @@ export class RequestResolverController {
         return this.requestResolverService.resolveBorrowRequest(resolveBorrowRequestDto);
     }
 
+    @Post("resolve-request/borrow-finalize")
+    @UsePipes(ValidationPipe)
+    @ApiOperation({ summary: "Finalize borrow request" })
+    async finalizeBorrowRequest(@Param("reqId") reqId: string) {
+        return this.requestResolverService.finalizeBorrowRequest(+reqId);
+    }
+
+    @Post("resolve-request/borrow-reject")
+    @UsePipes(ValidationPipe)
+    @ApiOperation({ summary: "Reject borrow request" })
+    async rejectBorrowRequest(@Param("reqId") reqId: string) {
+        return this.requestResolverService.rejectBorrowRequest(+reqId);
+    }
+
     @Post("resolve-request/repay")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Resolve repay request" })
     @ApiBody({ description: "Resolve repay request", type: ResolveRepayRequestDto })
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
         return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
-    }
-
-    @Get("verify/borrow:reqId")
-    async verifyBorrowRequest(@Param("reqId") reqId: string) {
-        return this.requestResolverService.verifyBorrowRequest(+reqId);
     }
 }

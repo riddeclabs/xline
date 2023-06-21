@@ -20,9 +20,6 @@ export enum BorrowReqCallbacks {
 
 export type BorrowActionSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
-        chat_id?: string;
-        creditLineId?: string;
-        maxAllowedAmount?: string;
         borrowAmount?: string;
     };
 };

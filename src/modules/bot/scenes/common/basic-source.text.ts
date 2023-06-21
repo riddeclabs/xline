@@ -53,7 +53,9 @@ export abstract class BasicSourceText {
 
     static getRequisitesText(requisites: Requisites): string {
         return (
-            "🏦 *Bank requisites*\n" + `IBAN:   ${requisites.iban}\n` + `Name:  ${requisites.accountName}\n`
+            "🏦 *Bank requisites*\n" +
+            `IBAN:   ${requisites.iban}\n` +
+            `Name:  ${requisites.accountName}\n`
         );
     }
 

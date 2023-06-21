@@ -59,16 +59,15 @@ export class BorrowActionWizard {
             );
         }
 
-        const msg = (await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
+        await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
             parse_mode: "MarkdownV2",
-        })) as Message;
+        });
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {
                 columns: 1,
             }).reply_markup
         );
-        this.botCommon.tryToSaveSceneMessage(ctx, [msg]);
         ctx.wizard.next();
     }
 
@@ -158,7 +157,7 @@ export class BorrowActionWizard {
         };
 
         const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-        const msg = (await ctx.telegram.editMessageText(
+        await ctx.telegram.editMessageText(
             ctx.chat?.id,
             editMsgId,
             undefined,
@@ -172,7 +171,7 @@ export class BorrowActionWizard {
             {
                 parse_mode: "MarkdownV2",
             }
-        )) as Message;
+        );
 
         await ctx.telegram.editMessageReplyMarkup(
             ctx.chat?.id,
@@ -194,7 +193,6 @@ export class BorrowActionWizard {
                 }
             ).reply_markup
         );
-        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
@@ -269,13 +267,6 @@ export class BorrowActionWizard {
                 accountName: creditLine.user.name,
             };
 
-            await ctx.editMessageText(BorrowTextSource.getBorrowSuccessText(requisites), {
-                parse_mode: "MarkdownV2",
-            });
-            await ctx.editMessageReplyMarkup(
-                Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }).reply_markup
-            );
-
             //FIXME: Think about adding some threshold for the amount
             try {
                 await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
@@ -284,6 +275,16 @@ export class BorrowActionWizard {
                 await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
                 return;
             }
+
+            await ctx.editMessageText(
+                BorrowTextSource.getBorrowSuccessText(requisites, creditLine.debtCurrency.symbol),
+                {
+                    parse_mode: "MarkdownV2",
+                }
+            );
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }).reply_markup
+            );
         } else if (callbackValue === SignApplicationOptions.DISAPPROVE) {
             await ctx.editMessageText(BorrowTextSource.getBorrowDisapprovedText(), {
                 parse_mode: "MarkdownV2",

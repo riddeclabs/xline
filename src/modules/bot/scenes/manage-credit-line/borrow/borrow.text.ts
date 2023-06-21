@@ -22,7 +22,7 @@ export class BorrowTextSource extends BasicSourceText {
                 "📊 *Current state:*\n" +
                 creditLineStateText +
                 "\n" +
-                `Max accuracy for USD value ia 1 cent.`
+                `Max accuracy for ${state.debtCurrency} value ia 1 cent.`
         );
     }
 
@@ -58,11 +58,11 @@ export class BorrowTextSource extends BasicSourceText {
         );
     }
 
-    static getBorrowSuccessText(requisites: Requisites): string {
+    static getBorrowSuccessText(requisites: Requisites, currency: string): string {
         const requisitesText = this.getRequisitesText(requisites);
         return escapeSpecialCharacters(
             "✅ * Done! You've created a new 'Borrow' request!*\n\n" +
-                "💸 We will send the requested USD amount to your bank account\n\n" +
+                `💸 We will send the requested ${currency} amount to your bank account\n\n` +
                 requisitesText +
                 "\n" +
                 "💡 You always can check all you request details.\n" +
