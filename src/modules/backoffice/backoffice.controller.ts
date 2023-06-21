@@ -314,7 +314,7 @@ export class BackOfficeController {
     @Get("customer-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
     async customerCreditLine(@Param("userId") userId: string) {
-        const allCreditLinesByUserId = await this.backofficeService.getUserById(userId);
+        const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
         //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
         //     collateralCurrency.symbol,
@@ -323,9 +323,9 @@ export class BackOfficeController {
         //     scaledTokenPrice
         // );
         let allCreditLine: CreditLineDetailsType[] = [];
-        if (allCreditLinesByUserId?.creditLines.length) {
+        if (fullyAssociatedUser?.creditLines.length) {
             allCreditLine = await Promise.all(
-                allCreditLinesByUserId?.creditLines.map(async (item, idx) => {
+                fullyAssociatedUser?.creditLines.map(async (item, idx) => {
                     const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
                         item.id
                     );
@@ -335,18 +335,27 @@ export class BackOfficeController {
                         debtSymbol: item.debtCurrency.symbol,
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
-                            rawSupplyAmount: formatUnits(lineDetails.rawCollateralAmount), // raw collateral amount, use collateral decimals to convert to float
+                            rawSupplyAmount: formatUnits(
+                                lineDetails.rawCollateralAmount,
+                                lineDetails.collateralCurrency.decimals
+                            ), // raw collateral amount, use collateral decimals to convert to float
                             usdSupplyAmount: truncateDecimal(
-                                formatUnits(lineDetails.fiatCollateralAmount)
+                                formatUnits(
+                                    lineDetails.fiatCollateralAmount,
+                                    lineDetails.collateralCurrency.decimals
+                                )
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             usdCollateralAmount: truncateDecimal(
                                 formatUnits(
                                     (lineDetails.fiatCollateralAmount *
                                         economicalParams.collateralFactor) /
-                                        EXP_SCALE
+                                        EXP_SCALE,
+                                    lineDetails.collateralCurrency.decimals
                                 )
                             ), // raw fiat amount, use debt currency decimals to convert to float
-                            debtAmount: truncateDecimal(formatUnits(lineDetails.debtAmount)), // raw fiat amount, use debt currency decimals to convert to float
+                            debtAmount: truncateDecimal(
+                                formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals)
+                            ), // raw fiat amount, use debt currency decimals to convert to float
                             //TODO: fix after PR will be merged
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
@@ -372,8 +381,8 @@ export class BackOfficeController {
         }
         const resultTablesData = {
             mainInfo: {
-                name: allCreditLinesByUserId?.name,
-                chatId: allCreditLinesByUserId?.chatId,
+                name: fullyAssociatedUser?.name,
+                chatId: fullyAssociatedUser?.chatId,
             },
             allCreditLine,
         };

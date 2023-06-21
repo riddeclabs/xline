@@ -149,7 +149,7 @@ export class BackOfficeService {
         return this.repayRepo.createQueryBuilder().getCount();
     }
 
-    getUserById(id: string) {
+    getFullyAssociatedUserById(id: string) {
         return this.userRepo
             .createQueryBuilder("user")
             .where("user.id = :id", { id })
@@ -157,6 +157,7 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .orderBy("creditLine.createdAt", "ASC")
             .getOne();
     }
     getAllCustomersCount() {
