@@ -141,10 +141,16 @@ export class BorrowActionWizard {
         const stateBefore = getCreditLineState(cdl);
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
+        //TODO: adapt for minimal fee value later
         const processingFee = formatUnitsNumber(cdl.economicalParams.fiatProcessingFee);
 
+        const borroWithFee = await this.botManager.calculateBorrowAmountWithFee(
+            creditLineId,
+            borrowFiatAmount
+        );
+
         stateAfter.debtAmount = truncateDecimals(
-            stateBefore.debtAmount + amount + amount * processingFee,
+            stateBefore.debtAmount + formatUnitsNumber(borroWithFee),
             2
         );
         stateAfter.utilizationRatePercent = bigintToFormattedPercent(

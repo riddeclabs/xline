@@ -33,6 +33,20 @@ export class CreditLineService {
         return this.getCreditLineById(creditLineId);
     }
 
+    async increaseAccumulatedFeeAmountById(
+        creditLineId: number,
+        addAmount: bigint
+    ): Promise<CreditLine> {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ feeAccumulatedFiatAmount: () => "feeAccumulatedFiatAmount + addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
+    }
+
     async decreaseDebtAmountById(creditLineId: number, subAmount: bigint) {
         this.creditLineRepo
             .createQueryBuilder()

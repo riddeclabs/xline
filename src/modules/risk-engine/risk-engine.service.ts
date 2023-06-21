@@ -89,6 +89,19 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
+    //TODO: Add minimum processing fee support
+    async calculateFiatProcessingFeeAmount(creditLineId: number, borrowAmount: bigint): Promise<bigint> {
+        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
+            creditLineId
+        );
+        return (borrowAmount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+    }
+
+    async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {
+        const fee = await this.calculateFiatProcessingFeeAmount(creditLineId, borrowAmount);
+        return borrowAmount + fee;
+    }
+
     // Verify if borrow is possible over collateral factor
     // Utilization after borrow must be less or equal than collateral factor
     async verifyBorrowOverCFOrThrow(

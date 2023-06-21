@@ -27,7 +27,6 @@ import {
 } from "../../database/entities";
 import { CallbackTypes } from "../payment-processing/constants";
 import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
-import { EXP_SCALE } from "src/common/constants";
 import { validateIban, validateName } from "src/common/input-validation";
 
 @Injectable()
@@ -100,13 +99,17 @@ export class RequestResolverService {
             );
         }
 
-        // FIXME: Maybe add fee to debt amount here as well?
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount
+        );
+
         try {
             await this.riskEngineService.verifyBorrowOverLFOrThrow(
                 creditLine,
                 creditLine.collateralCurrency.symbol,
                 creditLine.collateralCurrency.decimals,
-                borrowRequest.borrowFiatAmount
+                borrowAmountWithFee
             );
         } catch (e) {
             throw new HttpException("Err", HttpStatus.BAD_REQUEST);
@@ -188,17 +191,19 @@ export class RequestResolverService {
             BorrowRequestStatus.FINISHED
         );
 
-        // Increase debt amount for borrow request on borrow value
-        await this.creditLineService.increaseDebtAmountById(
+        const feeAmount = await this.riskEngineService.calculateBorrowAmountWithFees(
             creditLine.id,
             borrowRequest.borrowFiatAmount
         );
 
+        // Increase debt amount for borrow request on borrow value
+        await this.creditLineService.increaseDebtAmountById(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount + feeAmount
+        );
+
         // Increase debt amount for borrow request on fee value
-        const feeAmount =
-            (borrowRequest.borrowFiatAmount * creditLine.economicalParameters.fiatProcessingFee) /
-            EXP_SCALE;
-        await this.creditLineService.increaseDebtAmountById(creditLine.id, feeAmount);
+        await this.creditLineService.increaseAccumulatedFeeAmountById(creditLine.id, feeAmount);
 
         return {
             success: true,
@@ -267,12 +272,17 @@ export class RequestResolverService {
             creditLine.rawCollateralAmount
         );
 
+        const amountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
+            requestedBorrowAmount
+        );
+
         try {
             await this.riskEngineService.verifyBorrowOverCFOrThrow(
                 creditLine,
                 creditLine.collateralCurrency.symbol,
                 creditLine.collateralCurrency.decimals,
-                requestedBorrowAmount
+                amountWithFee
             );
         } catch (e) {
             if (!(e instanceof Error)) {
@@ -295,11 +305,16 @@ export class RequestResolverService {
             creditLineId
         );
 
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLineId,
+            hypotheticalBorrowAmount
+        );
+
         await this.riskEngineService.verifyBorrowOverCFOrThrow(
             creditLineExtended,
             creditLineExtended.collateralCurrency.symbol,
             creditLineExtended.collateralCurrency.decimals,
-            hypotheticalBorrowAmount
+            borrowAmountWithFee
         );
     }
 

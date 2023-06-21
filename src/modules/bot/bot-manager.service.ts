@@ -225,6 +225,10 @@ export class BotManagerService {
         });
     }
 
+    async calculateBorrowAmountWithFee(creditLineId: number, borrowFiatAmount: bigint) {
+        return this.riskEngineService.calculateBorrowAmountWithFees(creditLineId, borrowFiatAmount);
+    }
+
     async verifyHypBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
         await this.requestResolverService.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
     }
