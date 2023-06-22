@@ -343,7 +343,9 @@ export class BackOfficeController {
                                 formatUnits(
                                     lineDetails.fiatCollateralAmount,
                                     lineDetails.collateralCurrency.decimals
-                                )
+                                ),
+                                2,
+                                false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             usdCollateralAmount: truncateDecimal(
                                 formatUnits(
@@ -351,17 +353,25 @@ export class BackOfficeController {
                                         economicalParams.collateralFactor) /
                                         EXP_SCALE,
                                     lineDetails.collateralCurrency.decimals
-                                )
+                                ),
+                                2,
+                                false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             debtAmount: truncateDecimal(
-                                formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals)
+                                formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals),
+                                2,
+                                false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             //TODO: fix after PR will be merged
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
                             utilizationFactor: formatUnits(lineDetails.utilizationRate), // All rates have 18 decimals accuracy
-                            healthyFactor: truncateDecimal(formatUnits(lineDetails.healthyFactor)), // All rates have 18 decimals accuracy
+                            healthyFactor: truncateDecimal(
+                                formatUnits(lineDetails.healthyFactor),
+                                2,
+                                false
+                            ), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
                             collateralFactor: formatUnits(economicalParams.collateralFactor), // All rates have 18 decimals accuracy
