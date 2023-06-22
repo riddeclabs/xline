@@ -144,7 +144,7 @@ input::-webkit-inner-spin-button {
   }
   .sortingTitle {
     text-decoration: none; 
-    color: rgb(173, 181, 189);
+    color: #CDCCCD;
   }
   .home-wrapper {
     display: flex;
@@ -201,7 +201,7 @@ input::-webkit-inner-spin-button {
           <li>
             <a
               href='/backoffice/customers'
-              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              class='nav-link text-white {% if current_url contains 'customers'%}active{% endif %}'
               >
               Customers
             </a>

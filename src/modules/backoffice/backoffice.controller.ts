@@ -18,7 +18,16 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { createRepayRequestRefNumber, formatUnits, makePagination, Role } from "src/common";
+import {
+    BorrowRequestStatus,
+    createRepayRequestRefNumber,
+    DepositRequestStatus,
+    formatUnits,
+    makePagination,
+    RepayRequestStatus,
+    Role,
+    WithdrawRequestStatus,
+} from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -35,6 +44,8 @@ import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { TransactionsQuery } from "./decorators/transactions.decorators";
+import { TransactionsDto } from "./dto/transactions.dto";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -301,6 +312,88 @@ export class BackOfficeController {
                     siblingCount: 1,
                 }),
                 disabled: totalCount > PAGE_LIMIT,
+            },
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("creditline-user-list/:creditLineId")
+    @Render("backoffice/creditline-user-list")
+    async userCreditLineList(
+        @Param("creditLineId") creditLineId: string,
+        @TransactionsQuery() query: TransactionsDto
+    ) {
+        const { page, sortField, sortDirection } = query;
+        const initialTransactions = await this.backofficeService.getAllRequestByCreditLine(
+            page - 1,
+            creditLineId,
+            sortField,
+            sortDirection
+        );
+        const checkStatus = (type: string, status: string) => {
+            switch (type) {
+                case "Deposit":
+                    return DepositRequestStatus[status as DepositRequestStatus];
+
+                case "Borrow":
+                    return BorrowRequestStatus[status as BorrowRequestStatus];
+
+                case "Withdraw":
+                    return WithdrawRequestStatus[status as WithdrawRequestStatus];
+
+                case "Repay":
+                    return RepayRequestStatus[status as RepayRequestStatus];
+
+                default:
+                    return "";
+            }
+        };
+
+        const resultTransactions = initialTransactions.map(transaction => {
+            return {
+                ...transaction,
+                created_at: moment(transaction.created_at).format("DD.MM.YYYY HH:mm"),
+                updated_at: moment(transaction.created_at).format("DD.MM.YYYY HH:mm"),
+                status: checkStatus(transaction.type, transaction.status),
+            };
+        });
+
+        const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
+        const totalCount = countTransaction[0]?.count;
+        const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(
+            creditLineId
+        );
+
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+
+        const resultTable = {
+            mainInfo: {
+                name: userByCreditLineId?.user.name,
+                chatId: userByCreditLineId?.user.chatId,
+                debt: userByCreditLineId?.debtCurrency.symbol,
+                collateral: userByCreditLineId?.collateralCurrency.symbol,
+            },
+            rowTable: resultTransactions,
+        };
+        const totalPageCount = Math.ceil(Number(totalCount) / PAGE_LIMIT_REQUEST);
+
+        return {
+            resultTable,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: Number(totalCount) > PAGE_LIMIT_REQUEST,
             },
         };
     }
