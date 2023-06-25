@@ -13,8 +13,9 @@ import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.t
 import { BorrowTextSource } from "./borrow.text";
 import { BotManagerService } from "src/modules/bot/bot-manager.service";
 import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
-import { getCreditLineState, truncateDecimals } from "../../common/utils";
+import { getCreditLineState } from "../../common/utils";
 import { validateAmountDecimals } from "src/common/input-validation";
+import { truncateDecimals } from "src/common/text-formatter";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -69,6 +70,51 @@ export class BorrowActionWizard {
             }).reply_markup
         );
         ctx.wizard.next();
+    }
+
+    @WizardStep(BorrowActionSteps.VERIFY_IS_BORROW_POSSIBLE)
+    async onVerifyIsBorrowPossible(@Ctx() ctx: BorrowContext) {
+        const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
+        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+            creditLineId
+        );
+
+        if (lineDetails.rawCollateralAmount <= 0n) {
+            await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
+                parse_mode: "MarkdownV2",
+            });
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                    columns: 1,
+                }).reply_markup
+            );
+            ctx.wizard.next();
+            return;
+        }
+
+        const utilizationFactor = lineDetails.utilizationRate * 100n;
+
+        if (utilizationFactor >= economicalParams.collateralFactor) {
+            await ctx.editMessageText(
+                BorrowTextSource.getInsufficientBalanceText(
+                    utilizationFactor,
+                    economicalParams.collateralFactor
+                ),
+                {
+                    parse_mode: "MarkdownV2",
+                }
+            );
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                    columns: 1,
+                }).reply_markup
+            );
+            ctx.wizard.next();
+            return;
+        }
+
+        ctx.wizard.next();
+        await this.botCommon.executeCurrentStep(ctx);
     }
 
     @WizardStep(BorrowActionSteps.BORROW_TERMS)

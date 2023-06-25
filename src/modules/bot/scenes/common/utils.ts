@@ -3,6 +3,7 @@ import { CreditLineDetailsExt } from "../../bot-manager.service";
 import { CreditLineStateMsgData } from "./types";
 import { EXP_SCALE } from "src/common/constants";
 import { BasicSourceText } from "./basic-source.text";
+import { truncateDecimals } from "src/common/text-formatter";
 
 export function getCreditLineState(cld: CreditLineDetailsExt): CreditLineStateMsgData {
     const maxAllowedBorrowAmount = formatUnitsNumber(
@@ -19,22 +20,12 @@ export function getCreditLineState(cld: CreditLineDetailsExt): CreditLineStateMs
         cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
         debtCurrency: cld.lineDetails.debtCurrency.symbol,
         debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
-        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
+        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate * 100n),
         maxAllowedBorrowAmount: truncateDecimals(maxAllowedBorrowAmount, 2),
         liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
-            cld.lineDetails.utilizationRate,
+            cld.lineDetails.utilizationRate * 100n,
             cld.economicalParams.collateralFactor
         ),
         hasBeenLiquidated: cld.lineDetails.isLiquidated ? "Yes" : "No",
     };
-}
-
-export function truncateDecimals(value: number | string, decimals: number): number {
-    const valueStr = typeof value === "string" ? value : value.toString();
-    const dotIndex = valueStr.indexOf(".");
-    if (dotIndex === -1) {
-        return Number(valueStr);
-    }
-    const valueStrTruncated = valueStr.slice(0, dotIndex + decimals + 1);
-    return Number(valueStrTruncated);
 }

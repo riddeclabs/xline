@@ -1,6 +1,10 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
-import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
+import {
+    bigintToFormattedPercent,
+    escapeSpecialCharacters,
+    formatUnitsNumber,
+} from "../../../../common";
 import { BasicSourceText } from "../common/basic-source.text";
 import { getCreditLineState } from "../common/utils";
 
@@ -22,7 +26,7 @@ export class ManageCreditLineText extends BasicSourceText {
         const healthyFactorText =
             cld.healthyFactor === 0n
                 ? ""
-                : `Healthy Factor: ${bigintToFormattedPercent(cld.healthyFactor, 3)}}\n`;
+                : `Healthy Factor:    ${formatUnitsNumber(cld.healthyFactor)} \n`;
 
         const state = getCreditLineState({ economicalParams: ep, lineDetails: cld });
         const creditLineStateText = this.getCreditLineStateText(state);

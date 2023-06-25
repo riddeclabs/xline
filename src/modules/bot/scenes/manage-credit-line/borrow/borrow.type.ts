@@ -6,6 +6,7 @@ import {
 
 export enum BorrowActionSteps {
     VERIFY_PENDING_REQUESTS,
+    VERIFY_IS_BORROW_POSSIBLE,
     BORROW_TERMS,
     AMOUNT_REQUEST,
     SIGN_TERMS,

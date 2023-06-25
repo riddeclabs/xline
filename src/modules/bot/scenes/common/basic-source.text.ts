@@ -1,7 +1,7 @@
 import { formatUnitsNumber } from "src/common";
 import { RiskStrategyLevels } from "../new-credit-request/new-credit-request.types";
 import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "./types";
-import { truncateDecimals } from "./utils";
+import { truncateDecimals } from "src/common/text-formatter";
 
 export abstract class BasicSourceText {
     static getCurrentLiquidationRisk(
@@ -39,15 +39,15 @@ export abstract class BasicSourceText {
 
     static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed = true): string {
         const maxAllowedText = printMaxAllowed
-            ? `Max to borrow:    ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
+            ? `🎯 *Max allowed amount to borrow:* ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
             : "";
         return (
             `Deposit amount: ${data.supplyAmountCrypto} ${data.cryptoCurrency} / ${data.supplyAmountFiat} ${data.debtCurrency}\n` +
-            `Debt amount:      ${data.debtAmount} ${data.debtCurrency}\n` +
+            `Debt amount:       ${data.debtAmount} ${data.debtCurrency}\n` +
             `Utilization rate:    ${data.utilizationRatePercent}%\n` +
-            maxAllowedText +
-            `Liquidation risk:    ${data.liquidationRisk}\n` +
-            `Been liquidated:   ${data.hasBeenLiquidated}\n`
+            `Liquidation risk:   ${data.liquidationRisk}\n` +
+            `Been liquidated:   ${data.hasBeenLiquidated}\n\n` +
+            maxAllowedText
         );
     }
 
