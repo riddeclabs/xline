@@ -35,6 +35,8 @@ import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { CreditLineDetailsDto } from "./dto/credit-line-details.dto";
+import { CreditLineDetails } from "./decorators/credit-line-details";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -303,6 +305,36 @@ export class BackOfficeController {
                 disabled: totalCount > PAGE_LIMIT,
             },
         };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers/credit-line-details/:type/:id")
+    @Render("backoffice/credit-line-detail")
+    async creditLineDetails(
+        @Param("type") id: string,
+        @Param("type") type: string,
+        @CreditLineDetails() query: CreditLineDetailsDto
+    ) {
+        const { createdAt } = query;
+
+        console.log("createdAt", createdAt);
+        console.log("type", type);
+        console.log("id", id);
+
+        //TODO uncomment after merge xlin-47
+        // const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(id);
+
+        // const resultTable = {
+        //     mainInfo: {
+        //         name: userByCreditLineId?.user.name,
+        //         chatId: userByCreditLineId?.user.chatId,
+        //         debt: userByCreditLineId?.debtCurrency.symbol,
+        //         collateral: userByCreditLineId?.collateralCurrency.symbol,
+        //     },
+        //     rowTable: resultTransactions,
+        // };
+        return {};
     }
 
     @Roles(Role.ADMIN)

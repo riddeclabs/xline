@@ -1,0 +1,95 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <h1 class='pb-2 text-white fs-1'>Requests</h1>
+  <div style="color: #fff;" class="pb-3">
+    <div>Credit line: {{ resultTable.mainInfo.collateral }} / {{ resultTable.mainInfo.debt }}</div>
+    <div>User name: {{ resultTable.mainInfo.name }}</div>
+    <div>Chat ID: {{ resultTable.mainInfo.chatId }}</div>
+  </div>
+  
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Requests list</h1>
+    
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col'>
+            Raw Transfer Amount
+          </th>
+          <th scope='col'>
+            USD Transfer Amount
+          </th>
+          <th scope='col'>
+            Transaction Hash
+          </th>
+          <th scope='col'>
+            Processing Transaction ID
+          </th>
+          <th scope='col'>
+            Created At
+          </th>
+          <th scope='col'>
+            Updated At
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless resultTable.rowTable.size > 0 %}
+          <tr>
+            <td colspan="4">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for transaction in resultTable.rowTable %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ transaction.type }}
+              </td>
+              <td class='align-middle' style="color: #D07400; text-transform: uppercase;">
+                {{ transaction.status }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.created_at }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.updated_at }}
+              </td>
+              <td class='align-middle'>
+                <a href="/backoffice/customers/credit-line-detail/{{ transaction.credit_line_id }}">
+                  <button class="icon-button">
+                    <i class='bi-info-circle'></i>
+                  </button>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+{% endblock %}
