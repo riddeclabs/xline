@@ -9,6 +9,7 @@ import {
     CreditLine,
     DebtCurrency,
     FiatTransaction,
+    CryptoTransaction,
 } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -52,7 +53,9 @@ export class BackOfficeService {
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
         @InjectRepository(FiatTransaction)
-        private fiatTransaction: Repository<FiatTransaction>
+        private fiatTransaction: Repository<FiatTransaction>,
+        @InjectRepository(CryptoTransaction)
+        private cryptoTransaction: Repository<CryptoTransaction>
     ) {}
 
     accountInfo() {
@@ -213,16 +216,38 @@ export class BackOfficeService {
     }
 
     getBorrowRequestDetails(id: string) {
-        return this.fiatTransaction
-            .createQueryBuilder("fiat")
-            .where("fiat.borrowRequestId = :id", { id })
-            .getMany();
+        return (
+            this.fiatTransaction
+                .createQueryBuilder("fiat")
+                // .where("fiat.borrowRequestId = :id", { id })
+                .getMany()
+        );
     }
 
     getRepayRequestDetails(id: string) {
-        return this.fiatTransaction
-            .createQueryBuilder("fiat")
-            .where("fiat.repayRequestId = :id", { id })
-            .getMany();
+        return (
+            this.fiatTransaction
+                .createQueryBuilder("fiat")
+                // .where("fiat.repayRequestId = :id", { id })
+                .getMany()
+        );
+    }
+
+    getDepositRequestDetails(id: string) {
+        return (
+            this.cryptoTransaction
+                .createQueryBuilder("crypto")
+                // .where("crypto.depositRequestId = :id", { id })
+                .getMany()
+        );
+    }
+
+    getWithdrawRequestDetails(id: string) {
+        return (
+            this.cryptoTransaction
+                .createQueryBuilder("crypto")
+                // .where("crypto.withdrawRequestId = :id", { id })
+                .getMany()
+        );
     }
 }

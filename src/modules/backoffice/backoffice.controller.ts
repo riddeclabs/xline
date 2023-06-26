@@ -37,6 +37,7 @@ import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
 import { CreditLineDetailsDto } from "./dto/credit-line-details.dto";
 import { CreditLineDetails } from "./decorators/credit-line-details";
+import { CryptoTransaction, FiatTransaction } from "src/database/entities";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -318,25 +319,22 @@ export class BackOfficeController {
     ) {
         const { createdAt } = query;
         console.log("createdAt", createdAt);
-        console.log("id", id);
-        console.log("type", type);
-
-        const test = await this.backofficeService.getBorrowRequestDetails(id);
-        console.log("test", test);
+        let test: FiatTransaction[] | CryptoTransaction[] = [];
         switch (type) {
             case "Borrow":
-                console.log("Borrow111");
+                test = await this.backofficeService.getBorrowRequestDetails(id);
                 break;
             case "Deposit":
-                console.log("Deposit111");
+                test = await this.backofficeService.getDepositRequestDetails(id);
                 break;
             case "Withdraw":
-                console.log("Withdraw111");
+                test = await this.backofficeService.getWithdrawRequestDetails(id);
                 break;
             case "Repay":
-                console.log("Repay111");
+                test = await this.backofficeService.getRepayRequestDetails(id);
                 break;
         }
+        console.log("test", test);
         //TODO uncomment after merge xlin-47
         // const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(id);
 
