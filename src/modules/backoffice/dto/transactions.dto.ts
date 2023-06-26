@@ -6,7 +6,7 @@ export class TransactionsDto {
 
     @IsString()
     @IsOptional()
-    sortField?: "created_at" | "type" | "status";
+    sortField?: "created_at" | "type" | "status" | "updated_at";
 
     @IsString()
     @IsOptional()

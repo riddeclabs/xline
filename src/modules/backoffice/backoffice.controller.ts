@@ -318,14 +318,14 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("creditline-user-list/:creditLineId")
+    @Get("customers/creditline-user-list/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
         @Param("creditLineId") creditLineId: string,
         @TransactionsQuery() query: TransactionsDto
     ) {
         const { page, sortField, sortDirection } = query;
-        const initialTransactions = await this.backofficeService.getAllRequestByCreditLine(
+        const initialRequestByCreditLineId = await this.backofficeService.getAllRequestByCreditLine(
             page - 1,
             creditLineId,
             sortField,
@@ -350,20 +350,19 @@ export class BackOfficeController {
             }
         };
 
-        const resultTransactions = initialTransactions.map(transaction => {
+        const resultTransactions = initialRequestByCreditLineId.map(request => {
             return {
-                ...transaction,
-                created_at: moment(transaction.created_at).format("DD.MM.YYYY HH:mm"),
-                updated_at: moment(transaction.created_at).format("DD.MM.YYYY HH:mm"),
-                status: checkStatus(transaction.type, transaction.status),
+                ...request,
+                created_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                updated_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                status: checkStatus(request.type, request.status),
             };
         });
 
         const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
         const totalCount = countTransaction[0]?.count;
-        const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(
-            creditLineId
-        );
+        const generalUserInfoAndCurrencySymbol =
+            await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(creditLineId);
 
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -373,10 +372,10 @@ export class BackOfficeController {
 
         const resultTable = {
             mainInfo: {
-                name: userByCreditLineId?.user.name,
-                chatId: userByCreditLineId?.user.chatId,
-                debt: userByCreditLineId?.debtCurrency.symbol,
-                collateral: userByCreditLineId?.collateralCurrency.symbol,
+                name: generalUserInfoAndCurrencySymbol?.user.name,
+                chatId: generalUserInfoAndCurrencySymbol?.user.chatId,
+                debt: generalUserInfoAndCurrencySymbol?.debtCurrency.symbol,
+                collateral: generalUserInfoAndCurrencySymbol?.collateralCurrency.symbol,
             },
             rowTable: resultTransactions,
         };

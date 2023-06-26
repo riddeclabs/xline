@@ -8,7 +8,6 @@ import {
     CollateralCurrency,
     CreditLine,
     DebtCurrency,
-    WithdrawRequest,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -55,8 +54,6 @@ export class BackOfficeService {
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
-        @InjectRepository(WithdrawRequest)
-        private withdrawRequest: Repository<WithdrawRequest>,
         private connection: Connection
     ) {}
 
@@ -254,7 +251,7 @@ export class BackOfficeService {
         return this.connection.manager.query(query);
     }
 
-    getWithdrawUserByCreditLineId(id: string) {
+    getGeneralUserInfoAndCurrencySymbol(id: string) {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.user", "user")

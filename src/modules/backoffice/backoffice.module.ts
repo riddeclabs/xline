@@ -10,7 +10,6 @@ import {
     CollateralCurrency,
     CreditLine,
     DebtCurrency,
-    WithdrawRequest,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -30,7 +29,6 @@ import { PriceOracleModule } from "../price-oracle/price-oracle.module";
             CreditLine,
             CollateralCurrency,
             DebtCurrency,
-            WithdrawRequest,
         ]),
         UserModule,
         CreditLineModule,

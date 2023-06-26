@@ -15,10 +15,10 @@
         <tr>
           <th scope='col' style="color: #fff;">
             {% if page.query.sortField == "type" and page.query.sortDirection == "ASC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Request Type<i class='bi-arrow-up'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Request Type<i class='bi-arrow-up arrow-position'></i>
               </a>
             {% elsif page.query.sortField == "type" and page.query.sortDirection == "DESC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Request Type<i class='bi-arrow-down'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Request Type<i class='bi-arrow-down arrow-position'></i>
               </a>
             {% else %}
               <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Request Type
@@ -27,10 +27,10 @@
           </th>
           <th scope='col'>
             {% if page.query.sortField == "status" and page.query.sortDirection == "ASC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Status<i class='bi-arrow-up'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Status<i class='bi-arrow-up arrow-position'></i>
               </a>
             {% elsif page.query.sortField == "status" and page.query.sortDirection == "DESC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Status<i class='bi-arrow-down'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Status<i class='bi-arrow-down arrow-position'></i>
               </a>
             {% else %}
               <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Status
@@ -39,10 +39,10 @@
           </th>
           <th scope='col'>
             {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At<i class='bi-arrow-up'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At<i class='bi-arrow-up arrow-position'></i>
               </a>
             {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Created At<i class='bi-arrow-down'></i>
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Created At<i class='bi-arrow-down arrow-position'></i>
               </a>
             {% else %}
               <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At
@@ -50,7 +50,16 @@
             {% endif %}
           </th>
           <th scope='col'>
-            Updated At
+            {% if page.query.sortField == "updated_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "updated_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Updated At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At
+              </a>
+            {% endif %}
           </th>
           <th scope='col'></th>
         </tr>
