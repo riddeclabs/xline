@@ -146,34 +146,38 @@ export abstract class BasicSourceText {
     }
 
     static getFiatTxMsgText(data: FiatTxMsgData, num?: number): string {
-        return num
-            ? `${num}. `
-            : `` + "*Fiat transaction*" + num
-            ? `*[${num}]*`
-            : `` +
-              "\n\n" +
-              `Status: ${data.status}\n` +
-              `Amount: ${data.amount} ${data.currency}\n\n` +
-              "From:\n" +
-              `Name: ${data.nameFrom}\n` +
-              `IBAN: ${data.nameFrom}\n\n` +
-              "To:\n" +
-              `Name: ${data.nameTo}\n` +
-              `IBAN: ${data.nameTo}\n\n` +
-              `Created: ${data.created}\n` +
-              `Updated: ${data.updated}\n\n`;
+        let msgHeader = "🧾 *Fiat transaction*";
+        if (num) {
+            msgHeader += ` [${num}]`;
+        }
+        return (
+            msgHeader +
+            "\n\n" +
+            `*Status:* ${data.status}\n` +
+            `*Amount:* ${data.amount} ${data.currency}\n\n` +
+            "*From:*\n" +
+            `Name: ${data.nameFrom}\n` +
+            `IBAN: ${data.ibanFrom}\n\n` +
+            "*To:*\n" +
+            `Name: ${data.nameTo}\n` +
+            `IBAN: ${data.ibanTo}\n\n` +
+            `*Created:* ${data.created}\n` +
+            `*Updated:* ${data.updated}\n\n`
+        );
     }
 
     static getCryptoTxMsgText(data: CryptoTxMsgData, num?: number): string {
-        return num
-            ? `${num}. `
-            : `` + "*Crypto transaction*" + num
-            ? `*[${num}]*`
-            : `` +
-              "\n\n" +
-              `TxHash: ${data.txHash}\n` +
-              `Amount: ${data.amount} ${data.currency}\n` +
-              `Created: ${data.created}\n` +
-              `Updated: ${data.updated}\n\n`;
+        let msgHeader = "🧾 *Crypto transaction*";
+        if (num) {
+            msgHeader += ` [${num}]`;
+        }
+        return (
+            msgHeader +
+            "\n\n" +
+            `*TxHash:* ${data.txHash}\n` +
+            `*Amount:* ${data.amount} ${data.currency}\n\n` +
+            `Created: ${data.created}\n` +
+            `Updated: ${data.updated}\n\n`
+        );
     }
 }

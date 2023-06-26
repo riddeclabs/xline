@@ -45,14 +45,15 @@ export class ViewRequestText extends BasicSourceText {
         }
 
         if (txList.length > 0) {
-            requestMsgText += "\n----\n";
+            requestMsgText += "\n----\n\n";
             if (
                 (requestType === SceneRequestTypes.REPAY || requestType === SceneRequestTypes.BORROW) &&
                 isFiatTxMsgDataArray(txList)
             ) {
-                requestMsgText += txList
-                    .map(tx => this.getFiatTxMsgText(tx, txList.indexOf(tx) + 1))
+                const txText = txList
+                    .map(tx => BasicSourceText.getFiatTxMsgText(tx, txList.indexOf(tx) + 1))
                     .join("\n\n");
+                requestMsgText += txText;
             } else if (
                 (requestType === SceneRequestTypes.DEPOSIT ||
                     requestType === SceneRequestTypes.WITHDRAW) &&
