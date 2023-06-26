@@ -184,7 +184,7 @@ export class BotManagerService {
             creditLine.rawCollateralAmount
         );
 
-        const getUtilRate = () => (depositUsdAmount * EXP_SCALE) / creditLine.debtAmount;
+        const getUtilRate = () => (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
 
         return {
             economicalParams: lineEconomicalParams,
@@ -232,6 +232,10 @@ export class BotManagerService {
         });
     }
 
+    async calculateBorrowAmountWithFee(creditLineId: number, borrowFiatAmount: bigint) {
+        return this.riskEngineService.calculateBorrowAmountWithFees(creditLineId, borrowFiatAmount);
+    }
+
     async verifyHypBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
         await this.requestResolverService.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
     }
@@ -263,8 +267,8 @@ export class BotManagerService {
         return this.requestHandlerService.getOldestPendingBorrowReq(creditLineId);
     }
 
-    async getOldestPendingOrWFDBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
-        return this.requestHandlerService.getOldestPendingOrWFDBorrowReq(creditLineId);
+    async getOldestUnfinalizedBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestUnfinalizedBorrowReq(creditLineId);
     }
 
     async getOldestPendingDepositReq(creditLineId: number) {

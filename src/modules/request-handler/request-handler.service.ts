@@ -75,9 +75,17 @@ export class RequestHandlerService {
             .getOneOrFail();
     }
 
-    async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
-        request.depositRequestStatus = newStatus;
-        return this.depositRequestRepo.save(request);
+    async updateDepositReqStatus(
+        requestId: number,
+        newStatus: DepositRequestStatus
+    ): Promise<DepositRequest> {
+        await this.depositRequestRepo
+            .createQueryBuilder()
+            .update(DepositRequest)
+            .set({ depositRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getDepositRequest(requestId);
     }
 
     // WithdrawRequest block
@@ -129,9 +137,14 @@ export class RequestHandlerService {
             .getOneOrFail();
     }
 
-    async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
-        request.withdrawRequestStatus = newStatus;
-        return this.withdrawRequestRepo.save(request);
+    async updateWithdrawReqStatus(requestId: number, newStatus: WithdrawRequestStatus) {
+        await this.withdrawRequestRepo
+            .createQueryBuilder()
+            .update(WithdrawRequest)
+            .set({ withdrawRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getWithdrawRequest(requestId);
     }
 
     // BorrowRequest block
@@ -147,6 +160,7 @@ export class RequestHandlerService {
             .leftJoinAndSelect("cl.collateralCurrency", "cc")
             .leftJoinAndSelect("cl.debtCurrency", "dc")
             .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.economicalParameters", "ep")
             .leftJoinAndSelect("cl.user", "user")
             .leftJoinAndSelect("br.fiatTransactions", "ftx")
             .where("br.id = :borrowRequestId", { borrowRequestId })
@@ -187,7 +201,7 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async getOldestPendingOrWFDBorrowReq(creditLineId: number) {
+    async getOldestUnfinalizedBorrowReq(creditLineId: number) {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
             .leftJoinAndSelect("br.creditLine", "cl")
@@ -195,23 +209,31 @@ export class RequestHandlerService {
             .leftJoinAndSelect("cl.user", "user")
             .leftJoinAndSelect("cl.collateralCurrency", "cc")
             .leftJoinAndSelect("cl.debtCurrency", "dc")
-            .where("br.borrowRequestStatus = :statusVP", {
-                statusVP: BorrowRequestStatus.VERIFICATION_PENDING,
+            .where("br.borrowRequestStatus != :statusRej", {
+                statusRej: BorrowRequestStatus.REJECTED,
             })
-            .orWhere("br.borrowRequestStatus = :statusWFD", {
-                statusWFD: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+            .andWhere("br.borrowRequestStatus != :statusFin", {
+                statusFin: BorrowRequestStatus.FINISHED,
             })
             .andWhere("br.creditLineId = :creditLineId", { creditLineId })
             .orderBy("br.createdAt", "ASC")
             .getOne();
     }
 
-    async updateBorrowReqStatus(request: BorrowRequest, newStatus: BorrowRequestStatus) {
-        request.borrowRequestStatus = newStatus;
-        return this.borrowRequestRepo.save(request);
+    async updateBorrowReqStatus(requestId: number, newStatus: BorrowRequestStatus) {
+        await this.borrowRequestRepo
+            .createQueryBuilder()
+            .update(BorrowRequest)
+            .set({ borrowRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getBorrowRequest(requestId);
     }
 
     // RepayRequest block
+    async getRepayRequest(reqId: number) {
+        return this.repayRequestRepo.findOneByOrFail({ id: reqId });
+    }
 
     async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
         return this.repayRequestRepo
@@ -256,8 +278,13 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateRepayReqStatus(request: RepayRequest, newStatus: RepayRequestStatus) {
-        request.repayRequestStatus = newStatus;
-        return this.repayRequestRepo.save(request);
+    async updateRepayReqStatus(requestId: number, newStatus: RepayRequestStatus) {
+        await this.repayRequestRepo
+            .createQueryBuilder()
+            .update(RepayRequest)
+            .set({ repayRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getRepayRequest(requestId);
     }
 }

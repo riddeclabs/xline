@@ -49,7 +49,7 @@ export class RequestHandlerController {
     }
     @Get("borrow/pending/:lineId")
     getOldestPendingBorrowReq(@Param("lineId") creditLineId: string) {
-        return this.requestHandlerService.getOldestPendingOrWFDBorrowReq(+creditLineId);
+        return this.requestHandlerService.getOldestUnfinalizedBorrowReq(+creditLineId);
     }
 
     @Get("repay/all/:lineId")

@@ -1,29 +1,30 @@
-import { escapeSpecialCharacters } from "src/common";
+import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
 import { BasicSourceText } from "../../common/basic-source.text";
 import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
 
 export class BorrowTextSource extends BasicSourceText {
     static getBorrowTermsText(maxCollateral: string, processingFee: string): string {
         return escapeSpecialCharacters(
-            "*Borrow info*\n\n" +
-                "📝 The Borrow allows you to increase your debt position.\n\n" +
-                "After confirmation of your request by the system, the requested amount of USD will be sent to your IBAN\n\n" +
-                "⚠️ Be careful! \n" +
-                "Borrow operation increases the utilization rate of your position and increases the risk of liquidation.\n\n" +
-                `The total debt for your position cannot exceed ${maxCollateral}% of the remaining deposit.\n` +
-                `⚠️ ${processingFee}% of borrowed amount will be apply as processing fee.\n` +
+            "📜 *BORROW TERMS*\n\n" +
+                "📝 The Borrow allows you to increase your debt position.\n" +
+                "After confirmation of your request by the system, the requested amount of *${debtSymbol}* will be sent to your IBAN\n\n" +
+                "⚠️ Borrow operation increases the utilization rate of your position and *increases the risk of liquidation*.\n\n" +
+                `️️⚠ The total debt for your position cannot exceed *${maxCollateral} %* of the remaining deposit.\n\n` +
+                `⚠️ *${processingFee} %* of the borrowed amount will be applied as a processing fee.\n` +
                 "An amount equal to the fee will be added to your debt position.\n"
         );
     }
 
     static async getAmountInputText(state: CreditLineStateMsgData): Promise<string> {
-        const creditLineStateText = this.getCreditLineStateText(state);
+        const printMaxAllowed = state.maxAllowedBorrowAmount > 0;
+        const creditLineStateText = this.getCreditLineStateText(state, printMaxAllowed);
+
         return escapeSpecialCharacters(
-            `*Please enter ${state.fiatCurrency} amount you want to borrow*\n\n` +
-                "📊 *Current state:*\n" +
+            `*Please enter ${state.debtCurrency} amount you want to borrow*\n\n` +
+                "📊 *Current credit line state:*\n" +
                 creditLineStateText +
                 "\n" +
-                `Max accuracy for USD value ia 1 cent.`
+                `💡 Input example: *100.25* ( Max accuracy for ${state.debtCurrency} value is 1 cent ) `
         );
     }
 
@@ -40,35 +41,35 @@ export class BorrowTextSource extends BasicSourceText {
         const processingFeeText = BorrowTextSource.getFiatProcessingFeeText(
             borrowAmount,
             processingFee,
-            stateBefore.fiatCurrency
+            stateBefore.debtCurrency
         );
         return escapeSpecialCharacters(
-            "*Borrow request details*\n\n" +
-                `You have requested ${borrowAmount} ${stateBefore.fiatCurrency} to borrow.\n\n` +
-                "📊 *Old state:*\n" +
+            "📜 *Borrow request details*\n\n" +
+                `💱 You have requested * ${borrowAmount} ${stateBefore.debtCurrency} * to borrow.\n\n` +
+                "📉 *Current state:*\n" +
                 creditLineStateTextBefore +
                 "\n" +
-                "📊 *New state:*\n" +
+                "📈 *New state:*\n" +
                 creditLineStateTextAfter +
                 "\n" +
                 requisitesText +
                 "\n" +
                 processingFeeText +
                 "\n" +
-                "❗️ After you agree to our offer, we will send requested USD amount to your bank account"
+                "✅ After you agree to our offer, we will send the requested ${debtSymbol} amount to your bank account"
         );
     }
 
-    static getBorrowSuccessText(requisites: Requisites): string {
+    static getBorrowSuccessText(requisites: Requisites, currency: string): string {
         const requisitesText = this.getRequisitesText(requisites);
         return escapeSpecialCharacters(
-            "✅ Done! You've created 'Borrow' request.\n\n" +
-                "We will send requested USD amount to your bank account\n\n" +
+            "✅ * Done! You've created a new 'Borrow' request!*\n\n" +
+                `💸 We will send the requested ${currency} amount to your bank account\n\n` +
                 requisitesText +
                 "\n" +
                 "💡 You always can check all you request details.\n" +
                 `To do this go to "View my requests" tab from main menu.\n\n` +
-                "⚠️ The processing time for transfers may vary.\n\n" +
+                "⚠️ The processing time for transfer may vary.\n" +
                 "Factors influencing transfer speed include:\n" +
                 " - Banking provider\n" +
                 " - Timing of payment initiation\n" +
@@ -135,6 +136,34 @@ export class BorrowTextSource extends BasicSourceText {
                 "‼ This can happen if your collateral value has decreased since you start created the request.\n" +
                 "💡 It is possible that your collateral value has decreased due to market volatility.\n\n" +
                 "Please try again with a smaller amount or contact our customer support team.\n"
+        );
+    }
+
+    static getZeroBalanceText() {
+        const zeroSupplyCaseText = "🚫 Your current deposit balance is *zero*. \n";
+        const txt = this.makeInsufficientBalanceTemplateText(zeroSupplyCaseText);
+        return escapeSpecialCharacters(txt);
+    }
+
+    static getInsufficientBalanceText(utilizationFactor: bigint, collateralFactor: bigint) {
+        const insufficientLiquidityCaseText =
+            "🚫 You currently cannot make a borrow as your current utilization factor exceeds the collateral factor applied to your credit line.\n\n" +
+            `📊 Your utilization factor is *${bigintToFormattedPercent(
+                utilizationFactor
+            )}%* and the collateral factor is *${bigintToFormattedPercent(collateralFactor)}%*.\n` +
+            "\n" +
+            "📈 To adjust your utilization and make a withdrawal, you can either increase your collateral or reduce your outstanding balance.\n";
+
+        const txt = this.makeInsufficientBalanceTemplateText(insufficientLiquidityCaseText);
+        return escapeSpecialCharacters(txt);
+    }
+
+    private static makeInsufficientBalanceTemplateText(caseText: string) {
+        return (
+            "‼ You don't have sufficient funds to borrow at the moment.\n\n" +
+            `${caseText}\n` +
+            "💰 To add funds to your account, please create a *`Deposit`* request.\n\n" +
+            "You can do this by navigating to the *'Management of Your Credit Line'* section and selecting the *'Deposit'* menu option."
         );
     }
 }

@@ -22,13 +22,11 @@ import {
     CollateralCurrency,
     CreditLine,
     DepositRequest,
-    FiatTransaction,
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
 import { CallbackTypes } from "../payment-processing/constants";
 import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
-import { EXP_SCALE } from "src/common/constants";
 import { validateIban, validateName } from "src/common/input-validation";
 
 @Injectable()
@@ -42,14 +40,16 @@ export class RequestResolverService {
     ) {}
 
     /**
-     Used by operator to resolve borrow request
+     Used by operator to resolve borrow request. Resolves request by creating a fiat transaction and updating the request status.
+     Should be used for "initial" request resolving. 
+     To finalize resolving process use finalizeBorrowRequest or rejectBorrowRequest functions.
      @param {ResolveBorrowRequestDto} resolveBorrowRequest - The request to resolve
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state or resolveBorrowRequest is incorrect.
      */
     async resolveBorrowRequest(
         resolveBorrowRequest: ResolveBorrowRequestDto
-    ): Promise<{ updatedRequest: BorrowRequest; updatedTransaction: FiatTransaction }> {
+    ): Promise<{ success: boolean }> {
         // Accrue interest
         // FIXME: add risk engine call
 
@@ -58,16 +58,18 @@ export class RequestResolverService {
         );
         const creditLine = borrowRequest.creditLine;
 
-        const [savedBusinessRequisites] = await this.paymentRequisiteService.getAllBusinessPayReqs();
-        const bRequisites = savedBusinessRequisites.filter(
-            br =>
-                br.iban === resolveBorrowRequest.ibanFrom &&
-                br.debtCurrencyId === creditLine.debtCurrencyId
+        const bRequisites = await this.paymentRequisiteService.getBusinessPayReqWithCurrencyByIban(
+            resolveBorrowRequest.ibanFrom
         );
 
-        if (bRequisites.length !== 1) {
+        if (!bRequisites) {
             throw new HttpException(
                 "No business requisites found for this borrow request",
+                HttpStatus.BAD_REQUEST
+            );
+        } else if (bRequisites.debtCurrency.symbol !== creditLine.debtCurrency.symbol) {
+            throw new HttpException(
+                "Business requisites currency does not match credit line currency",
                 HttpStatus.BAD_REQUEST
             );
         }
@@ -97,32 +99,39 @@ export class RequestResolverService {
             );
         }
 
-        // FIXME: Maybe add fee to debt amount here as well?
-        await this.riskEngineService.verifyBorrowOverLFOrThrow(
-            creditLine,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
             borrowRequest.borrowFiatAmount
         );
 
-        const updatedTransaction = await this.transactionService.createFiatTransaction({
+        try {
+            await this.riskEngineService.verifyBorrowOverLFOrThrow(
+                creditLine,
+                creditLine.collateralCurrency.symbol,
+                creditLine.collateralCurrency.decimals,
+                borrowAmountWithFee
+            );
+        } catch (e) {
+            throw new HttpException("Err", HttpStatus.BAD_REQUEST);
+        }
+
+        await this.transactionService.createFiatTransaction({
             borrowRequestId: borrowRequest.id,
             repayRequestId: null,
-            ibanFrom: bRequisites[0]!.iban,
+            ibanFrom: bRequisites.iban,
             ibanTo: creditLine.userPaymentRequisite.iban,
-            nameFrom: bRequisites[0]!.bankName,
+            nameFrom: bRequisites.bankName,
             nameTo: creditLine.user.name,
             rawTransferAmount: borrowRequest.borrowFiatAmount,
         });
 
-        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
-            borrowRequest,
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
             BorrowRequestStatus.MONEY_SENT
         );
 
         return {
-            updatedRequest,
-            updatedTransaction,
+            success: true,
         };
     }
 
@@ -132,11 +141,7 @@ export class RequestResolverService {
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state
      */
-    async finalizeBorrowRequest(requestId: number): Promise<{
-        updatedRequest: BorrowRequest;
-        updatedCreditLine: CreditLine;
-        updatedTransaction: FiatTransaction;
-    }> {
+    async finalizeBorrowRequest(requestId: number): Promise<{ success: boolean }> {
         // Accrue interest
         // FIXME: add risk engine call
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
@@ -176,29 +181,32 @@ export class RequestResolverService {
 
         // Update tx status
         const pendingTx = pendingTxs[0]!;
-        const updatedTransaction = await this.transactionService.updateFiatTransactionStatus(
+        await this.transactionService.updateFiatTransactionStatus(
             pendingTx,
             FiatTransactionStatus.COMPLETED
         );
 
-        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
-            borrowRequest,
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
             BorrowRequestStatus.FINISHED
         );
 
+        const feeAmount = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount
+        );
+
         // Increase debt amount for borrow request on borrow value
-        await this.creditLineService.increaseDebtAmount(creditLine, borrowRequest.borrowFiatAmount);
+        await this.creditLineService.increaseDebtAmountById(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount + feeAmount
+        );
 
         // Increase debt amount for borrow request on fee value
-        const feeAmount =
-            (borrowRequest.borrowFiatAmount * creditLine.economicalParameters.fiatProcessingFee) /
-            EXP_SCALE;
-        const updatedCreditLine = await this.creditLineService.increaseDebtAmount(creditLine, feeAmount);
+        await this.creditLineService.increaseAccumulatedFeeAmountById(creditLine.id, feeAmount);
 
         return {
-            updatedRequest,
-            updatedCreditLine,
-            updatedTransaction,
+            success: true,
         };
     }
 
@@ -208,7 +216,7 @@ export class RequestResolverService {
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state
      */
-    async rejectBorrowRequest(requestId: number): Promise<{ updatedRequest: BorrowRequest }> {
+    async rejectBorrowRequest(requestId: number): Promise<{ success: boolean }> {
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
             requestId
         );
@@ -234,13 +242,13 @@ export class RequestResolverService {
         }
 
         // Update status for borrow request
-        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
-            borrowRequest,
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
             BorrowRequestStatus.REJECTED
         );
 
         return {
-            updatedRequest,
+            success: true,
         };
     }
 
@@ -264,12 +272,17 @@ export class RequestResolverService {
             creditLine.rawCollateralAmount
         );
 
+        const amountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
+            requestedBorrowAmount
+        );
+
         try {
             await this.riskEngineService.verifyBorrowOverCFOrThrow(
                 creditLine,
                 creditLine.collateralCurrency.symbol,
                 creditLine.collateralCurrency.decimals,
-                requestedBorrowAmount
+                amountWithFee
             );
         } catch (e) {
             if (!(e instanceof Error)) {
@@ -292,11 +305,16 @@ export class RequestResolverService {
             creditLineId
         );
 
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLineId,
+            hypotheticalBorrowAmount
+        );
+
         await this.riskEngineService.verifyBorrowOverCFOrThrow(
             creditLineExtended,
             creditLineExtended.collateralCurrency.symbol,
             creditLineExtended.collateralCurrency.decimals,
-            hypotheticalBorrowAmount
+            borrowAmountWithFee
         );
     }
 
@@ -351,19 +369,19 @@ export class RequestResolverService {
 
         // Decrease debt amount for repay request
         const updatedCreditLine = await this.creditLineService.decreaseDebtAmountById(
-            creditLine,
+            creditLine.id,
             transferAmount
         );
 
         // Update status for repay request
         const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
-            repayRequest,
+            repayRequest.id,
             RepayRequestStatus.FINISHED
         );
 
         // Create new FiatTransaction
         const transaction = await this.transactionService.createFiatTransaction({
-            ibanFrom: resolveRepayRequestDto.ibanFrom.trim().toUpperCase(),
+            ibanFrom: resolveRepayRequestDto.ibanFrom.replace(/\s/g, "").toLocaleUpperCase(),
             nameFrom: resolveRepayRequestDto.nameFrom.toUpperCase(),
             ibanTo: repayRequest.businessPaymentRequisite.iban,
             nameTo: repayRequest.businessPaymentRequisite.bankName,
@@ -389,7 +407,7 @@ export class RequestResolverService {
 
         // Update status for repay request
         const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
-            repayRequest,
+            repayRequest.id,
             RepayRequestStatus.REJECTED
         );
 
@@ -529,13 +547,13 @@ export class RequestResolverService {
         }
 
         const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
-            pendingRequest,
+            pendingRequest.id,
             DepositRequestStatus.FINISHED
         );
 
         // Increase supply amount for credit line
         await this.creditLineService.increaseSupplyAmountById(
-            creditLine,
+            creditLine.id,
             parseUnits(rawTransferAmount, collateralCurrency.decimals)
         );
 
@@ -560,13 +578,13 @@ export class RequestResolverService {
         this.verifyWithdrawAmount(pendingRequest, collateralCurrency, rawTransferAmount);
 
         const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
-            pendingRequest,
+            pendingRequest.id,
             WithdrawRequestStatus.FINISHED
         );
 
         // Decrease supply amount for credit line
         await this.creditLineService.decreaseSupplyAmountById(
-            creditLine,
+            creditLine.id,
             parseUnits(rawTransferAmount, collateralCurrency.decimals)
         );
 

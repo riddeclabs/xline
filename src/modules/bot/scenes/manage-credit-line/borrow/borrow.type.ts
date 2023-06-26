@@ -6,6 +6,7 @@ import {
 
 export enum BorrowActionSteps {
     VERIFY_PENDING_REQUESTS,
+    VERIFY_IS_BORROW_POSSIBLE,
     BORROW_TERMS,
     AMOUNT_REQUEST,
     SIGN_TERMS,
@@ -20,9 +21,6 @@ export enum BorrowReqCallbacks {
 
 export type BorrowActionSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
-        chat_id?: string;
-        creditLineId?: string;
-        maxAllowedAmount?: string;
         borrowAmount?: string;
     };
 };

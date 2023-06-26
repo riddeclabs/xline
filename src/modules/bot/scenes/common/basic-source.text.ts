@@ -7,7 +7,7 @@ import {
     Requisites,
     XLineRequestMsgData,
 } from "./types";
-import { truncateDecimals } from "./utils";
+import { truncateDecimals } from "src/common/text-formatter";
 
 export abstract class BasicSourceText {
     static getCurrentLiquidationRisk(
@@ -45,21 +45,23 @@ export abstract class BasicSourceText {
 
     static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed = true): string {
         const maxAllowedText = printMaxAllowed
-            ? `Max to borrow:    ${data.maxAllowedAmount} ${data.fiatCurrency}\n`
+            ? `🎯 *Max allowed amount to borrow:* ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
             : "";
         return (
-            `Deposit amount: ${data.supplyCrypto} ${data.cryptoCurrency} / ${data.supplyFiat} ${data.fiatCurrency}\n` +
-            `Debt amount:      ${data.debtAmount} ${data.fiatCurrency}\n` +
+            `Deposit amount: ${data.supplyAmountCrypto} ${data.cryptoCurrency} / ${data.supplyAmountFiat} ${data.debtCurrency}\n` +
+            `Debt amount:       ${data.debtAmount} ${data.debtCurrency}\n` +
             `Utilization rate:    ${data.utilizationRatePercent}%\n` +
-            maxAllowedText +
-            `Liquidation risk:    ${data.liquidationRisk}\n` +
-            `Been liquidated:   ${data.hasBeenLiquidated}\n`
+            `Liquidation risk:   ${data.liquidationRisk}\n` +
+            `Been liquidated:   ${data.hasBeenLiquidated}\n\n` +
+            maxAllowedText
         );
     }
 
     static getRequisitesText(requisites: Requisites): string {
         return (
-            "*Bank requisites*\n" + `IBAN:   ${requisites.iban}\n` + `Name:  ${requisites.accountName}\n`
+            "🏦 *Bank requisites*\n" +
+            `IBAN:   ${requisites.iban}\n` +
+            `Name:  ${requisites.accountName}\n`
         );
     }
 
@@ -142,7 +144,7 @@ export abstract class BasicSourceText {
     static getFiatProcessingFeeText(fee: bigint | number, amount: number, fiatCurrency: string): string {
         const feeNum = typeof fee === "number" ? fee : formatUnitsNumber(fee);
         const feeAmount = truncateDecimals(feeNum * amount, 2);
-        return `*Processing fee:* ${feeAmount} ${fiatCurrency}\n`;
+        return `💸 *Processing fee:* ${feeAmount} ${fiatCurrency}\n`;
     }
 
     static getFiatTxMsgText(data: FiatTxMsgData, num?: number): string {

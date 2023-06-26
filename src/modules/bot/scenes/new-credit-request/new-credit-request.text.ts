@@ -1,7 +1,7 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { OpenCreditLineData } from "../../../risk-engine/risk-engine.types";
 import { formatUnits, formatUnitsNumber } from "../../../../common/fixed-number";
-import { truncateDecimal, floatToMd } from "../../../../common/text-formatter";
+import { truncateDecimalsToStr, floatToMd } from "../../../../common/text-formatter";
 import { EXP_SCALE } from "../../../../common/constants";
 import {
     NewCreditRequestContext,
@@ -210,7 +210,7 @@ export class NewCreditRequestText {
                       (key: string) => RiskStrategyLevels[<any>key] == sceneData.riskStrategy
                   );
         // FIXME: mb just EXP_SCALE - RS ?
-        const mdDropPricePercent = truncateDecimal(
+        const mdDropPricePercent = truncateDecimalsToStr(
             formatUnits(
                 (EXP_SCALE - (loanData.collateralLimitPrice * EXP_SCALE) / loanData.currentPrice) * 100n
             )
@@ -218,34 +218,36 @@ export class NewCreditRequestText {
 
         return {
             riskLevel,
-            mdSupplyAmountRaw: truncateDecimal(sceneData.supplyAmount),
-            mdSupplyAmountUsd: truncateDecimal(formatUnits(loanData.expSupplyAmountUsd)),
-            mdCollateralAmountUsd: truncateDecimal(formatUnits(loanData.expCollateralAmountUsd)),
-            mdDebtAmountUsd: truncateDecimal(formatUnits(loanData.expBorrowAmountUsd)),
+            mdSupplyAmountRaw: truncateDecimalsToStr(sceneData.supplyAmount),
+            mdSupplyAmountUsd: truncateDecimalsToStr(formatUnits(loanData.expSupplyAmountUsd)),
+            mdCollateralAmountUsd: truncateDecimalsToStr(formatUnits(loanData.expCollateralAmountUsd)),
+            mdDebtAmountUsd: truncateDecimalsToStr(formatUnits(loanData.expBorrowAmountUsd)),
             mdUtilPercent: floatToMd(Number(sceneData.riskStrategy) * 100),
             mdSupplyProcFeePercent: floatToMd(formatUnitsNumber(ep.fiatProcessingFee) * 100),
-            mdSupplyProcFeeUsd: truncateDecimal(formatUnits(loanData.supplyProcFeeUsd)),
+            mdSupplyProcFeeUsd: truncateDecimalsToStr(formatUnits(loanData.supplyProcFeeUsd)),
             mdBorrowProcFeePercent: floatToMd(formatUnitsNumber(ep.cryptoProcessingFee) * 100),
-            mdBorrowProcFeeUsd: truncateDecimal(formatUnits(loanData.borrowProcFeeUsd)),
-            mdTotalProcFeeUsd: truncateDecimal(formatUnits(loanData.totalProcFeeUsd)),
-            mdFiatToReceive: truncateDecimal(
+            mdBorrowProcFeeUsd: truncateDecimalsToStr(formatUnits(loanData.borrowProcFeeUsd)),
+            mdTotalProcFeeUsd: truncateDecimalsToStr(formatUnits(loanData.totalProcFeeUsd)),
+            mdFiatToReceive: truncateDecimalsToStr(
                 formatUnits(loanData.expBorrowAmountUsd - loanData.totalProcFeeUsd)
             ),
-            mdActualDebtAmountUsd: truncateDecimal(formatUnits(loanData.expBorrowAmountUsd)),
-            mdCurrentPrice: truncateDecimal(formatUnits(loanData.currentPrice)),
-            mdLimitPrice: truncateDecimal(formatUnits(loanData.collateralLimitPrice)),
+            mdActualDebtAmountUsd: truncateDecimalsToStr(formatUnits(loanData.expBorrowAmountUsd)),
+            mdCurrentPrice: truncateDecimalsToStr(formatUnits(loanData.currentPrice)),
+            mdLimitPrice: truncateDecimalsToStr(formatUnits(loanData.collateralLimitPrice)),
             mdDropPricePercent,
         };
     }
 
     static prepareMainTextData(ep: EconomicalParameters, sceneData: SignApplicationSceneData) {
         return {
-            mdAprPercent: truncateDecimal(formatUnitsNumber(ep.apr) * 100),
-            mdLiqFeePercent: truncateDecimal(formatUnitsNumber(ep.liquidationFee) * 100),
+            mdAprPercent: truncateDecimalsToStr(formatUnitsNumber(ep.apr) * 100),
+            mdLiqFeePercent: truncateDecimalsToStr(formatUnitsNumber(ep.liquidationFee) * 100),
             mdSelectedRiskStrategyPercent: Number(sceneData.riskStrategy) * 100,
             mdMaxUtilization: formatUnitsNumber(ep.collateralFactor) * 100,
-            mdSupplyProcFeePercent: truncateDecimal(formatUnitsNumber(ep.fiatProcessingFee) * 100),
-            mdBorrowProcFeePercent: truncateDecimal(formatUnitsNumber(ep.cryptoProcessingFee) * 100),
+            mdSupplyProcFeePercent: truncateDecimalsToStr(formatUnitsNumber(ep.fiatProcessingFee) * 100),
+            mdBorrowProcFeePercent: truncateDecimalsToStr(
+                formatUnitsNumber(ep.cryptoProcessingFee) * 100
+            ),
         };
     }
 }

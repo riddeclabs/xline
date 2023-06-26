@@ -22,22 +22,62 @@ export class CreditLineService {
         return this.creditLineRepo.save(newLine);
     }
 
-    async increaseDebtAmount(creditLine: CreditLine, addAmount: bigint) {
-        creditLine.debtAmount = creditLine.debtAmount + addAmount;
-        return this.creditLineRepo.save(creditLine);
+    async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => "debtAmount + addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
     }
 
-    async decreaseDebtAmountById(creditLine: CreditLine, subAmount: bigint) {
-        creditLine.debtAmount = creditLine.debtAmount - subAmount;
-        return this.creditLineRepo.save(creditLine);
+    async increaseAccumulatedFeeAmountById(
+        creditLineId: number,
+        addAmount: bigint
+    ): Promise<CreditLine> {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ feeAccumulatedFiatAmount: () => "feeAccumulatedFiatAmount + addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
     }
-    async increaseSupplyAmountById(creditLine: CreditLine, addAmount: bigint) {
-        creditLine.rawCollateralAmount = creditLine.rawCollateralAmount + addAmount;
-        return this.creditLineRepo.save(creditLine);
+
+    async decreaseDebtAmountById(creditLineId: number, subAmount: bigint) {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => "debtAmount - addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
     }
-    async decreaseSupplyAmountById(creditLine: CreditLine, subAmount: bigint) {
-        creditLine.rawCollateralAmount = creditLine.rawCollateralAmount - subAmount;
-        return this.creditLineRepo.save(creditLine);
+
+    async increaseSupplyAmountById(creditLineId: number, addAmount: bigint) {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ rawCollateralAmount: () => "rawCollateralAmount + addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
+    }
+
+    async decreaseSupplyAmountById(creditLineId: number, subAmount: bigint) {
+        this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ rawCollateralAmount: () => "rawCollateralAmount i addAmount" })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
     }
 
     async getCreditLineByChatIdAndColSymbol(

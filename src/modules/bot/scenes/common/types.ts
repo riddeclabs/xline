@@ -15,15 +15,15 @@ export interface XLineRequestMsgData {
 }
 
 export interface CreditLineStateMsgData {
-    supplyCrypto: number;
-    supplyFiat: number;
+    supplyAmountCrypto: number;
+    supplyAmountFiat: number;
     cryptoCurrency: string;
-    fiatCurrency: string;
+    debtCurrency: string;
     debtAmount: number;
     utilizationRatePercent: string;
-    maxAllowedAmount: number;
+    maxAllowedBorrowAmount: number;
     liquidationRisk: string;
-    hasBeenLiquidated: "yes" | "no";
+    hasBeenLiquidated: "Yes" | "No";
 }
 
 export interface FiatTxMsgData {
@@ -45,11 +45,6 @@ export interface CryptoTxMsgData {
     //type: string; TODO: Add type DEPOSIT/ WITHDRAW/ FEE?
     created: string;
     updated: string;
-}
-
-export interface XLineRequestMsgDataExt extends XLineRequestMsgData {
-    fiatTxList?: FiatTxMsgData[];
-    cryptoTxList?: CryptoTxMsgData[];
 }
 
 export type XLineCryptoBaseRequestsTypes = DepositRequest | WithdrawRequest;
