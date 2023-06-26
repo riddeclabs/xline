@@ -342,7 +342,7 @@ export class BackOfficeController {
                             usdSupplyAmount: truncateDecimal(
                                 formatUnits(
                                     lineDetails.fiatCollateralAmount,
-                                    lineDetails.collateralCurrency.decimals
+                                    lineDetails.debtCurrency.decimals
                                 ),
                                 2,
                                 false
@@ -352,7 +352,7 @@ export class BackOfficeController {
                                     (lineDetails.fiatCollateralAmount *
                                         economicalParams.collateralFactor) /
                                         EXP_SCALE,
-                                    lineDetails.collateralCurrency.decimals
+                                    lineDetails.debtCurrency.decimals
                                 ),
                                 2,
                                 false
@@ -366,7 +366,7 @@ export class BackOfficeController {
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: formatUnits(lineDetails.utilizationRate), // All rates have 18 decimals accuracy
+                            utilizationFactor: formatUnits(lineDetails.utilizationRate * 100n), // All rates have 18 decimals accuracy
                             healthyFactor: truncateDecimal(
                                 formatUnits(lineDetails.healthyFactor),
                                 2,
