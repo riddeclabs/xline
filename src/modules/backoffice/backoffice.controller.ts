@@ -367,7 +367,9 @@ export class BackOfficeController {
                         },
                         currentState: {
                             utilizationFactor: truncateDecimal(
-                                formatUnits(lineDetails.utilizationRate * 100n)
+                                formatUnits(lineDetails.utilizationRate * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                             healthyFactor: truncateDecimal(
                                 formatUnits(lineDetails.healthyFactor),
@@ -395,6 +397,7 @@ export class BackOfficeController {
                 })
             );
         }
+        console.log("allCreditLine", allCreditLine);
         const resultTablesData = {
             mainInfo: {
                 name: fullyAssociatedUser?.name,
