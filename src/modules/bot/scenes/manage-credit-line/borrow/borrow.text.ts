@@ -150,7 +150,7 @@ export class BorrowTextSource extends BasicSourceText {
             "🚫 You currently cannot make a borrow as your current utilization factor exceeds the collateral factor applied to your credit line.\n\n" +
             `📊 Your utilization factor is *${bigintToFormattedPercent(
                 utilizationFactor
-            )} %* and the collateral factor is *${bigintToFormattedPercent(collateralFactor)} %*.\n` +
+            )}%* and the collateral factor is *${bigintToFormattedPercent(collateralFactor)}%*.\n` +
             "\n" +
             "📈 To adjust your utilization and make a withdrawal, you can either increase your collateral or reduce your outstanding balance.\n";
 

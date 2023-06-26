@@ -20,7 +20,7 @@ export function getCreditLineState(cld: CreditLineDetailsExt): CreditLineStateMs
         cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
         debtCurrency: cld.lineDetails.debtCurrency.symbol,
         debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
-        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate * 100n),
+        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
         maxAllowedBorrowAmount: truncateDecimals(maxAllowedBorrowAmount, 2),
         liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
             cld.lineDetails.utilizationRate * 100n,

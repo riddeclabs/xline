@@ -92,12 +92,10 @@ export class BorrowActionWizard {
             return;
         }
 
-        const utilizationFactor = lineDetails.utilizationRate * 100n;
-
-        if (utilizationFactor >= economicalParams.collateralFactor) {
+        if (lineDetails.utilizationRate >= economicalParams.collateralFactor) {
             await ctx.editMessageText(
                 BorrowTextSource.getInsufficientBalanceText(
-                    utilizationFactor,
+                    lineDetails.utilizationRate,
                     economicalParams.collateralFactor
                 ),
                 {

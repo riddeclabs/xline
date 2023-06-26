@@ -177,7 +177,7 @@ export class BotManagerService {
             creditLine.rawCollateralAmount
         );
 
-        const getUtilRate = () => (depositUsdAmount * EXP_SCALE) / creditLine.debtAmount;
+        const getUtilRate = () => (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
 
         return {
             economicalParams: lineEconomicalParams,
