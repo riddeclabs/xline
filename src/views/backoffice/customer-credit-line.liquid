@@ -1,0 +1,82 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <h1 class='pb-3 text-white fs-1'>Customer credit lines</h1>
+  <h1 class='pb-1 text-white fs-5'>User name: {{ mainInfo.name }}</h1>
+  <h1 class='pb-1 text-white fs-5'>Chat ID: {{ mainInfo.chatId }}</h1>
+  {% for customer in allCreditLine %}
+    <div class='card bg-dark shadow-sm wrapper-table p-4 mt-5'>
+      <h1 class='text-white fs-5'>#{{ customer.serialNumber }} {{ customer.collateralSymbol }} / {{ customer.debtSymbol }}</h1>
+      <div class="customer-CL-wrapper">
+        <div>
+          <p class='text-white fs-6'>Amounts</p>
+          <div class="row-container">
+            <div class="left-row">Raw supply amount</div>
+            <div class="right-row">{{ customer.amountsTable.rawSupplyAmount }} {{ customer.collateralSymbol }}</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Usd supply amount</div>
+            <div class="right-row">{{ customer.amountsTable.usdSupplyAmount }} USD</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Usd collateral amount</div>
+            <div class="right-row">{{ customer.amountsTable.usdCollateralAmount }} USD</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Debt amount</div>
+            <div class="right-row">{{ customer.amountsTable.debtAmount }} {{ customer.debtSymbol }}</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Available liquidity</div>
+            <div class="right-row">{{ customer.amountsTable.usdAvailableLiquidity }} {{ customer.debtSymbol }}</div>
+          </div>
+        </div>
+
+        <div>
+          <p class='text-white fs-6'>Current state</p>
+          <div class="row-container">
+            <div class="left-row">Utilization Factor</div>
+            <div class="right-row">{{ customer.currentState.utilizationFactor }}%</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Healthy Factor</div>
+            <div class="right-row">{{ customer.currentState.healthyFactor }}</div>
+          </div>
+          <div class='text-white mt-2 mb-2 fs-6'>Applied rates</div>
+          <div class="row-container">
+            <div class="left-row">Collateral Factor</div>
+            <div class="right-row">{{ customer.appliedRates.collateralFactor }}%</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Liquidation factor</div>
+            <div class="right-row">{{ customer.appliedRates.liquidationFactor }}%</div>
+          </div>
+        </div>
+
+        <div>
+          <p class='text-white fs-6'>Associated requisites</p>
+          <div class="row-container">
+            <div class="left-row">IBAN</div>
+            <div class="right-row">{{ customer.associatedRequisites.iban }}</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Base Ref Number</div>
+            <div class="right-row">{{ customer.associatedRequisites.refNumber }}</div>
+          </div>
+          <div class='text-white mt-2 mb-2 fs-6'>Dates</div>
+          <div class="row-container">
+            <div class="left-row">Created At</div>
+            <div class="right-row">{{ customer.dates.createdAt }}</div>
+          </div>
+          <div class="row-container">
+            <div class="left-row">Updated At</div>
+            <div class="right-row">{{ customer.dates.updatedAt }}</div>
+          </div>
+        </div>
+
+      </div>
+      <a href="/backoffice/creditline-user-list/{{ customer.creditLineId }}">
+        <button class="blue-button mt-4 p-1" style="width: 180px;">View requests</button>
+      </a>
+    </div>
+  {% endfor %}
+{% endblock %}

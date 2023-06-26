@@ -4,19 +4,18 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 
 import {
     BorrowRequest,
+    CreditLine,
     Operator,
     RepayRequest,
     User,
-    CollateralCurrency,
-    CreditLine,
     DebtCurrency,
+    CollateralCurrency,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
-import { UserModule } from "../user/user.module";
-import { CreditLineModule } from "../credit-line/credit-line.module";
 import { PriceOracleModule } from "../price-oracle/price-oracle.module";
+import { BotModule } from "../bot/bot.module";
 
 @Module({
     imports: [
@@ -30,9 +29,7 @@ import { PriceOracleModule } from "../price-oracle/price-oracle.module";
             CollateralCurrency,
             DebtCurrency,
         ]),
-        UserModule,
-        CreditLineModule,
-        UserModule,
+        BotModule,
         PriceOracleModule,
     ],
     exports: [BackOfficeService],
