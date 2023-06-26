@@ -14,3 +14,33 @@ export type AllRequestByCreditLineType = {
     created_at: string;
     updated_at: string;
 };
+
+export type CreditLineDetailsType = {
+    serialNumber: number;
+    debtSymbol: string;
+    collateralSymbol: string;
+    creditLineId: number;
+    amountsTable: {
+        rawSupplyAmount: string;
+        usdSupplyAmount: string;
+        usdCollateralAmount: string;
+        debtAmount: string;
+        usdAvailableLiquidity: number;
+    };
+    currentState: {
+        utilizationFactor: string;
+        healthyFactor: string;
+    };
+    appliedRates: {
+        collateralFactor: string;
+        liquidationFactor: string;
+    };
+    dates: {
+        createdAt: string;
+        updatedAt: string;
+    };
+    associatedRequisites: {
+        iban: string;
+        refNumber: string;
+    };
+};
