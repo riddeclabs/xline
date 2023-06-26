@@ -11,23 +11,23 @@
           <p class='text-white fs-6'>Amounts</p>
           <div class="row-container">
             <div class="left-row">Raw supply amount</div>
-            <div class="right-row">{{ customer.amountsTable.rawSupplyAmount }}</div>
+            <div class="right-row">{{ customer.amountsTable.rawSupplyAmount }} {{ customer.collateralSymbol }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Usd supply amount</div>
-            <div class="right-row">{{ customer.amountsTable.usdSupplyAmount }}</div>
+            <div class="right-row">{{ customer.amountsTable.usdSupplyAmount }} USD</div>
           </div>
           <div class="row-container">
             <div class="left-row">Usd collateral amount</div>
-            <div class="right-row">{{ customer.amountsTable.usdCollateralAmount }}</div>
+            <div class="right-row">{{ customer.amountsTable.usdCollateralAmount }} USD</div>
           </div>
           <div class="row-container">
             <div class="left-row">Debt amount</div>
-            <div class="right-row">{{ customer.amountsTable.debtAmount }}</div>
+            <div class="right-row">{{ customer.amountsTable.debtAmount }} {{ customer.debtSymbol }}</div>
           </div>
           <div class="row-container">
             <div class="left-row">Available liquidity</div>
-            <div class="right-row">{{ customer.amountsTable.usdAvailableLiquidity }}</div>
+            <div class="right-row">{{ customer.amountsTable.usdAvailableLiquidity }} {{ customer.debtSymbol }}</div>
           </div>
         </div>
 
@@ -35,7 +35,7 @@
           <p class='text-white fs-6'>Current state</p>
           <div class="row-container">
             <div class="left-row">Utilization Factor</div>
-            <div class="right-row">{{ customer.currentState.utilizationFactor }}</div>
+            <div class="right-row">{{ customer.currentState.utilizationFactor }}%</div>
           </div>
           <div class="row-container">
             <div class="left-row">Healthy Factor</div>
@@ -44,11 +44,11 @@
           <div class='text-white mt-2 mb-2 fs-6'>Applied rates</div>
           <div class="row-container">
             <div class="left-row">Collateral Factor</div>
-            <div class="right-row">{{ customer.appliedRates.collateralFactor }}</div>
+            <div class="right-row">{{ customer.appliedRates.collateralFactor }}%</div>
           </div>
           <div class="row-container">
             <div class="left-row">Liquidation factor</div>
-            <div class="right-row">{{ customer.appliedRates.liquidationFactor }}</div>
+            <div class="right-row">{{ customer.appliedRates.liquidationFactor }}%</div>
           </div>
         </div>
 

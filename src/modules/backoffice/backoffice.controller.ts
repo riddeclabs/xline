@@ -366,7 +366,9 @@ export class BackOfficeController {
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: formatUnits(lineDetails.utilizationRate * 100n), // All rates have 18 decimals accuracy
+                            utilizationFactor: truncateDecimal(
+                                formatUnits(lineDetails.utilizationRate * 100n)
+                            ), // All rates have 18 decimals accuracy
                             healthyFactor: truncateDecimal(
                                 formatUnits(lineDetails.healthyFactor),
                                 2,
@@ -374,8 +376,12 @@ export class BackOfficeController {
                             ), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: formatUnits(economicalParams.collateralFactor), // All rates have 18 decimals accuracy
-                            liquidationFactor: formatUnits(economicalParams.liquidationFactor), // All rates have 18 decimals accuracy
+                            collateralFactor: truncateDecimal(
+                                formatUnits(economicalParams.collateralFactor * 100n)
+                            ), // All rates have 18 decimals accuracy
+                            liquidationFactor: truncateDecimal(
+                                formatUnits(economicalParams.liquidationFactor * 100n)
+                            ), // All rates have 18 decimals accuracy
                         },
                         dates: {
                             createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
