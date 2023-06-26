@@ -8,6 +8,7 @@ import {
     CollateralCurrency,
     CreditLine,
     DebtCurrency,
+    FiatTransaction,
 } from "src/database/entities";
 import { FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -49,7 +50,9 @@ export class BackOfficeService {
         @InjectRepository(CollateralCurrency)
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
-        private debtCurrency: Repository<DebtCurrency>
+        private debtCurrency: Repository<DebtCurrency>,
+        @InjectRepository(FiatTransaction)
+        private fiatTransaction: Repository<FiatTransaction>
     ) {}
 
     accountInfo() {
@@ -207,5 +210,19 @@ export class BackOfficeService {
             .createQueryBuilder("collateralCurrency")
             .select("collateralCurrency.symbol")
             .getRawMany();
+    }
+
+    getBorrowRequestDetails(id: string) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
+            .getMany();
+    }
+
+    getRepayRequestDetails(id: string) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.repayRequestId = :id", { id })
+            .getMany();
     }
 }

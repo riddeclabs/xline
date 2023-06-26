@@ -312,16 +312,31 @@ export class BackOfficeController {
     @Get("customers/credit-line-details/:type/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
-        @Param("type") id: string,
+        @Param("id") id: string,
         @Param("type") type: string,
         @CreditLineDetails() query: CreditLineDetailsDto
     ) {
         const { createdAt } = query;
-
         console.log("createdAt", createdAt);
-        console.log("type", type);
         console.log("id", id);
+        console.log("type", type);
 
+        const test = await this.backofficeService.getBorrowRequestDetails(id);
+        console.log("test", test);
+        switch (type) {
+            case "Borrow":
+                console.log("Borrow111");
+                break;
+            case "Deposit":
+                console.log("Deposit111");
+                break;
+            case "Withdraw":
+                console.log("Withdraw111");
+                break;
+            case "Repay":
+                console.log("Repay111");
+                break;
+        }
         //TODO uncomment after merge xlin-47
         // const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(id);
 

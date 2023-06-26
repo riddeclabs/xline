@@ -10,6 +10,7 @@ import {
     CollateralCurrency,
     CreditLine,
     DebtCurrency,
+    FiatTransaction,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -29,6 +30,7 @@ import { PriceOracleModule } from "../price-oracle/price-oracle.module";
             CreditLine,
             CollateralCurrency,
             DebtCurrency,
+            FiatTransaction,
         ]),
         UserModule,
         CreditLineModule,
