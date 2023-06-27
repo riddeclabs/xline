@@ -1,0 +1,172 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <h1 class='pb-2 text-white fs-1'>Requests</h1>
+  <div style="color: #fff;" class="pb-3">
+    <div>Credit line: {{ resultTable.mainInfo.collateral }} / {{ resultTable.mainInfo.debt }}</div>
+    <div>User name: {{ resultTable.mainInfo.name }}</div>
+    <div>Chat ID: {{ resultTable.mainInfo.chatId }}</div>
+  </div>
+  
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Requests list</h1>
+    
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col' style="color: #fff;">
+            {% if page.query.sortField == "type" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Request Type<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "type" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Request Type<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'type' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Request Type
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "status" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Status<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "status" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Status<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'status' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Status
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Created At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "updated_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "updated_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Updated At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless resultTable.rowTable.size > 0 %}
+          <tr>
+            <td colspan="4">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for transaction in resultTable.rowTable %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ transaction.type }}
+              </td>
+              <td class='align-middle' style="color: #D07400; text-transform: uppercase;">
+                {{ transaction.status }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.created_at }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.updated_at }}
+              </td>
+              <td class='align-middle'>
+                <a href="/backoffice/customers/credit-line-detail/{{ transaction.type }}/{{ transaction.credit_line_id }}">
+                  <button class="icon-button">
+                    <i class='bi-info-circle'></i>
+                  </button>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+  <script>
+    const userInput = document.getElementById('user-filter-input');
+    const chatInput = document.getElementById('filter-chat-input');
+
+    function debounce(func, timeout = 500){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
+
+  userInput.addEventListener('input', debounce((e) => {
+    const valueInput = e.target.value
+    const emptyQuery = `?{{ query | mut-query: 'username' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
+    const newHref = valueInput
+     ? queryTemplate.replace('username=template', 'username=' + valueInput)
+       : emptyQuery;
+
+     userInput.setAttribute('href', newHref);
+      window.location.assign(newHref);
+  }, 500))
+
+  chatInput.addEventListener('input', debounce((e) => {
+    const valueInput = e.target.value
+    const emptyQuery = `?{{ query | mut-query: 'chatId' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'chatId', 'template' }}`;
+    const newHref = valueInput
+     ? queryTemplate.replace('chatId=template', 'chatId=' + valueInput)
+       : emptyQuery;
+
+     userInput.setAttribute('href', newHref);
+      window.location.assign(newHref);
+  }, 500))
+
+  if (chatInput.value) {
+    chatInput.focus();
+    chatInput.selectionStart = chatInput.value.length;
+  }
+
+  if (userInput.value) {
+    userInput.focus();
+    userInput.selectionStart = userInput.value.length;
+  }
+  </script>
+{% endblock %}
