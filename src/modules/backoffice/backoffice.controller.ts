@@ -19,7 +19,16 @@ import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { createRepayRequestRefNumber, formatUnits, makePagination, Role } from "src/common";
+import {
+    BorrowRequestStatus,
+    createRepayRequestRefNumber,
+    DepositRequestStatus,
+    formatUnits,
+    makePagination,
+    RepayRequestStatus,
+    Role,
+    WithdrawRequestStatus,
+} from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -38,6 +47,8 @@ import { CreditLineDetailsType } from "./backoffice.types";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { TransactionsQuery } from "./decorators/transactions.decorators";
+import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimal } from "src/common/text-formatter";
 
 @Controller("backoffice")
@@ -311,7 +322,88 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customer-credit-line/:userId")
+    @Get("customers/creditline-user-list/:creditLineId")
+    @Render("backoffice/creditline-user-list")
+    async userCreditLineList(
+        @Param("creditLineId") creditLineId: string,
+        @TransactionsQuery() query: TransactionsDto
+    ) {
+        const { page, sortField, sortDirection } = query;
+        const initialRequestByCreditLineId = await this.backofficeService.getAllRequestByCreditLine(
+            page - 1,
+            creditLineId,
+            sortField,
+            sortDirection
+        );
+        const checkStatus = (type: string, status: string) => {
+            switch (type) {
+                case "Deposit":
+                    return DepositRequestStatus[status as DepositRequestStatus];
+
+                case "Borrow":
+                    return BorrowRequestStatus[status as BorrowRequestStatus];
+
+                case "Withdraw":
+                    return WithdrawRequestStatus[status as WithdrawRequestStatus];
+
+                case "Repay":
+                    return RepayRequestStatus[status as RepayRequestStatus];
+
+                default:
+                    return "";
+            }
+        };
+
+        const resultTransactions = initialRequestByCreditLineId.map(request => {
+            return {
+                ...request,
+                created_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                updated_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                status: checkStatus(request.type, request.status),
+            };
+        });
+
+        const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
+        const totalCount = countTransaction[0]?.count;
+        const generalUserInfoAndCurrencySymbol =
+            await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(creditLineId);
+
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+
+        const resultTable = {
+            mainInfo: {
+                name: generalUserInfoAndCurrencySymbol?.user.name,
+                chatId: generalUserInfoAndCurrencySymbol?.user.chatId,
+                debt: generalUserInfoAndCurrencySymbol?.debtCurrency.symbol,
+                collateral: generalUserInfoAndCurrencySymbol?.collateralCurrency.symbol,
+            },
+            rowTable: resultTransactions,
+        };
+        const totalPageCount = Math.ceil(Number(totalCount) / PAGE_LIMIT_REQUEST);
+
+        return {
+            resultTable,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: Number(totalCount) > PAGE_LIMIT_REQUEST,
+            },
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
     async customerCreditLine(@Param("userId") userId: string) {
         const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
@@ -397,7 +489,6 @@ export class BackOfficeController {
                 })
             );
         }
-        console.log("allCreditLine", allCreditLine);
         const resultTablesData = {
             mainInfo: {
                 name: fullyAssociatedUser?.name,

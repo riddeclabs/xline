@@ -9,10 +9,14 @@ import {
     RepayRequest,
     User,
 } from "src/database/entities";
-import { FindOptionsOrder, Like, Repository } from "typeorm";
+import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
-import { CollatetalCurrencyType, DebtCurrencyType } from "./backoffice.types";
+import {
+    AllRequestByCreditLineType,
+    CollatetalCurrencyType,
+    DebtCurrencyType,
+} from "./backoffice.types";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -49,7 +53,8 @@ export class BackOfficeService {
         @InjectRepository(CollateralCurrency)
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
-        private debtCurrency: Repository<DebtCurrency>
+        private debtCurrency: Repository<DebtCurrency>,
+        private connection: Connection
     ) {}
 
     accountInfo() {
@@ -219,5 +224,52 @@ export class BackOfficeService {
             .createQueryBuilder("collateralCurrency")
             .select("collateralCurrency.symbol")
             .getRawMany();
+    }
+
+    getAllRequestByCreditLine(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection = "ASC"
+    ): Promise<AllRequestByCreditLineType[]> {
+        const query = `
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(withdraw_request_status AS text) AS status, 'Withdraw' as type FROM Withdraw_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(deposit_request_status AS text) AS status, 'Deposit' as type FROM Deposit_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(borrow_request_status AS text) AS status, 'Borrow' as type FROM Borrow_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(repay_request_status AS text) AS status, 'Repay' as type FROM Repay_Request WHERE credit_line_id = ${id})
+            ORDER BY ${sortField} ${sortDirection}
+            OFFSET ${page * PAGE_LIMIT_REQUEST}
+            LIMIT ${PAGE_LIMIT_REQUEST}
+        `;
+        return this.connection.manager.query(query);
+    }
+
+    getCountRequestByCreditLine(id: string): Promise<{ count: string }[]> {
+        const query = `
+        SELECT COUNT(*) FROM(
+            (SELECT id, created_at, credit_Line_Id, updated_at, CAST(withdraw_request_status AS text) AS status, 'Withdraw' as type FROM Withdraw_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(deposit_request_status AS text) AS status, 'Deposit' as type FROM Deposit_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(borrow_request_status AS text) AS status, 'Borrow' as type FROM Borrow_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(repay_request_status AS text) AS status, 'Repay' as type FROM Repay_Request WHERE credit_Line_Id = ${id})
+        ) AS combined
+
+        `;
+        return this.connection.manager.query(query);
+    }
+
+    getGeneralUserInfoAndCurrencySymbol(id: string) {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("creditLine.id = :id", { id })
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .getOne();
     }
 }

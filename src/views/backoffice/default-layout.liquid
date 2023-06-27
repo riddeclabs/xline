@@ -200,6 +200,10 @@ input::-webkit-inner-spin-button {
   } .home-wrapper > div {
     width: 48%;
   }
+
+  .arrow-position {
+    position: absolute;
+  }
   
     </style>
   </head>
@@ -248,7 +252,7 @@ input::-webkit-inner-spin-button {
           <li>
             <a
               href='/backoffice/customers'
-              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              class='nav-link text-white {% if current_url contains 'customers'%}active{% endif %}'
               >
               Customers
             </a>
