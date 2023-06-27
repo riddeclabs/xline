@@ -12,13 +12,23 @@ import {
     ValidationPipe,
     UsePipes,
     Param,
+    Body,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
 
 import { Response, Request } from "express";
 
-import { createRepayRequestRefNumber, formatUnits, makePagination, Role } from "src/common";
+import {
+    BorrowRequestStatus,
+    createRepayRequestRefNumber,
+    DepositRequestStatus,
+    formatUnits,
+    makePagination,
+    RepayRequestStatus,
+    Role,
+    WithdrawRequestStatus,
+} from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
 import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
@@ -26,25 +36,31 @@ import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
 import { OperatorsListDto } from "./dto";
 import { BackOfficeService, OperatorsListColumns } from "./backoffice.service";
-import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
+import { EXP_SCALE, PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import { CustomersListDto } from "./dto/customers.dto";
 import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
-import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
+import { BotManagerService } from "../bot/bot-manager.service";
+import { CreditLineDetailsType } from "./backoffice.types";
+import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
 import { CreditLineDetailsDto } from "./dto/credit-line-details.dto";
-import { CreditLineDetails } from "./decorators/credit-line-details";
+import { CreditLineDetails } from "./decorators/credit-line-details.decorators";
 import { CryptoTransaction, FiatTransaction } from "src/database/entities";
+import { TransactionsQuery } from "./decorators/transactions.decorators";
+import { TransactionsDto } from "./dto/transactions.dto";
+import { truncateDecimal } from "src/common/text-formatter";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
-        private priceOracleService: PriceOracleService
+        private priceOracleService: PriceOracleService,
+        private readonly botManager: BotManagerService
     ) {}
 
     @Get("/auth")
@@ -275,7 +291,6 @@ export class BackOfficeController {
             userFilter,
             chatIdFilter
         );
-
         const customersWithActiveLines = initialCustomers.map(customer => {
             return {
                 id: customer.id,
@@ -284,6 +299,7 @@ export class BackOfficeController {
                 activeLines: customer.creditLines.length,
             };
         });
+
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
             username: userFilter ?? undefined,
@@ -291,7 +307,6 @@ export class BackOfficeController {
             sort: sort,
         };
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT);
-
         return {
             customers: customersWithActiveLines,
             page: {
@@ -310,44 +325,231 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customers/credit-line-details/:type/:id")
+    @Get("customers/credit-line-detail/:type/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
         @Param("id") id: string,
         @Param("type") type: string,
         @CreditLineDetails() query: CreditLineDetailsDto
     ) {
-        const { createdAt } = query;
-        console.log("createdAt", createdAt);
-        let test: FiatTransaction[] | CryptoTransaction[] = [];
+        const { page, sortField, sortDirection } = query;
+
+        let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         switch (type) {
             case "Borrow":
-                test = await this.backofficeService.getBorrowRequestDetails(id);
+                resultTable = await this.backofficeService.getBorrowRequestDetails(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
                 break;
             case "Deposit":
-                test = await this.backofficeService.getDepositRequestDetails(id);
+                resultTable = await this.backofficeService.getDepositRequestDetails(id);
                 break;
             case "Withdraw":
-                test = await this.backofficeService.getWithdrawRequestDetails(id);
+                resultTable = await this.backofficeService.getWithdrawRequestDetails(id);
                 break;
             case "Repay":
-                test = await this.backofficeService.getRepayRequestDetails(id);
+                resultTable = await this.backofficeService.getRepayRequestDetails(id);
                 break;
         }
-        console.log("test", test);
-        //TODO uncomment after merge xlin-47
-        // const userByCreditLineId = await this.backofficeService.getWithdrawUserByCreditLineId(id);
+        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(id);
 
-        // const resultTable = {
-        //     mainInfo: {
-        //         name: userByCreditLineId?.user.name,
-        //         chatId: userByCreditLineId?.user.chatId,
-        //         debt: userByCreditLineId?.debtCurrency.symbol,
-        //         collateral: userByCreditLineId?.collateralCurrency.symbol,
-        //     },
-        //     rowTable: resultTransactions,
-        // };
-        return {};
+        const resultPageInfo = {
+            mainInfo: {
+                name: generalUserInfo?.user.name,
+                chatId: generalUserInfo?.user.chatId,
+                debt: generalUserInfo?.debtCurrency.symbol,
+                collateral: generalUserInfo?.collateralCurrency.symbol,
+            },
+            rowTable: resultTable,
+        };
+        return { resultPageInfo };
+    }
+
+    @Get("customers/creditline-user-list/:creditLineId")
+    @Render("backoffice/creditline-user-list")
+    async userCreditLineList(
+        @Param("creditLineId") creditLineId: string,
+        @TransactionsQuery() query: TransactionsDto
+    ) {
+        const { page, sortField, sortDirection } = query;
+        const initialRequestByCreditLineId = await this.backofficeService.getAllRequestByCreditLine(
+            page - 1,
+            creditLineId,
+            sortField,
+            sortDirection
+        );
+        const checkStatus = (type: string, status: string) => {
+            switch (type) {
+                case "Deposit":
+                    return DepositRequestStatus[status as DepositRequestStatus];
+
+                case "Borrow":
+                    return BorrowRequestStatus[status as BorrowRequestStatus];
+
+                case "Withdraw":
+                    return WithdrawRequestStatus[status as WithdrawRequestStatus];
+
+                case "Repay":
+                    return RepayRequestStatus[status as RepayRequestStatus];
+
+                default:
+                    return "";
+            }
+        };
+
+        const resultTransactions = initialRequestByCreditLineId.map(request => {
+            return {
+                ...request,
+                created_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                updated_at: moment(request.created_at).format("DD.MM.YYYY HH:mm"),
+                status: checkStatus(request.type, request.status),
+            };
+        });
+
+        const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
+        const totalCount = countTransaction[0]?.count;
+        const generalUserInfoAndCurrencySymbol =
+            await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(creditLineId);
+
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+
+        const resultTable = {
+            mainInfo: {
+                name: generalUserInfoAndCurrencySymbol?.user.name,
+                chatId: generalUserInfoAndCurrencySymbol?.user.chatId,
+                debt: generalUserInfoAndCurrencySymbol?.debtCurrency.symbol,
+                collateral: generalUserInfoAndCurrencySymbol?.collateralCurrency.symbol,
+            },
+            rowTable: resultTransactions,
+        };
+        const totalPageCount = Math.ceil(Number(totalCount) / PAGE_LIMIT_REQUEST);
+        return {
+            resultTable,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: Number(totalCount) > PAGE_LIMIT_REQUEST,
+            },
+        };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers-credit-line/:userId")
+    @Render("backoffice/customer-credit-line")
+    async customerCreditLine(@Param("userId") userId: string) {
+        const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
+        //TODO: fix after PR will be merged
+        // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
+        //     collateralCurrency.symbol,
+        //     collateralCurrency.decimals,
+        //     lineDetails.maxAllowedCryptoToWithdraw,
+        //     scaledTokenPrice
+        // );
+        let allCreditLine: CreditLineDetailsType[] = [];
+        if (fullyAssociatedUser?.creditLines.length) {
+            allCreditLine = await Promise.all(
+                fullyAssociatedUser?.creditLines.map(async (item, idx) => {
+                    const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+                        item.id
+                    );
+                    return {
+                        serialNumber: idx + 1,
+                        creditLineId: item.id,
+                        debtSymbol: item.debtCurrency.symbol,
+                        collateralSymbol: item.collateralCurrency.symbol,
+                        amountsTable: {
+                            rawSupplyAmount: formatUnits(
+                                lineDetails.rawCollateralAmount,
+                                lineDetails.collateralCurrency.decimals
+                            ), // raw collateral amount, use collateral decimals to convert to float
+                            usdSupplyAmount: truncateDecimal(
+                                formatUnits(
+                                    lineDetails.fiatCollateralAmount,
+                                    lineDetails.debtCurrency.decimals
+                                ),
+                                2,
+                                false
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            usdCollateralAmount: truncateDecimal(
+                                formatUnits(
+                                    (lineDetails.fiatCollateralAmount *
+                                        economicalParams.collateralFactor) /
+                                        EXP_SCALE,
+                                    lineDetails.debtCurrency.decimals
+                                ),
+                                2,
+                                false
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            debtAmount: truncateDecimal(
+                                formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals),
+                                2,
+                                false
+                            ), // raw fiat amount, use debt currency decimals to convert to float
+                            //TODO: fix after PR will be merged
+                            usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
+                        },
+                        currentState: {
+                            utilizationFactor: truncateDecimal(
+                                formatUnits(lineDetails.utilizationRate * 100n),
+                                2,
+                                false
+                            ), // All rates have 18 decimals accuracy
+                            healthyFactor: truncateDecimal(
+                                formatUnits(lineDetails.healthyFactor),
+                                2,
+                                false
+                            ), // All rates have 18 decimals accuracy
+                        },
+                        appliedRates: {
+                            collateralFactor: truncateDecimal(
+                                formatUnits(economicalParams.collateralFactor * 100n)
+                            ), // All rates have 18 decimals accuracy
+                            liquidationFactor: truncateDecimal(
+                                formatUnits(economicalParams.liquidationFactor * 100n)
+                            ), // All rates have 18 decimals accuracy
+                        },
+                        dates: {
+                            createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                            updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                        },
+                        associatedRequisites: {
+                            iban: item.userPaymentRequisite.iban,
+                            refNumber: item.refNumber,
+                        },
+                    };
+                })
+            );
+        }
+        const resultTablesData = {
+            mainInfo: {
+                name: fullyAssociatedUser?.name,
+                chatId: fullyAssociatedUser?.chatId,
+            },
+            allCreditLine,
+        };
+
+        return resultTablesData;
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Post("/request-resolver/resolve-request/borrow")
+    async requestResolve(@Req() req: Request, @Body() preload: any) {
+        return;
     }
 
     @Roles(Role.ADMIN)

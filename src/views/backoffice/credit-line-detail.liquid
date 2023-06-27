@@ -2,9 +2,9 @@
 {% block content %}
   <h1 class='pb-2 text-white fs-1'>Requests</h1>
   <div style="color: #fff;" class="pb-3">
-    <div>Credit line: {{ resultTable.mainInfo.collateral }} / {{ resultTable.mainInfo.debt }}</div>
-    <div>User name: {{ resultTable.mainInfo.name }}</div>
-    <div>Chat ID: {{ resultTable.mainInfo.chatId }}</div>
+    <div>Credit line: {{ resultPageInfo.mainInfo.collateral }} / {{ resultPageInfo.mainInfo.debt }}</div>
+    <div>User name: {{ resultPageInfo.mainInfo.name }}</div>
+    <div>Chat ID: {{ resultPageInfo.mainInfo.chatId }}</div>
   </div>
   
   <div class='card bg-dark shadow-sm wrapper-table'>
@@ -34,12 +34,12 @@
         </tr>
       </thead>
       <tbody>
-        {% unless resultTable.rowTable.size > 0 %}
+        {% unless resultPageInfo.rowTable.size > 0 %}
           <tr>
             <td colspan="6">Unfortunately, we did not find any client.</td>
           </tr>
         {% endunless %}
-          {% for transaction in resultTable.rowTable %}
+          {% for transaction in resultPageInfo.rowTable %}
             <tr style='height:50px' class="table-column">
               <td class='align-middle'>
                 {{ transaction.type }}

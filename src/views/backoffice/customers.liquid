@@ -48,7 +48,9 @@
           <th scope='col'>
             Active lines
           </th>
-          <th scope='col'>View</th>
+          <th scope='col'>
+            View
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -69,9 +71,11 @@
                 {{ customer.activeLines }}
               </td>
               <td class='align-middle'>
-                <button class="icon-button">
-                  <i class='bi-info-circle'></i>
-                </button>
+                <a href='/backoffice/customers-credit-line/{{ customer.id }}'>
+                  <button class="icon-button">
+                    <i class='bi-info-circle'></i>
+                  </button>
+                </a>
               </td>
             </tr>
           {% endfor %}

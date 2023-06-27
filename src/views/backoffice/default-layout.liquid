@@ -76,6 +76,7 @@ input::-webkit-inner-spin-button {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
+    border-radius: 12px;
   }
   .req-bor-wrapper p {
     margin-bottom: 0;
@@ -119,6 +120,9 @@ input::-webkit-inner-spin-button {
     margin-bottom: 15px;
     float: left;
   }
+  .content-item {
+    width: 49%;
+  }
   
   .clear-btn {
     margin-left: auto;
@@ -144,6 +148,49 @@ input::-webkit-inner-spin-button {
   }
   .sortingTitle {
     text-decoration: none; 
+    color: #CDCCCD;
+  }
+  .content-wrapper-request {
+    background: #34373B !important;
+    border: none;
+    padding: 21px 27px;
+    border-radius: 12px;
+    color: #fff;
+    max-width: 1280px;
+  }
+
+  .wrapper-buttons {
+    margin: 0 auto;
+    width: fit-content;
+  }
+  .customer-CL-wrapper {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .customer-CL-wrapper > div {
+    width: 32%;
+  }
+  .row-container {
+    display: flex;
+    color: #CDCCCD;
+    width: 100%;
+  }
+
+  .row-container > div {
+    border: 1px solid #CDCCCD;
+    text-align: center;
+    padding: 10px 0;
+    width: 50%;
+    font-size: 12px;
+  }
+
+  .left-row {
+    background: #525252;
+  }
+
+  .right-row {
+    background: #212529;
     color: rgb(173, 181, 189);
   }
   .home-wrapper {
@@ -152,6 +199,10 @@ input::-webkit-inner-spin-button {
     max-width: 1280px;
   } .home-wrapper > div {
     width: 48%;
+  }
+
+  .arrow-position {
+    position: absolute;
   }
   
     </style>
@@ -201,7 +252,7 @@ input::-webkit-inner-spin-button {
           <li>
             <a
               href='/backoffice/customers'
-              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              class='nav-link text-white {% if current_url contains 'customers'%}active{% endif %}'
               >
               Customers
             </a>
