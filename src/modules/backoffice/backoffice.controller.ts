@@ -253,12 +253,14 @@ export class BackOfficeController {
     @Get("repay-request/:id")
     @Render("backoffice/repay-request-item")
     async repayItem(@Req() req: Request, @Param("id") id: string) {
-        const getRepayRequestById = await this.backofficeService.getRepayRequestById(id);
+        const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         const resultRepayRequestById = {
-            refNumber: getRepayRequestById?.creditLine.refNumber,
-            iban: getRepayRequestById?.creditLine.userPaymentRequisite.iban,
+            refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
+            iban: repayRequestById?.businessPaymentRequisite.iban,
             debtAmountUSD: truncateDecimal(
-                formatUnits(getRepayRequestById?.creditLine.debtAmount || 0n)
+                formatUnits(repayRequestById?.creditLine.debtAmount || 0n),
+                2,
+                false
             ),
         };
         return resultRepayRequestById;

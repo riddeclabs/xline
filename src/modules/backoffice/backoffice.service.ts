@@ -215,6 +215,7 @@ export class BackOfficeService {
             .where("repay.id = :id", { id })
             .leftJoinAndSelect("repay.creditLine", "creditLine")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
             .getOne();
     }
 }
