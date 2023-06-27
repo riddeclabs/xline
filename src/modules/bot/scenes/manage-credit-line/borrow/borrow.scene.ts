@@ -13,7 +13,7 @@ import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.t
 import { BorrowTextSource } from "./borrow.text";
 import { BotManagerService } from "src/modules/bot/bot-manager.service";
 import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
-import { getCreditLineState } from "../../common/utils";
+import { getCreditLineStateData, getMaxAllowedBorrowAmount } from "../../common/utils";
 import { validateAmountDecimals } from "src/common/input-validation";
 import { truncateDecimals } from "src/common/text-formatter";
 
@@ -75,11 +75,9 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_IS_BORROW_POSSIBLE)
     async onVerifyIsBorrowPossible(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            creditLineId
-        );
+        const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        if (lineDetails.rawCollateralAmount <= 0n) {
+        if (cld.lineDetails.rawCollateralAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -92,11 +90,26 @@ export class BorrowActionWizard {
             return;
         }
 
-        if (lineDetails.utilizationRate >= economicalParams.collateralFactor) {
+        const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
+
+        if (maxAllowedBorrowAmount === 0n) {
+            await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
+                parse_mode: "MarkdownV2",
+            });
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                    columns: 1,
+                }).reply_markup
+            );
+            ctx.wizard.next();
+            return;
+        }
+
+        if (cld.lineDetails.utilizationRate >= cld.economicalParams.collateralFactor) {
             await ctx.editMessageText(
                 BorrowTextSource.getInsufficientBalanceText(
-                    lineDetails.utilizationRate,
-                    economicalParams.collateralFactor
+                    cld.lineDetails.utilizationRate,
+                    cld.economicalParams.collateralFactor
                 ),
                 {
                     parse_mode: "MarkdownV2",
@@ -126,7 +139,7 @@ export class BorrowActionWizard {
         const fee = bigintToFormattedPercent(creditLine.economicalParameters.fiatProcessingFee);
 
         const msg = (await ctx.editMessageText(
-            BorrowTextSource.getBorrowTermsText(collateralFactor, fee),
+            BorrowTextSource.getBorrowTermsText(collateralFactor, fee, creditLine.debtCurrency.symbol),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -155,7 +168,7 @@ export class BorrowActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const state = getCreditLineState(cld);
+        const state = getCreditLineStateData(cld);
         const text = await BorrowTextSource.getAmountInputText(state);
 
         await ctx.editMessageText(text, {
@@ -166,6 +179,7 @@ export class BorrowActionWizard {
 
     @WizardStep(BorrowActionSteps.SIGN_TERMS)
     async onSignTerms(@Ctx() ctx: BorrowContext) {
+        // FIXME: Optimize database and oracle usage
         const amount = Number(ctx.scene.session.state.borrowAmount);
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cdl = await this.botManager.getCreditLineDetails(creditLineId);
@@ -176,13 +190,13 @@ export class BorrowActionWizard {
 
         const borrowFiatAmount = parseUnits(amount);
         try {
-            await this.botManager.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+            await this.botManager.verifyHypBorrowRequest(cdl.lineDetails, borrowFiatAmount);
         } catch (e) {
             const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
             await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;
         }
-        const stateBefore = getCreditLineState(cdl);
+        const stateBefore = getCreditLineStateData(cdl);
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
         //TODO: adapt for minimal fee value later
@@ -319,7 +333,7 @@ export class BorrowActionWizard {
 
             //FIXME: Think about adding some threshold for the amount
             try {
-                await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
+                await this.botManager.saveNewBorrowRequest(creditLine, borrowFiatAmount);
             } catch (e) {
                 const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
                 await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
@@ -354,7 +368,7 @@ export class BorrowActionWizard {
     private async reqAmountHandler(ctx: BorrowContext, userInput: string) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
-        const state = getCreditLineState(cld);
+        const state = getCreditLineStateData(cld);
 
         const input = Number(userInput);
         if (!input || input <= 0) {

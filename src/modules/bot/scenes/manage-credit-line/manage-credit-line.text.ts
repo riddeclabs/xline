@@ -1,12 +1,8 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
-import {
-    bigintToFormattedPercent,
-    escapeSpecialCharacters,
-    formatUnitsNumber,
-} from "../../../../common";
+import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
 import { BasicSourceText } from "../common/basic-source.text";
-import { getCreditLineState } from "../common/utils";
+import { getCreditLineStateData as getCreditLineState } from "../common/utils";
 
 export class ManageCreditLineText extends BasicSourceText {
     static getChoseCreditLineText() {
@@ -23,25 +19,20 @@ export class ManageCreditLineText extends BasicSourceText {
         const collateralSymbol = cld.collateralCurrency.symbol;
         const debtSymbol = cld.debtCurrency.symbol;
 
-        const healthyFactorText =
-            cld.healthyFactor === 0n
-                ? ""
-                : `Healthy Factor:    ${formatUnitsNumber(cld.healthyFactor)} \n`;
-
         const state = getCreditLineState({ economicalParams: ep, lineDetails: cld });
-        const creditLineStateText = this.getCreditLineStateText(state);
+        const creditLineStateText = this.getCreditLineStateText(state, false);
 
         return escapeSpecialCharacters(
             `💶 *${collateralSymbol}/${debtSymbol} credit line details* \n\n` +
                 "📊 *Applied rates:*\n" +
                 `APR: ${vld.mdAprPercent} %\n` +
-                `Collateral Factor: ${vld.mdCollateralFactorPercent} %\n` +
+                `Collateral Factor: ${vld.mdCollateralFactorPercent} %\n\n` +
                 `Liquidation Factor: ${vld.mdLiquidationFactorPercent} %\n` +
                 `Liquidation Fee: ${vld.mdLiquidationFeePercent} %\n` +
                 "\n\n" +
                 "📊 *Credit details:*\n" +
-                healthyFactorText +
-                creditLineStateText
+                creditLineStateText +
+                `Been liquidated:   ${state.hasBeenLiquidated}\n\n`
         );
     }
 

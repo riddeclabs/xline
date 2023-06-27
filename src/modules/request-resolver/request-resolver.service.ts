@@ -252,68 +252,20 @@ export class RequestResolverService {
         };
     }
 
-    // Used by operator to verify borrow request before transfer the payment
-    async verifyBorrowRequest(reqId: number) {
-        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(reqId);
-
-        if (borrowRequest.borrowRequestStatus === BorrowRequestStatus.REJECTED) {
-            throw new HttpException(
-                "Borrow request could not be verified: request status is REJECTED",
-                HttpStatus.BAD_REQUEST
-            );
-        }
-
-        const creditLine = borrowRequest.creditLine;
-
-        const requestedBorrowAmount = await this.getBorrowAmount(
-            borrowRequest,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount
-        );
-
-        const amountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLine.id,
-            requestedBorrowAmount
-        );
-
-        try {
-            await this.riskEngineService.verifyBorrowOverCFOrThrow(
-                creditLine,
-                creditLine.collateralCurrency.symbol,
-                creditLine.collateralCurrency.decimals,
-                amountWithFee
-            );
-        } catch (e) {
-            if (!(e instanceof Error)) {
-                throw e;
-            }
-            return {
-                isVerified: false,
-                reason: e.message,
-            };
-        }
-
-        return {
-            isVerified: true,
-        };
-    }
-
     // Used to verify user requested borrow amount during the creation of new borrow request
-    async verifyHypBorrowRequest(creditLineId: number, hypotheticalBorrowAmount: bigint) {
-        const creditLineExtended = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
-            creditLineId
-        );
-
+    async verifyHypBorrowRequest(
+        creditLineCurrencyExtended: CreditLine,
+        hypotheticalBorrowAmount: bigint
+    ) {
         const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLineId,
+            creditLineCurrencyExtended.id,
             hypotheticalBorrowAmount
         );
 
         await this.riskEngineService.verifyBorrowOverCFOrThrow(
-            creditLineExtended,
-            creditLineExtended.collateralCurrency.symbol,
-            creditLineExtended.collateralCurrency.decimals,
+            creditLineCurrencyExtended,
+            creditLineCurrencyExtended.collateralCurrency.symbol,
+            creditLineCurrencyExtended.collateralCurrency.decimals,
             borrowAmountWithFee
         );
     }

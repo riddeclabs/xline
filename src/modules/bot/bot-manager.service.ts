@@ -162,7 +162,7 @@ export class BotManagerService {
     }
 
     // Credit line
-
+    //FIXME: "I think we need to recalculate the Healthy factor each time we show the fresh state."
     async getCreditLineDetails(creditLineId: number): Promise<CreditLineDetailsExt> {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
@@ -215,10 +215,10 @@ export class BotManagerService {
         });
     }
 
-    async saveNewBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
-        await this.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+    async saveNewBorrowRequest(creditLine: CreditLine, borrowFiatAmount: bigint) {
+        await this.verifyHypBorrowRequest(creditLine, borrowFiatAmount);
         await this.requestHandlerService.saveNewBorrowRequest({
-            creditLineId,
+            creditLineId: creditLine.id,
             borrowFiatAmount,
             initialRiskStrategy: null,
             borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING,
@@ -229,8 +229,8 @@ export class BotManagerService {
         return this.riskEngineService.calculateBorrowAmountWithFees(creditLineId, borrowFiatAmount);
     }
 
-    async verifyHypBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
-        await this.requestResolverService.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+    async verifyHypBorrowRequest(creditLine: CreditLine, borrowFiatAmount: bigint) {
+        await this.requestResolverService.verifyHypBorrowRequest(creditLine, borrowFiatAmount);
     }
 
     async verifyHypWithdrawRequest(creditLineId: number, withdrawAmount: bigint) {
