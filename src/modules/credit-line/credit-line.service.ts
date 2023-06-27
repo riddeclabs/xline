@@ -23,24 +23,24 @@ export class CreditLineService {
     }
 
     async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
-        this.creditLineRepo
+        await this.creditLineRepo
             .createQueryBuilder()
             .update(CreditLine)
-            .set({ debtAmount: () => "debtAmount + addAmount" })
+            .set({ debtAmount: () => `debtAmount + ${addAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 
-        return this.getCreditLineById(creditLineId);
+        return await this.getCreditLineById(creditLineId);
     }
 
     async increaseAccumulatedFeeAmountById(
         creditLineId: number,
         addAmount: bigint
     ): Promise<CreditLine> {
-        this.creditLineRepo
+        await this.creditLineRepo
             .createQueryBuilder()
             .update(CreditLine)
-            .set({ feeAccumulatedFiatAmount: () => "feeAccumulatedFiatAmount + addAmount" })
+            .set({ feeAccumulatedFiatAmount: () => `feeAccumulatedFiatAmount + ${addAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 
@@ -48,10 +48,10 @@ export class CreditLineService {
     }
 
     async decreaseDebtAmountById(creditLineId: number, subAmount: bigint) {
-        this.creditLineRepo
+        await this.creditLineRepo
             .createQueryBuilder()
             .update(CreditLine)
-            .set({ debtAmount: () => "debtAmount - addAmount" })
+            .set({ debtAmount: () => `debtAmount - ${subAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 
@@ -59,10 +59,10 @@ export class CreditLineService {
     }
 
     async increaseSupplyAmountById(creditLineId: number, addAmount: bigint) {
-        this.creditLineRepo
+        await this.creditLineRepo
             .createQueryBuilder()
             .update(CreditLine)
-            .set({ rawCollateralAmount: () => "rawCollateralAmount + addAmount" })
+            .set({ rawCollateralAmount: () => `rawCollateralAmount + ${addAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 
@@ -70,10 +70,10 @@ export class CreditLineService {
     }
 
     async decreaseSupplyAmountById(creditLineId: number, subAmount: bigint) {
-        this.creditLineRepo
+        await this.creditLineRepo
             .createQueryBuilder()
             .update(CreditLine)
-            .set({ rawCollateralAmount: () => "rawCollateralAmount i addAmount" })
+            .set({ rawCollateralAmount: () => `rawCollateralAmount - ${subAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 

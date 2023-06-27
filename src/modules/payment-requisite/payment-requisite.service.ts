@@ -70,12 +70,16 @@ export class PaymentRequisiteService {
         return this.businessPaymentRepo.save(newReq);
     }
 
-    async getBusinessPayReqWithCurrencyByIban(iban: string): Promise<BusinessPaymentRequisite | null> {
+    async getBusinessPayReqByIbanAndCurrency(
+        iban: string,
+        currencySymbol: string
+    ): Promise<BusinessPaymentRequisite | null> {
         const formattedIban = iban.replace(/\s/g, "").toUpperCase();
         return this.businessPaymentRepo
             .createQueryBuilder("bpr")
-            .leftJoin("bpr.debtCurrencyId", "debtCurrency")
+            .leftJoin("bpr.debtCurrency", "dc")
             .where("bpr.iban = :formattedIban", { formattedIban })
+            .andWhere("dc.symbol = :currencySymbol", { currencySymbol })
             .getOne();
     }
 }

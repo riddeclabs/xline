@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import {
+    FinalizeOrRejectBorrowRequestDto,
     ResolveBorrowRequestDto,
     ResolveCryptoBasedRequestDto,
     ResolveRepayRequestDto,
@@ -58,18 +59,14 @@ export class RequestResolverService {
         );
         const creditLine = borrowRequest.creditLine;
 
-        const bRequisites = await this.paymentRequisiteService.getBusinessPayReqWithCurrencyByIban(
-            resolveBorrowRequest.ibanFrom
+        const bRequisites = await this.paymentRequisiteService.getBusinessPayReqByIbanAndCurrency(
+            resolveBorrowRequest.ibanFrom,
+            creditLine.debtCurrency.symbol
         );
 
         if (!bRequisites) {
             throw new HttpException(
                 "No business requisites found for this borrow request",
-                HttpStatus.BAD_REQUEST
-            );
-        } else if (bRequisites.debtCurrency.symbol !== creditLine.debtCurrency.symbol) {
-            throw new HttpException(
-                "Business requisites currency does not match credit line currency",
                 HttpStatus.BAD_REQUEST
             );
         }
@@ -112,7 +109,10 @@ export class RequestResolverService {
                 borrowAmountWithFee
             );
         } catch (e) {
-            throw new HttpException("Err", HttpStatus.BAD_REQUEST);
+            throw new HttpException(
+                "Borrow request could not be resolved. User's collateral is insufficient",
+                HttpStatus.BAD_REQUEST
+            );
         }
 
         await this.transactionService.createFiatTransaction({
@@ -137,15 +137,15 @@ export class RequestResolverService {
 
     /**
      Used by operator to finalize borrow request when bank tx is finalized.
-     @param {number} requestId - The ID of the request to finalize.
+     @param {dto} FinalizeOrRejectBorrowRequestDto - Dto containing ID of the request to finalize.
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state
      */
-    async finalizeBorrowRequest(requestId: number): Promise<{ success: boolean }> {
+    async finalizeBorrowRequest(dto: FinalizeOrRejectBorrowRequestDto): Promise<{ success: boolean }> {
         // Accrue interest
         // FIXME: add risk engine call
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
-            requestId
+            dto.requestId
         );
         const creditLine = borrowRequest.creditLine;
 
@@ -191,7 +191,7 @@ export class RequestResolverService {
             BorrowRequestStatus.FINISHED
         );
 
-        const feeAmount = await this.riskEngineService.calculateBorrowAmountWithFees(
+        const feeAmount = await this.riskEngineService.calculateFiatProcessingFeeAmount(
             creditLine.id,
             borrowRequest.borrowFiatAmount
         );
@@ -212,13 +212,13 @@ export class RequestResolverService {
 
     /**
      Used by operator to reject borrow request.
-     @param {number} requestId - The ID of the request to reject.
+     @param {dto} FinalizeOrRejectBorrowRequestDto - Dto containing ID of the request to reject.
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
      @throws {HttpException} - If the request is not in the correct state
      */
-    async rejectBorrowRequest(requestId: number): Promise<{ success: boolean }> {
+    async rejectBorrowRequest(dto: FinalizeOrRejectBorrowRequestDto): Promise<{ success: boolean }> {
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
-            requestId
+            dto.requestId
         );
 
         const pendingTxs = borrowRequest.fiatTransactions.filter(
