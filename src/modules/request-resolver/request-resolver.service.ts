@@ -229,7 +229,7 @@ export class RequestResolverService {
         if (pendingTxs.length > 0) {
             if (pendingTxs.length > 1) {
                 throw new HttpException(
-                    "Rejecting request has mode that one pending transaction",
+                    "Rejecting request has more that one pending transaction",
                     HttpStatus.UNPROCESSABLE_ENTITY
                 );
             }
