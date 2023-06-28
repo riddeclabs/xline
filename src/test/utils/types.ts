@@ -1,5 +1,5 @@
 export type BatchRequestData = {
-    reqAmount: number;
+    requestsCount: number;
     isTxExist: boolean;
 };
 

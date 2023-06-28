@@ -50,7 +50,7 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
                 debtCurrencyId: creditLine.debtCurrencyId,
             });
 
-            for (let i = 0; i < (opts?.requests?.repayRequest.reqAmount ?? 1); i++) {
+            for (let i = 0; i < (opts?.requests?.repayRequest.requestsCount ?? 1); i++) {
                 const repayRequest = await this.makeRepayRequest({
                     creditLineId: creditLine.id,
                     businessPaymentRequisiteId: bpr.id,
@@ -64,7 +64,7 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
                 }
             }
 
-            for (let i = 0; i < (opts?.requests?.borrowRequest.reqAmount ?? 1); i++) {
+            for (let i = 0; i < (opts?.requests?.borrowRequest.requestsCount ?? 1); i++) {
                 const borrowRequest = await this.makeBorrowRequest({
                     creditLineId: creditLine.id,
                 });
@@ -82,7 +82,7 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
                 }
             }
 
-            for (let i = 0; i < (opts?.requests?.depositRequest.reqAmount ?? 1); i++) {
+            for (let i = 0; i < (opts?.requests?.depositRequest.requestsCount ?? 1); i++) {
                 const depositRequest = await this.makeDepositRequest({
                     creditLineId: creditLine.id,
                 });
@@ -94,7 +94,7 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
                 }
             }
 
-            for (let i = 0; i < (opts?.requests?.withdrawRequest.reqAmount ?? 1); i++) {
+            for (let i = 0; i < (opts?.requests?.withdrawRequest.requestsCount ?? 1); i++) {
                 const withdrawRequest = await this.makeWithdrawRequest({
                     creditLineId: creditLine.id,
                 });
