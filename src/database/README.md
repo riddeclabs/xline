@@ -24,8 +24,14 @@ yarn typeorm migration:create src/database/migrations/<name-of-new-migration>
 yarn typeorm schema:drop -d src/database/index.ts
 ```
 
-* Run seeding script
+* Run initial seeding script
 
 ```
 yarn database:seed
+```
+
+* Run script to fulfill the database for FE tests ( do not drop schema and is compatible with initial seed script )
+
+```
+yarn database:fixture:fe
 ```
