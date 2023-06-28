@@ -247,32 +247,51 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getRepayRequestDetails(id: string) {
-        return (
-            this.fiatTransaction
-                .createQueryBuilder("fiat")
-                // .where("fiat.repayRequestId = :id", { id })
-                .getMany()
-        );
+    getRepayRequestDetails(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.repayRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`fiat.${sortField}`, sortDirection)
+            .getMany();
     }
 
-    getDepositRequestDetails(id: string) {
-        return (
-            this.cryptoTransaction
-                .createQueryBuilder("crypto")
-                // .where("crypto.depositRequestId = :id", { id })
-                .getMany()
-        );
+    getDepositRequestDetails(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.depositRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
 
-    getWithdrawRequestDetails(id: string) {
-        return (
-            this.cryptoTransaction
-                .createQueryBuilder("crypto")
-                // .where("crypto.withdrawRequestId = :id", { id })
-                .getMany()
-        );
+    getWithdrawRequestDetails(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.withdrawRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
+
     getAllRequestByCreditLine(
         page: number,
         id: string,

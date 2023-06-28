@@ -23,6 +23,7 @@ import {
     BorrowRequestStatus,
     createRepayRequestRefNumber,
     DepositRequestStatus,
+    FiatTransactionStatus,
     formatUnits,
     makePagination,
     RepayRequestStatus,
@@ -345,17 +346,38 @@ export class BackOfficeController {
                 );
                 break;
             case "Deposit":
-                resultTable = await this.backofficeService.getDepositRequestDetails(id);
+                resultTable = await this.backofficeService.getDepositRequestDetails(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
                 break;
             case "Withdraw":
-                resultTable = await this.backofficeService.getWithdrawRequestDetails(id);
+                resultTable = await this.backofficeService.getWithdrawRequestDetails(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
                 break;
             case "Repay":
-                resultTable = await this.backofficeService.getRepayRequestDetails(id);
+                resultTable = await this.backofficeService.getRepayRequestDetails(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
                 break;
         }
-        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(id);
 
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+
+        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(id);
         const resultPageInfo = {
             mainInfo: {
                 name: generalUserInfo?.user.name,
@@ -363,9 +385,29 @@ export class BackOfficeController {
                 debt: generalUserInfo?.debtCurrency.symbol,
                 collateral: generalUserInfo?.collateralCurrency.symbol,
             },
-            rowTable: resultTable,
+            rowTable: resultTable.map(item => {
+                return {
+                    ...item,
+                    createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                    updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                    rawTransferAmount: truncateDecimal(formatUnits(item.rawTransferAmount), 2, false),
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    //@ts-ignore
+                    usdTransferAmount: truncateDecimal(formatUnits(item.usdTransferAmount), 2, false),
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    //@ts-ignore
+                    status: FiatTransactionStatus[item.status as FiatTransactionStatus],
+                };
+            }),
+            depTable: type === "Withdraw" || type === "Deposit",
         };
-        return { resultPageInfo };
+
+        return {
+            resultPageInfo,
+            page: {
+                query: queryWithDefaults,
+            },
+        };
     }
 
     @Get("customers/creditline-user-list/:creditLineId")
@@ -516,10 +558,14 @@ export class BackOfficeController {
                         },
                         appliedRates: {
                             collateralFactor: truncateDecimal(
-                                formatUnits(economicalParams.collateralFactor * 100n)
+                                formatUnits(economicalParams.collateralFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                             liquidationFactor: truncateDecimal(
-                                formatUnits(economicalParams.liquidationFactor * 100n)
+                                formatUnits(economicalParams.liquidationFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                         },
                         dates: {
