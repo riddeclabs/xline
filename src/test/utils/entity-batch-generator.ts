@@ -20,7 +20,6 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
             currencyPair?: { collateralCurrency?: CurrencyBaseData; debtCurrency?: CurrencyBaseData };
         }
     ) {
-        // Note!
         const debtCurrency = opts?.currencyPair?.debtCurrency
             ? await this.findOrCreateDebtCurrency(opts.currencyPair.debtCurrency)
             : null;

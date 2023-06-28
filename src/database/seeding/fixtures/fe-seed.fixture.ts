@@ -2,7 +2,7 @@ import { DataSource } from "typeorm";
 import entities from "../../entities";
 import migrations from "../../migrations";
 import { SUPPORTED_TOKENS } from "../../../modules/bot/constants";
-import { EntityBatchGenerator } from "../../../test/utils/entity-batch--generator";
+import { EntityBatchGenerator } from "../../../test/utils/entity-batch-generator";
 
 // Allows you to generate fully customized credit lines (with users, details, requests, transactions, etc.)
 // based on a pair of tokens (collateral and debt).
