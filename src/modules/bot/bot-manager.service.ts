@@ -183,7 +183,14 @@ export class BotManagerService {
             economicalParams: lineEconomicalParams,
             lineDetails: {
                 ...creditLine,
-                utilizationRate: creditLine.debtAmount === 0n ? 0n : getUtilRate(),
+                // collateral === 0 => utilizationRate = 100%
+                // debt === 0 => utilizationRate = 0%
+                utilizationRate:
+                    depositUsdAmount === 0n
+                        ? parseUnits("1")
+                        : creditLine.debtAmount === 0n
+                        ? 0n
+                        : getUtilRate(),
                 fiatCollateralAmount: depositUsdAmount,
             },
         };
