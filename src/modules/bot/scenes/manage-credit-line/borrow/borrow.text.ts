@@ -1,4 +1,4 @@
-import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
+import { escapeSpecialCharacters } from "src/common";
 import { BasicSourceText } from "../../common/basic-source.text";
 import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
 
@@ -20,8 +20,7 @@ export class BorrowTextSource extends BasicSourceText {
     }
 
     static async getAmountInputText(state: CreditLineStateMsgData): Promise<string> {
-        const printMaxAllowed = state.maxAllowedBorrowAmount > 0;
-        const creditLineStateText = this.getCreditLineStateText(state, printMaxAllowed);
+        const creditLineStateText = this.getCreditLineStateText(state, true);
 
         return escapeSpecialCharacters(
             `*Please enter ${state.debtCurrency} amount you want to borrow*\n\n` +
@@ -110,10 +109,11 @@ export class BorrowTextSource extends BasicSourceText {
     }
 
     static getAmountValidationErrorMaxAllowedMsg(userInput: string, maxAllowed: number): string {
+        const maxAllowedUint = maxAllowed > 0 ? maxAllowed : 0;
         return escapeSpecialCharacters(
             "❌ *Entered amount is incorrect.* ❌\n\n" +
-                "‼ Amount could not be grater that max allowed amount for your credit line.\n\n" +
-                `*Max allowed amount:* ${maxAllowed}\n\n` +
+                "‼ Amount could not be greater that max allowed amount for your credit line.\n\n" +
+                `*Max allowed amount:* ${maxAllowedUint}\n\n` +
                 `*Entered amount:* ${userInput}\n\n` +
                 "Please try again."
         );
@@ -154,19 +154,6 @@ export class BorrowTextSource extends BasicSourceText {
     static getZeroBalanceText(): string {
         const zeroSupplyCaseText = "🚫 Your current deposit balance is *zero*. \n";
         const txt = this.makeInsufficientBalanceTemplateText(zeroSupplyCaseText);
-        return escapeSpecialCharacters(txt);
-    }
-
-    static getInsufficientBalanceText(utilizationFactor: bigint, collateralFactor: bigint): string {
-        const insufficientLiquidityCaseText =
-            "🚫 You currently cannot make a borrow as your current utilization factor exceeds the collateral factor applied to your credit line.\n\n" +
-            `📊 Your utilization factor is *${bigintToFormattedPercent(
-                utilizationFactor
-            )}%* and the collateral factor is *${bigintToFormattedPercent(collateralFactor)}%*.\n` +
-            "\n" +
-            "📈 To adjust your utilization and make a withdrawal, you can either increase your collateral or reduce your outstanding balance.\n";
-
-        const txt = this.makeInsufficientBalanceTemplateText(insufficientLiquidityCaseText);
         return escapeSpecialCharacters(txt);
     }
 

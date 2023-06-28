@@ -29,8 +29,9 @@ export function getCreditLineStateData(cld: CreditLineDetailsExt): CreditLineSta
 
 export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
     return (
-        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE -
-        (cld.lineDetails.debtAmount * (parseUnits("1") - cld.economicalParams.fiatProcessingFee)) /
-            EXP_SCALE
+        (((cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE -
+            cld.lineDetails.debtAmount) *
+            (parseUnits("1") - cld.economicalParams.fiatProcessingFee)) /
+        EXP_SCALE
     );
 }
