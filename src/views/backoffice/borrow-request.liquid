@@ -1,6 +1,6 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-5 text-white fs-1'>Customers</h1>
+  <h1 class='pb-5 text-white fs-1'>Borrow requests</h1>
   <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
     <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
       <div class='input-group' style='width: 350px'>
@@ -13,20 +13,10 @@
           id='filter-chat-input'
           value='{{ page.query.chatId }}'> 
       </div>
-      <div class='input-group' style='width: 350px'>
-        <input
-          placeholder='Customer name'
-          type='search'
-          class='form-control'
-          aria-label='Sizing example input'
-          aria-describedby='inputGroup-sizing-sm'
-          id='user-filter-input'
-          value='{{ page.query.username }}'>
-      </div>
     </div>
   </div>
   <div class='card bg-dark shadow-sm wrapper-table'>
-    <h1 class='m-3 text-white fs-5'>Customers list</h1>
+    <h1 class='m-3 text-white fs-5'>Borrow requests list</h1>
     <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
       <thead>
         <tr>
@@ -34,46 +24,68 @@
             Chat ID
           </th>
           <th scope='col'>
+            Currencies
+          </th>
+          <th scope='col'>
+            Amount 
+          </th>
+          <th scope='col'>
+            Status
+          </th>
+          <th scope='col'>
+            User Iban 
+          </th>
+          <th scope='col'>
             {% if page.query.sort == "DESC" %}
-              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Customer name<i class='bi-arrow-up'></i>
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at<i class='bi-arrow-up'></i>
               </a>
             {% elsif page.query.sort == "ASC" %}
-              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' class="sortingTitle">Customer name<i class='bi-arrow-down'></i>
+              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' class="sortingTitle">Created at<i class='bi-arrow-down'></i>
               </a>
             {% else %}
-              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Customer name
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at
               </a>
             {% endif %}
           </th>
           <th scope='col'>
-            Active lines
+            Updated at
           </th>
-          <th scope='col'>
-            View
-          </th>
+          <th scope='col'></th>
         </tr>
       </thead>
       <tbody>
-        {% unless customers.size > 0 %}
+        {% unless allBorrowResult.size > 0 %}
           <tr>
-            <td colspan="4">Unfortunately, we did not find any client.</td>
+            <td colspan="8">Unfortunately, we did not find any request.</td>
           </tr>
         {% endunless %}
-          {% for customer in customers %}
+          {% for borrow in allBorrowResult %}
             <tr style='height:50px' class="table-column">
               <td class='align-middle'>
-                {{ customer.chatId }}
+                {{ borrow.creditLine.user.chatId }}
               </td>
               <td class='align-middle'>
-                {{ customer.name }}
+                {{ borrow.creditLine.collateralCurrency.symbol }} / {{ borrow.creditLine.debtCurrency.symbol }}
               </td>
               <td class='align-middle'>
-                {{ customer.activeLines }}
+                {{ borrow.borrowFiatAmount }}
+              </td>
+              <td class='align-middle td-status'>
+                {{ borrow.borrowRequestStatus }}
               </td>
               <td class='align-middle'>
-                <a href='/backoffice/customers-credit-line/{{ customer.id }}'>
-                  <button class="icon-button">
-                    <i class='bi-info-circle'></i>
+                {{ borrow.creditLine.userPaymentRequisite.iban }}
+              </td>
+              <td class='align-middle'>
+                {{ borrow.createdAt }}
+              </td>
+              <td class='align-middle'>
+                {{ borrow.updatedAt }}
+              </td>
+              <td class='align-middle'>
+                <a href='/backoffice/unresolved-request/borrow/{{ borrow.id }}'>
+                  <button class="blue-button">
+                    Resolve
                   </button>
                 </a>
               </td>
@@ -110,7 +122,6 @@
         {% endif %}
   </div>
   <script>
-    const userInput = document.getElementById('user-filter-input');
     const chatInput = document.getElementById('filter-chat-input');
 
     function debounce(func, timeout = 500){
@@ -121,18 +132,6 @@
       };
     }
 
-  userInput.addEventListener('input', debounce((e) => {
-    const valueInput = e.target.value
-    const emptyQuery = `?{{ query | mut-query: 'username' }}`;
-    const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
-    const newHref = valueInput
-     ? queryTemplate.replace('username=template', 'username=' + valueInput)
-       : emptyQuery;
-
-     userInput.setAttribute('href', newHref);
-      window.location.assign(newHref);
-  }, 500))
-
   chatInput.addEventListener('input', debounce((e) => {
     const valueInput = e.target.value
     const emptyQuery = `?{{ query | mut-query: 'chatId' }}`;
@@ -141,7 +140,7 @@
      ? queryTemplate.replace('chatId=template', 'chatId=' + valueInput)
        : emptyQuery;
 
-     userInput.setAttribute('href', newHref);
+      chatInput.setAttribute('href', newHref);
       window.location.assign(newHref);
   }, 500))
 
@@ -150,9 +149,5 @@
     chatInput.selectionStart = chatInput.value.length;
   }
 
-  if (userInput.value) {
-    userInput.focus();
-    userInput.selectionStart = userInput.value.length;
-  }
   </script>
 {% endblock %}
