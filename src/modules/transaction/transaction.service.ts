@@ -4,6 +4,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { CryptoTransaction, FiatTransaction } from "../../database/entities";
 import { Repository } from "typeorm";
 import { FiatTransactionStatus } from "src/common";
+import { validateDto } from "src/decorators/class-validator-extended.decorator";
 
 @Injectable()
 export class TransactionService {
@@ -45,6 +46,7 @@ export class TransactionService {
     async createFiatTransaction(
         createFiatTransactionDto: CreateFiatTransactionDto
     ): Promise<FiatTransaction> {
+        await validateDto(createFiatTransactionDto);
         const fiatTx = this.fiatTransactionRepo.create(createFiatTransactionDto);
         return this.fiatTransactionRepo.save(fiatTx);
     }
@@ -66,6 +68,7 @@ export class TransactionService {
     async createCryptoTransaction(
         createCryptoTransactionDto: CreateCryptoTransactionDto
     ): Promise<CryptoTransaction> {
+        await validateDto(createCryptoTransactionDto);
         const cryptoTx = this.cryptoTransactionRepo.create(createCryptoTransactionDto);
         return this.cryptoTransactionRepo.save(cryptoTx);
     }

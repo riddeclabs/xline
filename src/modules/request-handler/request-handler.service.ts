@@ -14,6 +14,7 @@ import {
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
+import { validateDto } from "src/decorators/class-validator-extended.decorator";
 
 @Injectable()
 export class RequestHandlerService {
@@ -118,6 +119,7 @@ export class RequestHandlerService {
     }
 
     async saveNewBorrowRequest(dto: CreateBorrowRequestHandlerDto) {
+        await validateDto(dto);
         if (!dto.borrowFiatAmount && !dto.initialRiskStrategy) {
             throw new Error("Borrow amount or risk strategy must be provided");
         }

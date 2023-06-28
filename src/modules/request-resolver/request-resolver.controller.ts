@@ -12,6 +12,9 @@ import {
 export class RequestResolverController {
     constructor(private readonly requestResolverService: RequestResolverService) {}
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Resolve borrow request" })
@@ -20,6 +23,9 @@ export class RequestResolverController {
         return this.requestResolverService.resolveBorrowRequest(resolveBorrowRequestDto);
     }
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow-finalize")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Finalize borrow request" })
@@ -30,6 +36,9 @@ export class RequestResolverController {
         return this.requestResolverService.finalizeBorrowRequest(finalizeOrRejectBorrowRequestDto);
     }
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow-reject")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Reject borrow request" })
