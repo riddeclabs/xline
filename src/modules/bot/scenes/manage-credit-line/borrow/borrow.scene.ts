@@ -91,7 +91,6 @@ export class BorrowActionWizard {
         }
 
         const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
-        console.log("maxAllowedBorrowAmount", maxAllowedBorrowAmount);
 
         if (maxAllowedBorrowAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
