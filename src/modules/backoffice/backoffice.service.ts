@@ -272,4 +272,15 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .getOne();
     }
+
+    getGeneralUserInformationByBorrowId(id: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("debtCurrency.businessPaymentRequisites", "businessPaymentRequisite")
+            .leftJoinAndSelect("creditLine.borrowRequests", "borrowRequests")
+            .where("borrowRequests.id = :id", { id })
+            .getOne();
+    }
 }

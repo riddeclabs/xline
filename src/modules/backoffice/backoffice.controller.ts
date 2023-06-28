@@ -12,7 +12,6 @@ import {
     ValidationPipe,
     UsePipes,
     Param,
-    Body,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -267,10 +266,53 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("borrow-request/:id")
-    @Render("backoffice/unresolved-request-borrow")
-    async borrowRequest(@Req() req: Request, @Param("id") id: string) {
-        return { id };
+    @Get("borrow-request/:status/:id")
+    @Render("backoffice/resolve-borrow-request")
+    async borrowRequestResolve(@Param("id") id: string, @Param("status") status: string) {
+        const generalUserByBorrowId = await this.backofficeService.getGeneralUserInformationByBorrowId(
+            id
+        );
+        console.log("status", status);
+
+        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+            generalUserByBorrowId?.creditLines[0]?.id || 0
+        );
+
+        const resultPageData = {
+            accountName:
+                generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
+                    ?.bankName,
+            iban: generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]?.iban,
+            collateralFactor: truncateDecimal(formatUnits(economicalParams.collateralFactor * 100n)),
+            liquidationFactor: truncateDecimal(formatUnits(economicalParams.liquidationFactor * 100n)),
+            beforeCollateralAmount: truncateDecimal(
+                formatUnits(
+                    (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE,
+                    lineDetails.debtCurrency.decimals
+                ),
+                2,
+                false
+            ),
+            beforeSupplyAmount: truncateDecimal(
+                formatUnits(lineDetails.fiatCollateralAmount, lineDetails.debtCurrency.decimals),
+                2,
+                false
+            ),
+            symbol: generalUserByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
+            beforeBorrowAmount: truncateDecimal(
+                formatUnits(
+                    generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount || 0n
+                ),
+                2,
+                false
+            ),
+            utitlizationFactor: truncateDecimal(
+                formatUnits(lineDetails.utilizationRate * 100n),
+                2,
+                false
+            ),
+        };
+        return { resultPageData };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
@@ -498,13 +540,6 @@ export class BackOfficeController {
         };
 
         return resultTablesData;
-    }
-
-    @Roles(Role.ADMIN, Role.OPERATOR)
-    @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Post("/request-resolver/resolve-request/borrow")
-    async requestResolve(@Req() req: Request, @Body() preload: any) {
-        return;
     }
 
     @Roles(Role.ADMIN)
