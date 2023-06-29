@@ -8,12 +8,14 @@ import { ResolveFiatBasedRequestDto } from "./dto/resolve-request.dto";
 export class RequestResolverController {
     constructor(private readonly requestResolverService: RequestResolverService) {}
 
+    // FIXME: Add guard
     @Post("resolve-request/borrow")
     @UsePipes(ValidationPipe)
     async resolveBorrowRequest(@Body() resolveBorrowRequestDto: ResolveFiatBasedRequestDto) {
         return this.requestResolverService.resolveBorrowRequest(resolveBorrowRequestDto);
     }
 
+    // FIXME: Add guard
     @Post("resolve-request/repay")
     @UsePipes(ValidationPipe)
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveFiatBasedRequestDto) {
