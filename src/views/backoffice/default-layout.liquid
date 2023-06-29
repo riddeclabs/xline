@@ -286,7 +286,7 @@ input::-webkit-inner-spin-button {
           <li>
             <a
             href='/backoffice/repay-request'
-            class='nav-link text-white {% if current_url == '/backoffice/repay-request'%}active{% endif %}'
+            class='nav-link text-white {% if current_url contains 'repay-request'%}active{% endif %}'
             aria-current='page'
             >
             Repay requests
