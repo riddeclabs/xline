@@ -25,10 +25,10 @@ import {
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
-import { CallbackTypes } from "../payment-processing/constants";
 import { EXP_SCALE } from "../../common/constants";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { validateIban, validateName } from "../../common/input-validation";
+import { CallbackTypes } from "../payment-processing/payment-processing.types";
 
 @Injectable()
 export class RequestResolverService {

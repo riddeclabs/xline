@@ -5,12 +5,12 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { PaymentProcessing } from "../../database/entities";
 import { Repository } from "typeorm";
 import axios, { AxiosError } from "axios";
-import { CallbackTransactionStatus, GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
+import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
 import { CryptoCallbackDto } from "./dto/callback.dto";
-import { XGWValidationErrorResponse } from "./payment-processing.types";
+import { CallbackTransactionStatus, XGWValidationErrorResponse } from "./payment-processing.types";
 
 interface XGateWayAddressResponse {
     data: {

@@ -1,6 +1,6 @@
 import { IsNumber, IsString, IsOptional, IsEnum } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
-import { CallbackTransactionStatus, CallbackTypes } from "../constants";
+import { CallbackTransactionStatus, CallbackTypes } from "../payment-processing.types";
 
 export class CryptoCallbackDto {
     @IsString()
