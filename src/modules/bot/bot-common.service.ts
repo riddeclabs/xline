@@ -6,6 +6,7 @@ import { CallbackButton, CreditLineSceneData, ExtendedWizardContext, UrlButton }
 import { Message } from "typegram";
 import { Markup, MiddlewareFn, MiddlewareObj } from "telegraf";
 import { InlineKeyboardButton } from "typegram/markup";
+import { CollateralCurrency, DebtCurrency } from "../../database/entities";
 
 @Injectable()
 export class BotCommonService {
@@ -117,11 +118,11 @@ export class BotCommonService {
                 ...(scenePartialDto.creditLineId && {
                     creditLineId: scenePartialDto.creditLineId,
                 }),
-                ...(scenePartialDto.collateralSymbol && {
-                    collateralSymbol: scenePartialDto.collateralSymbol,
+                ...(scenePartialDto.collateralCurrency && {
+                    collateralCurrency: scenePartialDto.collateralCurrency,
                 }),
-                ...(scenePartialDto.debtSymbol && {
-                    debtSymbol: scenePartialDto.debtSymbol,
+                ...(scenePartialDto.debtCurrency && {
+                    debtCurrency: scenePartialDto.debtCurrency,
                 }),
             },
         };
@@ -133,16 +134,16 @@ export class BotCommonService {
         return clId;
     }
 
-    getCollateralSymbolFromSceneDto(ctx: ExtendedWizardContext) {
-        const clCollateralSymbol = ctx.session.sceneTransferObject?.creditLineData?.collateralSymbol;
-        if (!clCollateralSymbol) throw new Error("collateralSymbol is missed in scene DTO");
-        return clCollateralSymbol;
+    getCollateralCurrencyFromSceneDto(ctx: ExtendedWizardContext): CollateralCurrency {
+        const clCollateralCurrency = ctx.session.sceneTransferObject?.creditLineData?.collateralCurrency;
+        if (!clCollateralCurrency) throw new Error("CollateralCurrency is missed in scene DTO");
+        return clCollateralCurrency;
     }
 
-    getDebtSymbolFromSceneDto(ctx: ExtendedWizardContext) {
-        const clDebtSymbol = ctx.session.sceneTransferObject?.creditLineData?.debtSymbol;
-        if (!clDebtSymbol) throw new Error("collateralSymbol is missed in scene DTO");
-        return clDebtSymbol;
+    getDebtCurrencyFromSceneDto(ctx: ExtendedWizardContext): DebtCurrency {
+        const clDebtCurrency = ctx.session.sceneTransferObject?.creditLineData?.debtCurrency;
+        if (!clDebtCurrency) throw new Error("DebtCurrency is missed in scene DTO");
+        return clDebtCurrency;
     }
 
     clearSceneDto(ctx: ExtendedWizardContext) {
@@ -158,5 +159,27 @@ export class BotCommonService {
             text: "🦊 Open metamask wallet",
             url: `https://metamask.app.link/send/pay-${wallet}`,
         };
+    }
+
+    async retryOrBackHandler(ctx: ExtendedWizardContext, errorMsg: string, retryCallbackValue: string) {
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+        await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, errorMsg, {
+            parse_mode: "MarkdownV2",
+        });
+        await ctx.telegram.editMessageReplyMarkup(
+            ctx.chat?.id,
+            editMsgId,
+            undefined,
+            Markup.inlineKeyboard(
+                [
+                    {
+                        text: "🔄 Try again",
+                        callback_data: `${retryCallbackValue}`,
+                    },
+                    this.goBackButton(),
+                ],
+                { columns: 2 }
+            ).reply_markup
+        );
     }
 }
