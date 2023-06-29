@@ -53,6 +53,9 @@ async function bootstrap() {
     app.use(flash());
     app.use(bootstrapLocals);
 
+    // Add global exception filter for logging purposes
+    app.useGlobalFilters(new GlobalHttpExceptionFilter());
+
     await app.listen(3000, "0.0.0.0");
     Logger.log(`Application is running on: ${await app.getUrl()}`);
 }
