@@ -47,7 +47,7 @@ export class DepositActionWizard {
             return;
         }
 
-        const collateralSymbol = this.botCommon.getCollateralSymbolFromSceneDto(ctx);
+        const collateralSymbol = this.botCommon.getCollateralCurrencyFromSceneDto(ctx).symbol;
         const wallet = await this.botManager.getUserWallet(ctx.chat!.id.toString(), collateralSymbol);
 
         const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
@@ -82,7 +82,7 @@ export class DepositActionWizard {
             },
         ];
 
-        const collateralSymbol = this.botCommon.getCollateralSymbolFromSceneDto(ctx);
+        const collateralSymbol = this.botCommon.getCollateralCurrencyFromSceneDto(ctx).symbol;
 
         const msgText = DepositTextSource.getDepositInfoText(collateralSymbol);
 
@@ -139,7 +139,7 @@ export class DepositActionWizard {
     private async choseCreditLineActionHandler(ctx: DepositContext, callbackValue?: string) {
         if (!callbackValue) throw new Error("Incorrect callback received");
 
-        const collateralSymbol = this.botCommon.getCollateralSymbolFromSceneDto(ctx);
+        const collateralSymbol = this.botCommon.getCollateralCurrencyFromSceneDto(ctx).symbol;
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
 
         const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
