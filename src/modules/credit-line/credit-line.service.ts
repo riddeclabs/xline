@@ -26,17 +26,32 @@ export class CreditLineService {
         creditLine.debtAmount = creditLine.debtAmount + addAmount;
         return this.creditLineRepo.save(creditLine);
     }
+
+    async updateDebtAmountAndFeeAccumulatedById(
+        creditLineId: number,
+        newDebtAmount: bigint,
+        newFeeAccumulatedAmount: bigint
+    ) {
+        return this.creditLineRepo
+            .createQueryBuilder()
+            .update()
+            .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
+    }
+
     async decreaseDebtAmountById(creditLine: CreditLine, subAmount: bigint) {
         creditLine.debtAmount = creditLine.debtAmount - subAmount;
         return this.creditLineRepo.save(creditLine);
     }
-    async increaseSupplyAmountById(creditLine: CreditLine, addAmount: bigint) {
-        creditLine.rawCollateralAmount = creditLine.rawCollateralAmount + addAmount;
-        return this.creditLineRepo.save(creditLine);
-    }
-    async decreaseSupplyAmountById(creditLine: CreditLine, subAmount: bigint) {
-        creditLine.rawCollateralAmount = creditLine.rawCollateralAmount - subAmount;
-        return this.creditLineRepo.save(creditLine);
+
+    async updateSupplyAmountById(creditLineId: number, newSupplyAmount: bigint) {
+        return this.creditLineRepo
+            .createQueryBuilder()
+            .update()
+            .set({ rawCollateralAmount: newSupplyAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
     }
 
     async getCreditLineByChatIdAndColSymbol(
@@ -47,6 +62,7 @@ export class CreditLineService {
             .createQueryBuilder("creditLine")
             .leftJoin("creditLine.user", "user")
             .leftJoinAndSelect("creditLine.collateralCurrency", "cc")
+            .leftJoinAndSelect("creditLine.economicalParameters", "ep")
             .where("user.chatId = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();
