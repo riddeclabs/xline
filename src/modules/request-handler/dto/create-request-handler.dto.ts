@@ -1,4 +1,5 @@
 import { IsNumber, IsString } from "class-validator";
+import { IsBigInt } from "../../../decorators/class-validator-extended.decorator";
 
 export class CreateDepositRequestHandlerDto {
     @IsNumber()
@@ -9,6 +10,7 @@ export class CreateWithdrawRequestHandlerDto {
     readonly creditLineId!: number;
     @IsString()
     readonly walletToWithdraw!: string;
+    @IsBigInt()
     readonly withdrawAmount!: bigint;
 }
 export class CreateBorrowRequestHandlerDto {

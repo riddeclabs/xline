@@ -59,7 +59,7 @@ export class PaymentRequisiteService {
     getFreshBusinessPayReqByDebtSymbol(debtCurrencySymbol: string) {
         return this.businessPaymentRepo
             .createQueryBuilder("bpr")
-            .innerJoin("bpr.debtCurrencyId", "debtCurrency")
+            .innerJoin("bpr.debtCurrency", "debtCurrency")
             .where("debtCurrency.symbol = :debtCurrencySymbol", { debtCurrencySymbol })
             .orderBy("bpr.created_at", "ASC")
             .getOneOrFail();
