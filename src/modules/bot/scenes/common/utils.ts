@@ -1,4 +1,4 @@
-import { bigintToFormattedPercent, formatUnitsNumber, parseUnits } from "src/common";
+import { bigintToFormattedPercent, formatUnitsNumber } from "src/common";
 import { CreditLineDetailsExt } from "../../bot-manager.service";
 import { CreditLineStateMsgData } from "./types";
 import { EXP_SCALE } from "src/common/constants";
@@ -29,10 +29,9 @@ export function getCreditLineStateData(cld: CreditLineDetailsExt): CreditLineSta
 
 //FIXME: Use risk-engine to calculate max allowed borrow amount in future
 export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
-    return (
-        (((cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE -
-            cld.lineDetails.debtAmount) *
-            (parseUnits("1") - cld.economicalParams.fiatProcessingFee)) /
-        EXP_SCALE
-    );
+    const fiatCollateralAmount =
+        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE;
+    const freeLiquidityFiatAmount = fiatCollateralAmount - cld.lineDetails.debtAmount;
+    const processingFee = (freeLiquidityFiatAmount * cld.economicalParams.fiatProcessingFee) / EXP_SCALE;
+    return freeLiquidityFiatAmount - processingFee;
 }

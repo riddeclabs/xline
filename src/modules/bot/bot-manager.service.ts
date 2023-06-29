@@ -177,20 +177,18 @@ export class BotManagerService {
             creditLine.rawCollateralAmount
         );
 
-        const getUtilRate = () => (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
+        const getUtilRate = () => {
+            if (depositUsdAmount === 0n) return 0n;
+            return (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
+        };
 
         return {
             economicalParams: lineEconomicalParams,
             lineDetails: {
                 ...creditLine,
-                // collateral === 0 => utilizationRate = 100%
+                // collateral === 0 => utilizationRate = 0%
                 // debt === 0 => utilizationRate = 0%
-                utilizationRate:
-                    depositUsdAmount === 0n
-                        ? parseUnits("1")
-                        : creditLine.debtAmount === 0n
-                        ? 0n
-                        : getUtilRate(),
+                utilizationRate: getUtilRate(),
                 fiatCollateralAmount: depositUsdAmount,
             },
         };

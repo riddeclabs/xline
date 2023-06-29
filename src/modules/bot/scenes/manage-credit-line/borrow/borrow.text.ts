@@ -66,7 +66,7 @@ export class BorrowTextSource extends BasicSourceText {
     static getBorrowSuccessText(requisites: Requisites, currency: string): string {
         const requisitesText = this.getRequisitesText(requisites);
         return escapeSpecialCharacters(
-            "✅ * Done! You've created a new *Borrow* request!*\n\n" +
+            "✅ *Done! You've created a new Borrow request!*\n\n" +
                 `💸 We will send the requested ${currency} amount to your bank account\n\n` +
                 requisitesText +
                 "\n" +

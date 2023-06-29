@@ -252,6 +252,43 @@ export class RequestResolverService {
         };
     }
 
+    // Used by operator to verify borrow request before transfer the payment
+    //TODOL accrueInterest here
+    async verifyBorrowRequest(reqId: number) {
+        const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
+        if (!(request instanceof BorrowRequest)) {
+            throw new Error("Incorrect request received");
+        }
+
+        const requestedBorrowAmount = await this.getBorrowAmount(
+            request,
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            creditLine.rawCollateralAmount
+        );
+
+        try {
+            await this.riskEngineService.verifyBorrowOverLFOrThrow(
+                creditLine,
+                creditLine.collateralCurrency.symbol,
+                creditLine.collateralCurrency.decimals,
+                requestedBorrowAmount
+            );
+        } catch (e) {
+            if (!(e instanceof Error)) {
+                throw e;
+            }
+            return {
+                isVerified: false,
+                reason: e.message,
+            };
+        }
+
+        return {
+            isVerified: true,
+        };
+    }
+
     // Used to verify user requested borrow amount during the creation of new borrow request
     async verifyHypBorrowRequest(
         creditLineCurrencyExtended: CreditLine,

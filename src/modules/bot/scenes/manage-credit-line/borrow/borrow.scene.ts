@@ -151,7 +151,7 @@ export class BorrowActionWizard {
 
         const state = getCreditLineStateData(cld);
 
-        if (state.maxAllowedBorrowAmount <= 0n) {
+        if (state.maxAllowedBorrowAmount <= 0) {
             await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
                 parse_mode: "MarkdownV2",
             });
