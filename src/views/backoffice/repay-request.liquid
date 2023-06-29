@@ -1,6 +1,6 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-5 text-white fs-1'>Customers</h1>
+  <h1 class='pb-5 text-white fs-1'>Repay requests</h1>
   <div class='card bg-dark shadow-sm mb-4 wrapper-table'>
     <div class='d-flex flex-row m-2 justify-content-start' style='gap: 20px;'>
       <div class='input-group' style='width: 350px'>
@@ -15,18 +15,19 @@
       </div>
       <div class='input-group' style='width: 350px'>
         <input
-          placeholder='Customer name'
+          placeholder='Reference number'
           type='search'
-          class='form-control'
+          class='form-control number-input'
           aria-label='Sizing example input'
           aria-describedby='inputGroup-sizing-sm'
-          id='user-filter-input'
-          value='{{ page.query.username }}'>
+          id='ref-number-input'
+          value='{{ page.query.refNumber }}'> 
       </div>
     </div>
   </div>
   <div class='card bg-dark shadow-sm wrapper-table'>
-    <h1 class='m-3 text-white fs-5'>Customers list</h1>
+    <h1 class='m-3 text-white fs-5'>Repay requests list</h1>
+    <div>{{ query.username }}</div>
     <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
       <thead>
         <tr>
@@ -34,46 +35,68 @@
             Chat ID
           </th>
           <th scope='col'>
+            Currencies
+          </th>
+          <th scope='col'>
+            Xline iban 
+          </th>
+          <th scope='col'>
+            Status
+          </th>
+          <th scope='col'>
+            Reference number 
+          </th>
+          <th scope='col' class="text-white">
             {% if page.query.sort == "DESC" %}
-              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Customer name<i class='bi-arrow-up'></i>
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at<i class='bi-arrow-up'></i>
               </a>
             {% elsif page.query.sort == "ASC" %}
-              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' class="sortingTitle">Customer name<i class='bi-arrow-down'></i>
+              <a href='?{{ query | mut-query: 'sort', 'DESC' }}' class="sortingTitle">Created at<i class='bi-arrow-down'></i>
               </a>
             {% else %}
-              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Customer name
+              <a href='?{{ query | mut-query: 'sort', 'ASC' }}' class="sortingTitle">Created at
               </a>
             {% endif %}
           </th>
           <th scope='col'>
-            Active lines
+            Updated at 
           </th>
-          <th scope='col'>
-            View
-          </th>
+          <th scope='col'></th>
         </tr>
       </thead>
       <tbody>
-        {% unless customers.size > 0 %}
+        {% unless allRepayResult.size > 0 %}
           <tr>
-            <td colspan="4">Unfortunately, we did not find any client.</td>
+            <td colspan="8">Unfortunately, we did not find any request.</td>
           </tr>
         {% endunless %}
-          {% for customer in customers %}
+          {% for repay in allRepayResult %}
             <tr style='height:50px' class="table-column">
               <td class='align-middle'>
-                {{ customer.chatId }}
+                {{ repay.creditLine.user.chatId }}
               </td>
               <td class='align-middle'>
-                {{ customer.name }}
+                {{ repay.creditLine.collateralCurrency.symbol }} / {{ repay.creditLine.debtCurrency.symbol }}
               </td>
               <td class='align-middle'>
-                {{ customer.activeLines }}
+                {{ repay.xlineIban }}
+              </td>
+              <td class='align-middle td-status'>
+                {{ repay.repayRequestStatus }}
               </td>
               <td class='align-middle'>
-                <a href='/backoffice/customers-credit-line/{{ customer.id }}'>
-                  <button class="icon-button">
-                    <i class='bi-info-circle'></i>
+                {{ repay.refNumber }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.createdAt }}
+              </td>
+              <td class='align-middle'>
+                {{ repay.updatedAt }}
+              </td>
+              <td class='align-middle'>
+                <a href='/backoffice/repay-request/{{ repay.id }}'>
+                  <button class="blue-button">
+                    Resolve
                   </button>
                 </a>
               </td>
@@ -110,7 +133,7 @@
         {% endif %}
   </div>
   <script>
-    const userInput = document.getElementById('user-filter-input');
+    const refNumber = document.getElementById('ref-number-input');
     const chatInput = document.getElementById('filter-chat-input');
 
     function debounce(func, timeout = 500){
@@ -121,16 +144,16 @@
       };
     }
 
-  userInput.addEventListener('input', debounce((e) => {
+  refNumber.addEventListener('input', debounce((e) => {
     const valueInput = e.target.value
-    const emptyQuery = `?{{ query | mut-query: 'username' }}`;
-    const queryTemplate = `?{{ query | mut-query: 'username', 'template' }}`;
+    const emptyQuery = `?{{ query | mut-query: 'refNumber' }}`;
+    const queryTemplate = `?{{ query | mut-query: 'refNumber', 'template' }}`;
     const newHref = valueInput
-     ? queryTemplate.replace('username=template', 'username=' + valueInput)
+     ? queryTemplate.replace('refNumber=template', 'refNumber=' + valueInput)
        : emptyQuery;
 
-     userInput.setAttribute('href', newHref);
-      window.location.assign(newHref);
+    refNumber.setAttribute('href', newHref);
+    window.location.assign(newHref);
   }, 500))
 
   chatInput.addEventListener('input', debounce((e) => {
@@ -141,8 +164,8 @@
      ? queryTemplate.replace('chatId=template', 'chatId=' + valueInput)
        : emptyQuery;
 
-     userInput.setAttribute('href', newHref);
-      window.location.assign(newHref);
+    chatInput.setAttribute('href', newHref);
+    window.location.assign(newHref);
   }, 500))
 
   if (chatInput.value) {
@@ -150,9 +173,9 @@
     chatInput.selectionStart = chatInput.value.length;
   }
 
-  if (userInput.value) {
-    userInput.focus();
-    userInput.selectionStart = userInput.value.length;
+  if (refNumber.value) {
+    refNumber.focus();
+    refNumber.selectionStart = refNumber.value.length;
   }
   </script>
 {% endblock %}

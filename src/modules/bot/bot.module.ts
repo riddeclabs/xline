@@ -72,5 +72,6 @@ import { WithdrawActionWizard } from "./scenes/manage-credit-line/withdraw/withd
         RepayActionWizard,
         WithdrawActionWizard,
     ],
+    exports: [BotManagerService],
 })
 export class BotModule {}

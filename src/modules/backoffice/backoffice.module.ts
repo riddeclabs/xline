@@ -2,14 +2,36 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
-import { Operator, User } from "src/database/entities";
+import {
+    BorrowRequest,
+    CreditLine,
+    Operator,
+    RepayRequest,
+    User,
+    DebtCurrency,
+    CollateralCurrency,
+} from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
-import { UserModule } from "../user/user.module";
+import { PriceOracleModule } from "../price-oracle/price-oracle.module";
+import { BotModule } from "../bot/bot.module";
 
 @Module({
-    imports: [ConfigModule, TypeOrmModule.forFeature([Operator, User]), UserModule],
+    imports: [
+        ConfigModule,
+        TypeOrmModule.forFeature([
+            Operator,
+            User,
+            BorrowRequest,
+            RepayRequest,
+            CreditLine,
+            CollateralCurrency,
+            DebtCurrency,
+        ]),
+        BotModule,
+        PriceOracleModule,
+    ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],
     controllers: [BackOfficeController],

@@ -125,8 +125,15 @@ export class RequestHandlerService {
 
     // RepayRequest block
 
-    async getRepayRequest(reqId: number) {
-        return this.repayRequestRepo.findOneByOrFail({ id: reqId });
+    async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .leftJoinAndSelect("rr.creditLine", "cl")
+            .leftJoinAndSelect("rr.businessPaymentRequisite", "brp")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .where("rr.id = :repayRequestId", { repayRequestId })
+            .getOneOrFail();
     }
 
     async saveNewRepayRequest(dto: CreateRepayRequestHandlerDto) {
@@ -149,10 +156,8 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateRepayReqStatus(reqId: number, newStatus: RepayRequestStatus) {
-        const req = await this.repayRequestRepo.findOneByOrFail({ id: reqId });
-        req.repayRequestStatus = newStatus;
-
-        return this.repayRequestRepo.save(req);
+    async updateRepayReqStatus(request: RepayRequest, newStatus: RepayRequestStatus) {
+        request.repayRequestStatus = newStatus;
+        return this.repayRequestRepo.save(request);
     }
 }

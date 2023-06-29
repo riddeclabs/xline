@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, UsePipes, ValidationPipe } from "@nestjs/common";
 import { RequestResolverService } from "./request-resolver.service";
 import { ApiTags } from "@nestjs/swagger";
-import { ResolveFiatBasedRequestDto } from "./dto/resolve-request.dto";
+import { ResolveFiatBasedRequestDto, ResolveRepayRequestDto } from "./dto/resolve-request.dto";
 
 @ApiTags("Request resolver")
 @Controller("request-resolver")
@@ -18,7 +18,7 @@ export class RequestResolverController {
     // FIXME: Add guard
     @Post("resolve-request/repay")
     @UsePipes(ValidationPipe)
-    async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveFiatBasedRequestDto) {
+    async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
         return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
     }
 

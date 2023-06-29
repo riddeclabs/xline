@@ -1,10 +1,22 @@
 import { Injectable } from "@nestjs/common";
 import { CreditLineStatus, Role } from "../../common";
-import { Operator, User } from "src/database/entities";
-import { FindOptionsOrder, Like, Repository } from "typeorm";
+import {
+    BorrowRequest,
+    CreditLine,
+    Operator,
+    DebtCurrency,
+    CollateralCurrency,
+    RepayRequest,
+    User,
+} from "src/database/entities";
+import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserService } from "../user/user.service";
-import { PAGE_LIMIT } from "src/common/constants";
+import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
+import {
+    AllRequestByCreditLineType,
+    CollatetalCurrencyType,
+    DebtCurrencyType,
+} from "./backoffice.types";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -13,6 +25,11 @@ export enum OperatorsListColumns {
 
 export enum CustomersListColumns {
     name = "DESC",
+}
+
+export enum BorrowRequestColumns {
+    createdAt = "DESC",
+    updatedAt = "DESC",
 }
 
 export enum ModifyReserveDirection {
@@ -25,9 +42,19 @@ export class BackOfficeService {
     constructor(
         @InjectRepository(Operator)
         private operatorRepo: Repository<Operator>,
-        private userService: UserService,
         @InjectRepository(User)
-        private userRepo: Repository<User>
+        private userRepo: Repository<User>,
+        @InjectRepository(BorrowRequest)
+        private borrowRepo: Repository<BorrowRequest>,
+        @InjectRepository(RepayRequest)
+        private repayRepo: Repository<RepayRequest>,
+        @InjectRepository(CreditLine)
+        private creditLineRepo: Repository<CreditLine>,
+        @InjectRepository(CollateralCurrency)
+        private collateralCurrency: Repository<CollateralCurrency>,
+        @InjectRepository(DebtCurrency)
+        private debtCurrency: Repository<DebtCurrency>,
+        private connection: Connection
     ) {}
 
     accountInfo() {
@@ -80,5 +107,169 @@ export class BackOfficeService {
             .take(PAGE_LIMIT)
             .orderBy("user.name", sortTrim)
             .getManyAndCount();
+    }
+
+    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+        const sortDate = sort ?? "DESC";
+
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("borrow.createdAt", sortDate)
+            .addOrderBy("borrow.updatedAt", sortDate)
+            .getMany();
+    }
+
+    getBorrowCount() {
+        return this.borrowRepo.createQueryBuilder().getCount();
+    }
+
+    getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
+        const sortDate = sort ?? "DESC";
+
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("repay.createdAt", sortDate)
+            .getMany();
+    }
+
+    getRepayCount() {
+        return this.repayRepo.createQueryBuilder().getCount();
+    }
+
+    getFullyAssociatedUserById(id: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .where("user.id = :id", { id })
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .orderBy("creditLine.createdAt", "ASC")
+            .getOne();
+    }
+    getAllCustomersCount() {
+        return this.userRepo.count();
+    }
+
+    getFeeAccumulatedAmount(): Promise<{ feeAccumulatedUsd: string } | undefined> {
+        return this.creditLineRepo
+            .createQueryBuilder("cl")
+            .select("SUM(cl.feeAccumulatedFiatAmount)", "feeAccumulatedUsd")
+            .getRawOne();
+    }
+
+    getBorrow() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.debtCurrencyId", "borrowRequest")
+            .getMany();
+    }
+
+    getDeposit() {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrencyId", "deptCurrenty")
+            .getMany();
+    }
+    getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoin("creditLine.collateralCurrency", "collateralCurrency")
+            .select("collateralCurrency.id", "id")
+            .addSelect("collateralCurrency.decimals", "decimals")
+            .addSelect("collateralCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
+            .groupBy("collateralCurrency.id")
+            .getRawMany();
+    }
+
+    getDebtCurrency(): Promise<DebtCurrencyType[]> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .select("debtCurrency.id", "id")
+            .addSelect("debtCurrency.decimals", "decimals")
+            .addSelect("debtCurrency.symbol", "symbol")
+            .addSelect("SUM(creditLine.debtAmount)", "amount")
+            .leftJoin("creditLine.debtCurrency", "debtCurrency")
+            .groupBy("debtCurrency.id")
+            .getRawMany();
+    }
+    getDebtAllSymbol(): Promise<{ debtCurrency_symbol: string }[]> {
+        return this.debtCurrency
+            .createQueryBuilder("debtCurrency")
+            .select("debtCurrency.symbol")
+            .getRawMany();
+    }
+
+    getCollateralsAllSymbol(): Promise<{ collateralCurrency_symbol: string }[]> {
+        return this.collateralCurrency
+            .createQueryBuilder("collateralCurrency")
+            .select("collateralCurrency.symbol")
+            .getRawMany();
+    }
+
+    getAllRequestByCreditLine(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection = "ASC"
+    ): Promise<AllRequestByCreditLineType[]> {
+        const query = `
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(withdraw_request_status AS text) AS status, 'Withdraw' as type FROM Withdraw_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(deposit_request_status AS text) AS status, 'Deposit' as type FROM Deposit_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(borrow_request_status AS text) AS status, 'Borrow' as type FROM Borrow_Request WHERE credit_line_id = ${id})
+            UNION ALL
+            (SELECT id, created_at, credit_line_id, updated_at, CAST(repay_request_status AS text) AS status, 'Repay' as type FROM Repay_Request WHERE credit_line_id = ${id})
+            ORDER BY ${sortField} ${sortDirection}
+            OFFSET ${page * PAGE_LIMIT_REQUEST}
+            LIMIT ${PAGE_LIMIT_REQUEST}
+        `;
+        return this.connection.manager.query(query);
+    }
+
+    getCountRequestByCreditLine(id: string): Promise<{ count: string }[]> {
+        const query = `
+        SELECT COUNT(*) FROM(
+            (SELECT id, created_at, credit_Line_Id, updated_at, CAST(withdraw_request_status AS text) AS status, 'Withdraw' as type FROM Withdraw_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(deposit_request_status AS text) AS status, 'Deposit' as type FROM Deposit_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(borrow_request_status AS text) AS status, 'Borrow' as type FROM Borrow_Request WHERE credit_Line_Id = ${id})
+            UNION ALL
+            (SELECT id, created_At, credit_Line_Id, updated_at, CAST(repay_request_status AS text) AS status, 'Repay' as type FROM Repay_Request WHERE credit_Line_Id = ${id})
+        ) AS combined
+
+        `;
+        return this.connection.manager.query(query);
+    }
+
+    getGeneralUserInfoAndCurrencySymbol(id: string) {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .where("creditLine.id = :id", { id })
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .getOne();
     }
 }

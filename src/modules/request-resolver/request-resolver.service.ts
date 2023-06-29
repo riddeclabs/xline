@@ -1,5 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
-import { ResolveCryptoBasedRequestDto, ResolveFiatBasedRequestDto } from "./dto/resolve-request.dto";
+import {
+    ResolveCryptoBasedRequestDto,
+    ResolveFiatBasedRequestDto,
+    ResolveRepayRequestDto,
+} from "./dto/resolve-request.dto";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { RiskEngineService } from "../risk-engine/risk-engine.service";
@@ -24,6 +28,7 @@ import {
 import { CallbackTypes } from "../payment-processing/constants";
 import { EXP_SCALE } from "../../common/constants";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
+import { validateIban, validateName } from "../../common/input-validation";
 
 @Injectable()
 export class RequestResolverService {
@@ -145,39 +150,96 @@ export class RequestResolverService {
         );
     }
 
-    // Used by operator to resolve pending repay request after user's payment has been received.
-    async resolveRepayRequest(resolveRepayRequestDto: ResolveFiatBasedRequestDto) {
+    /**
+     Used by operator to resolve pending repay request after user's payment has been received.
+     @param {ResolveRepayRequestDto} resolveRepayRequestDto - The data object containing the information needed to resolve the repay request.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated credit line, updated request, and transaction details.
+     @throws {HttpException} - Throws an exception if the repay request status is not VERIFICATION_PENDING or if the repay amount exceeds the user's current debt.
+     */
+    async resolveRepayRequest(resolveRepayRequestDto: ResolveRepayRequestDto) {
         // Accrue interest
         // FIXME: add risk engine call
 
-        const { request, creditLine } = await this.getRequestAndCreditLine(
-            resolveRepayRequestDto.requestId,
-            ActionTypes.REPAY
+        const repayRequest = await this.requestHandlerService.getFullyAssociatedRepayRequest(
+            resolveRepayRequestDto.requestId
+        );
+        const creditLine = repayRequest.creditLine;
+        const debtCurrency = creditLine.debtCurrency;
+
+        // Validate block
+        if (repayRequest.repayRequestStatus !== RepayRequestStatus.VERIFICATION_PENDING) {
+            throw new HttpException(
+                "Resolving request requires VERIFICATION_PENDING status",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+        this.verifyTransferAmount(resolveRepayRequestDto.rawTransferAmount, debtCurrency.decimals, true);
+        if (!validateIban(resolveRepayRequestDto.ibanFrom).valid) {
+            throw new HttpException("Invalid IBAN was received", HttpStatus.BAD_REQUEST);
+        }
+        if (!validateName(resolveRepayRequestDto.nameFrom)) {
+            throw new HttpException("Invalid bank account name was received", HttpStatus.BAD_REQUEST);
+        }
+
+        const transferAmount = parseUnits(
+            resolveRepayRequestDto.rawTransferAmount,
+            debtCurrency.decimals
         );
 
-        // Decrease debt amount for borrow request
-        await this.creditLineService.decreaseDebtAmountById(
+        // TODO: Add more convenient solution how to handle this case
+        if (creditLine.debtAmount < transferAmount) {
+            throw new HttpException(
+                "The repay amount exceeds the user's current debt",
+                HttpStatus.CONFLICT
+            );
+        }
+
+        // Decrease debt amount for repay request
+        const updatedCreditLine = await this.creditLineService.decreaseDebtAmountById(
             creditLine,
-            BigInt(resolveRepayRequestDto.rawTransferAmount)
+            transferAmount
         );
 
-        // Update status for borrow req
+        // Update status for repay request
         const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
-            request.id,
+            repayRequest,
             RepayRequestStatus.FINISHED
         );
 
         // Create new FiatTransaction
         const transaction = await this.transactionService.createFiatTransaction({
-            ...resolveRepayRequestDto,
-            borrowRequestId: request.id,
-            repayRequestId: null,
-            rawTransferAmount: BigInt(resolveRepayRequestDto.rawTransferAmount),
+            ibanFrom: resolveRepayRequestDto.ibanFrom.trim().toUpperCase(),
+            nameFrom: resolveRepayRequestDto.nameFrom.toUpperCase(),
+            ibanTo: repayRequest.businessPaymentRequisite.iban,
+            nameTo: repayRequest.businessPaymentRequisite.bankName,
+            borrowRequestId: null,
+            repayRequestId: repayRequest.id,
+            rawTransferAmount: transferAmount,
         });
 
         return {
+            updatedCreditLine,
             updatedRequest,
             transaction,
+        };
+    }
+
+    /**
+     Used by operator to reject repay request.
+     @param {number} requestId - The ID of the request to reject.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     */
+    async rejectRepayRequest(requestId: number) {
+        const repayRequest = await this.requestHandlerService.getFullyAssociatedRepayRequest(requestId);
+
+        // Update status for repay request
+        const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
+            repayRequest,
+            RepayRequestStatus.REJECTED
+        );
+
+        return {
+            updatedRequest,
         };
     }
 
@@ -290,7 +352,7 @@ export class RequestResolverService {
             case ActionTypes.BORROW:
                 return this.requestHandlerService.getBorrowRequest;
             case ActionTypes.REPAY:
-                return this.requestHandlerService.getRepayRequest;
+                return this.requestHandlerService.getFullyAssociatedRepayRequest;
             default:
                 throw new Error("Unexpected action type");
         }
@@ -420,8 +482,18 @@ export class RequestResolverService {
         }
     }
 
-    private verifyTransferAmount(rawTransferAmount: string, decimals: number) {
+    private verifyTransferAmount(rawTransferAmount: string, decimals: number, isIntegerAllowed = false) {
         const parts = rawTransferAmount.split(".");
+
+        if (isIntegerAllowed && parts.length == 1) {
+            if (Number(rawTransferAmount) <= 0) {
+                throw new HttpException(
+                    "The whole part of rawTransferAmount cannot be negative or zero",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            return;
+        }
 
         // rawTransferAmount is not in the correct structure: (missing decimal point)
         if (parts.length !== 2) {

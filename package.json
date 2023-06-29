@@ -14,9 +14,11 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "typeorm": "typeorm-ts-node-commonjs",
-    "database:seed": "ts-node src/database/seeding/database-seeder.ts"
+    "database:seed": "ts-node src/database/seeding/database-seeder.ts",
+    "database:fixture:fe": "ts-node src/database/seeding/fixtures/fe-seed.fixture.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.0.2",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.3.1",
     "@nestjs/core": "^9.0.0",
@@ -38,11 +40,12 @@
     "class-validator": "^0.14.0",
     "connect-flash": "^0.1.1",
     "dotenv": "^16.0.3",
-    "ethers": "^6.6.0",
+    "ethers": "^6.6.1",
     "express-session": "^1.17.3",
     "ibantools": "^4.3.3",
     "liquidjs": "^10.6.2",
     "morgan": "^1.10.0",
+    "moment": "^2.29.4",
     "nestjs-telegraf": "^2.6.3",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
