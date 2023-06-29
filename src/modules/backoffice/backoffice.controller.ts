@@ -49,7 +49,7 @@ import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
 import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
-import { truncateDecimal } from "src/common/text-formatter";
+import { truncateDecimalsToStr } from "src/common/text-formatter";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -431,7 +431,7 @@ export class BackOfficeController {
                                 lineDetails.rawCollateralAmount,
                                 lineDetails.collateralCurrency.decimals
                             ), // raw collateral amount, use collateral decimals to convert to float
-                            usdSupplyAmount: truncateDecimal(
+                            usdSupplyAmount: truncateDecimalsToStr(
                                 formatUnits(
                                     lineDetails.fiatCollateralAmount,
                                     lineDetails.debtCurrency.decimals
@@ -439,7 +439,7 @@ export class BackOfficeController {
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
-                            usdCollateralAmount: truncateDecimal(
+                            usdCollateralAmount: truncateDecimalsToStr(
                                 formatUnits(
                                     (lineDetails.fiatCollateralAmount *
                                         economicalParams.collateralFactor) /
@@ -449,7 +449,7 @@ export class BackOfficeController {
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
-                            debtAmount: truncateDecimal(
+                            debtAmount: truncateDecimalsToStr(
                                 formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals),
                                 2,
                                 false
@@ -458,22 +458,22 @@ export class BackOfficeController {
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: truncateDecimal(
+                            utilizationFactor: truncateDecimalsToStr(
                                 formatUnits(lineDetails.utilizationRate * 100n),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
-                            healthyFactor: truncateDecimal(
+                            healthyFactor: truncateDecimalsToStr(
                                 formatUnits(lineDetails.healthyFactor),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: truncateDecimal(
+                            collateralFactor: truncateDecimalsToStr(
                                 formatUnits(economicalParams.collateralFactor * 100n)
                             ), // All rates have 18 decimals accuracy
-                            liquidationFactor: truncateDecimal(
+                            liquidationFactor: truncateDecimalsToStr(
                                 formatUnits(economicalParams.liquidationFactor * 100n)
                             ), // All rates have 18 decimals accuracy
                         },
