@@ -76,70 +76,70 @@
   <script type="text/javascript">
     const ibanInput = document.getElementById('iban');
     const nameInput = document.getElementById('name');
-                                                            const baseUrl = document.location.origin;
-                                                            const transferInput = document.getElementById('transferAmount');
-                                                            const acceptBtn = document.getElementById('accept-btn');
-                                                            const success = document.getElementById('success');
-                                                            const error = document.getElementById('error');
-                                                            const rejectBtn = document.getElementById('reject-btn');
-                                                            const repayId = document
-                                                              .location
-                                                              .pathname
-                                                              .split("/")
-                                                              .slice(-1)[0];
-                                                            acceptBtn.addEventListener('click', () => {
-                                                              const requestOptions = {
-                                                                method: 'POST',
-                                                                headers: {
-                                                                  'Content-Type': 'application/json'
-                                                                },
-                                                                body: JSON.stringify(
-                                                                  {
-                                                                    requestId: +repayId,
-                                                                    ibanFrom: ibanInput.value,
-                                                                    nameFrom: nameInput.value,
-                                                                    rawTransferAmount: transferInput.value
-                                                                  }
-                                                                )
-                                                              };
-                                                              fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
-                                                                if (resJSON.statusCode > 199 && resJSON.statusCode < 300) {
-                                                                  success.style.right = "30px"
-                                                                  setTimeout(() => {
-                                                                    success.style.right = "-700px";
-                                                                    document.location.href=`${baseUrl}/backoffice/repay-request`
-                                                                  }, 3000)
-                                                                } else {
-                                                                    error.style.right = "30px"
-                                                                    error.innerText = resJSON.message
-                                                                    setTimeout(() => {
-                                                                      error.style.right = "-700px"
-                                                                    }, 3000)
-                                                                  }
-                                                              });
-                                                            })
-                                                            rejectBtn.addEventListener('click', () => {
-                                                              const requestOptions = {
-                                                                method: 'POST',
-                                                                headers: {
-                                                                  'Content-Type': 'application/json'
-                                                                },
-                                                                body: JSON.stringify({ repayId: Number(repayId) })
-                                                              };
-                                                              fetch(`${baseUrl}/request-resolver/reject-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
-                                                                if (resJSON.statusCode > 199 && resJSON.statusCode < 300) {
-                                                                  success.style.right = "30px"
-                                                                  setTimeout(() => {
-                                                                    success.style.right = "-700px";
-                                                                    document.location.href=`${baseUrl}/backoffice/repay-request`
-                                                                  }, 3000)
-                                                                } else {
-                                                                    error.style.right = "30px"
-                                                                    error.innerText = resJSON.message
-                                                                    setTimeout(() => {
-                                                                      error.style.right = "-700px"
-                                                                    }, 3000)
-                                                                  }
-                                                              });
-                                                            })</script>
+    const baseUrl = document.location.origin;
+    const transferInput = document.getElementById('transferAmount');
+    const acceptBtn = document.getElementById('accept-btn');
+    const success = document.getElementById('success');
+    const error = document.getElementById('error');
+    const rejectBtn = document.getElementById('reject-btn');
+    const repayId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-1)[0];
+    acceptBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {
+            requestId: +repayId,
+            ibanFrom: ibanInput.value,
+            nameFrom: nameInput.value,
+            rawTransferAmount: transferInput.value
+          }
+        )
+        };
+        fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
+          if (resJSON.success) {
+            success.style.right = "30px"
+            setTimeout(() => {
+              success.style.right = "-700px";
+              document.location.href=`${baseUrl}/backoffice/repay-request`
+            }, 3000)
+          } else {
+            error.style.right = "30px"
+            error.innerText = resJSON.message
+            setTimeout(() => {
+              error.style.right = "-700px"
+            }, 3000)
+          }
+        });
+      })
+    rejectBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ repayId: Number(repayId) })
+      };
+      fetch(`${baseUrl}/request-resolver/reject-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href=`${baseUrl}/backoffice/repay-request`
+          }, 2000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    })</script>
 {% endblock %}

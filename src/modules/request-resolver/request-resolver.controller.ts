@@ -17,13 +17,19 @@ export class RequestResolverController {
     @Post("resolve-request/repay")
     @UsePipes(ValidationPipe)
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
-        return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
+        await this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
+        return {
+            success: true,
+        };
     }
 
     @Post("reject-request/repay")
     @UsePipes(ValidationPipe)
     async rejectRepayRequest(@Body() rejectBody: { repayId: number }) {
-        return this.requestResolverService.rejectRepayRequest(rejectBody.repayId);
+        await this.requestResolverService.rejectRepayRequest(rejectBody.repayId);
+        return {
+            success: true,
+        };
     }
 
     @Get("verify/borrow:reqId")

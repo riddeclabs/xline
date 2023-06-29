@@ -126,15 +126,35 @@ export class BackOfficeController {
         const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
-        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
 
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
-            totalDebt,
-            debtCurrencyInitial,
-            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            totalDebt: truncateDecimal(
+                formatUnits(BigInt(totalDebt), debtCurrencyInitial[0]?.decimals),
+                2,
+                false
+            ),
+            debtCurrencyInitial: debtCurrencyInitial.map(item => {
+                return {
+                    ...item,
+                    amount: truncateDecimal(
+                        formatUnits(BigInt(item.amount || 0n), debtCurrencyInitial[0]?.decimals),
+                        2,
+                        false
+                    ),
+                };
+            }),
+            totalFeeAccumulatedUsd: truncateDecimal(
+                formatUnits(
+                    BigInt(feeAccumulatedUsd?.feeAccumulatedUsd || 0n),
+                    debtCurrencyInitial[0]?.decimals
+                ),
+                2,
+                false
+            ),
             currenciesAllSymbol,
             debtAllSymbol,
         };
