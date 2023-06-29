@@ -14,6 +14,7 @@ import {
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
+import { validateDto } from "../../decorators/class-validator-extended.decorator";
 
 @Injectable()
 export class RequestHandlerService {
@@ -62,6 +63,7 @@ export class RequestHandlerService {
     }
 
     async saveNewWithdrawRequest(dto: CreateWithdrawRequestHandlerDto) {
+        await validateDto(dto);
         const newReq = this.withdrawRequestRepo.create(dto);
         return this.withdrawRequestRepo.save(newReq);
     }
@@ -70,18 +72,22 @@ export class RequestHandlerService {
         return this.withdrawRequestRepo.findOne({ where: { creditLineId } });
     }
 
-    async getOldestPendingWithdrawReq(creditLineId: number) {
+    async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
             .orderBy("wr.createdAt", "ASC")
-            .getOneOrFail();
+            .getOne();
     }
 
-    async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
-        request.withdrawRequestStatus = newStatus;
-        return this.withdrawRequestRepo.save(request);
+    async updateWithdrawReqStatus(requestID: number, newStatus: WithdrawRequestStatus) {
+        return this.withdrawRequestRepo
+            .createQueryBuilder()
+            .update()
+            .set({ withdrawRequestStatus: newStatus })
+            .where("id = :requestID", { requestID })
+            .execute();
     }
 
     // BorrowRequest block
