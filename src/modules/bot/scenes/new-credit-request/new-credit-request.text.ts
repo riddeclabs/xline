@@ -1,6 +1,6 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { OpenCreditLineData } from "../../../risk-engine/risk-engine.types";
-import { formatUnits, formatUnitsNumber } from "../../../../common/fixed-number";
+import { formatUnits, formatUnitsNumber } from "../../../../common";
 import { truncateDecimal, floatToMd } from "../../../../common/text-formatter";
 import { EXP_SCALE } from "../../../../common/constants";
 import {
@@ -9,6 +9,7 @@ import {
     SignApplicationSceneData,
 } from "./new-credit-request.types";
 import { SignApplicationOptions } from "../../constants";
+import { escapeSpecialCharacters } from "../../../../common";
 
 export class NewCreditRequestText {
     static getSignGeneralTermsMsg() {
@@ -110,27 +111,27 @@ export class NewCreditRequestText {
     ) {
         const mtd = this.prepareMainTextData(economicalParameters, sceneData);
 
-        return (
+        return escapeSpecialCharacters(
             "📊 *Loan request details*\n\n\n" +
-            `📈 *Your rates:*\n` +
-            `APR: ${mtd.mdAprPercent} %\n` +
-            `LiqFee: ${mtd.mdLiqFeePercent} %\n` +
-            "\n" +
-            `Selected risk strategy: ${mtd.mdSelectedRiskStrategyPercent} %\n` +
-            `Max utilization: ${mtd.mdMaxUtilization} % from your deposit\n` +
-            "\n" +
-            `Processing fees:\n` +
-            `Deposit: ${mtd.mdSupplyProcFeePercent} %\n` +
-            `Borrow : ${mtd.mdBorrowProcFeePercent} % \n` +
-            "\n" +
-            `Collateral token: ${sceneData.colToken.symbol}\n` +
-            "\n" +
-            "🏦 *Bank account info*:\n" +
-            `IBAN: ${sceneData.userIban}\n` +
-            `Account name: ${sceneData.userName}\n` +
-            "\n\n" +
-            `🔸 You can send any collateral amount you want\`,\` the size of the credit will be calculated based on chosen risk strategy \`(\` ${mtd.mdSelectedRiskStrategyPercent} % utilization \`)\` ` +
-            "and the actual oracle prices at the time of receipt of collateral\n"
+                `📈 *Your rates:*\n` +
+                `APR: ${mtd.mdAprPercent} %\n` +
+                `LiqFee: ${mtd.mdLiqFeePercent} %\n` +
+                "\n" +
+                `Selected risk strategy: ${mtd.mdSelectedRiskStrategyPercent} %\n` +
+                `Max utilization: ${mtd.mdMaxUtilization} % from your deposit\n` +
+                "\n" +
+                `Processing fees:\n` +
+                `Deposit: ${mtd.mdSupplyProcFeePercent} %\n` +
+                `Borrow : ${mtd.mdBorrowProcFeePercent} % \n` +
+                "\n" +
+                `Collateral token: ${sceneData.colToken.symbol}\n` +
+                "\n" +
+                "🏦 *Bank account info*:\n" +
+                `IBAN: ${sceneData.userIban}\n` +
+                `Account name: ${sceneData.userName}\n` +
+                "\n\n" +
+                `🔸 You can send any collateral amount you want, the size of the credit will be calculated based on chosen risk strategy ( ${mtd.mdSelectedRiskStrategyPercent} % utilization ) ` +
+                "and the actual oracle prices at the time of receipt of collateral\n"
         );
     }
 
@@ -144,15 +145,15 @@ export class NewCreditRequestText {
                         ` \` ${wallet} \`  `,
                     msg1: `https://api.qrserver.com/v1/create-qr-code/?data=${wallet}&size=500x500&ecc=L&margin=10`,
                     msg2:
-                        "You always can check all you request details`.` \n" +
+                        "🔰 You always can check all you request details`.` \n" +
                         "To do this`,` go to *'View my requests'* tab from the *main menu*`.`",
                 };
             case SignApplicationOptions.DISAPPROVE:
-                return (
+                return escapeSpecialCharacters(
                     "❌ *Credit Request Rejected* ❌\n\n" +
-                    "We have received confirmation that you've rejected the request to open a new credit line`.`\n" +
-                    "If you have any questions or need further assistance`,` please contact our customer support team`.`\n" +
-                    "They can provide guidance on alternative financial options that may better suit your needs`.`"
+                        "We have received confirmation that you've rejected the request to open a new credit line.\n" +
+                        "If you have any questions or need further assistance, please contact our customer support team.\n" +
+                        "They can provide guidance on alternative financial options that may better suit your needs."
                 );
             default:
                 throw new Error("Incorrect sign application option");
@@ -160,41 +161,41 @@ export class NewCreditRequestText {
     }
 
     static getIbanValidationErrorMsg(userInput: string): string {
-        return (
+        return escapeSpecialCharacters(
             "❌ *Entered IBAN is incorrect.* ❌\n\n" +
-            "IBAN should consist of 2 letter country code; 2 digit check number and " +
-            "up to 30 alphanumeric characters of Basic Bank Account Number (BBAN) that are country-specific.\n\n" +
-            "For example: *AD14 0008 0001 0012 3456 7890*\n\n" +
-            `*Entered IBAN:* ${userInput}\n\n` +
-            "Please try again."
+                "IBAN should consist of 2 letter country code; 2 digit check number and " +
+                "up to 30 alphanumeric characters of Basic Bank Account Number (BBAN) that are country-specific.\n\n" +
+                "For example: *AD14 0008 0001 0012 3456 7890*\n\n" +
+                `*Entered IBAN:* ${userInput}\n\n` +
+                "Please try again."
         );
     }
 
     static getNameValidationErrorMsg(userInput: string): string {
-        return (
+        return escapeSpecialCharacters(
             "❌ *Entered name is incorrect.* ❌\n\n" +
-            "Name should consist of latin letters and contain 2 or more parts, separated with whitespace.\n\n" +
-            "For example: *JOHN DOE* or *MAXIMILIAN JOHANNES MARIA HUBERT REICHSGRAF VON SPEE*.\n\n" +
-            `*Entered name*: ${userInput}\n\n` +
-            "Please try again."
+                "Name should consist of latin letters and contain 2 or more parts, separated with whitespace.\n\n" +
+                "For example: *JOHN DOE* or *MAXIMILIAN JOHANNES MARIA HUBERT REICHSGRAF VON SPEE*.\n\n" +
+                `*Entered name*: ${userInput}\n\n` +
+                "Please try again."
         );
     }
 
     static getAmountValidationErrorMsg(userInput: string): string {
-        return (
+        return escapeSpecialCharacters(
             "❌ *Entered amount is incorrect.* ❌\n\n" +
-            "Amount should be a number greater than 0.\n\n" +
-            "For example: *1000* or *1000.00*.\n\n" +
-            `*Entered amount:* ${userInput}\n\n` +
-            "Please try again."
+                "Amount should be a number greater than 0.\n\n" +
+                "For example: *1000* or *1000.00*.\n\n" +
+                `*Entered amount:* ${userInput}\n\n` +
+                "Please try again."
         );
     }
 
     static getExistingCreditLineErrorMsg(collateral: string): string {
-        return (
+        return escapeSpecialCharacters(
             `❌ *You already have a credit line with ${collateral} collateral.* ❌\n\n` +
-            "You can have only one active credit line for each collateral currency.\n\n" +
-            "Please choose another currency to use as collateral."
+                "You can have only one active credit line for each collateral currency.\n\n" +
+                "Please choose another currency to use as collateral."
         );
     }
 

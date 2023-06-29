@@ -1,6 +1,11 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
-import { bigintToFormattedPercent, formatUnits, formatUnitsNumber } from "../../../../common";
+import {
+    bigintToFormattedPercent,
+    escapeSpecialCharacters,
+    formatUnits,
+    formatUnitsNumber,
+} from "../../../../common";
 import { truncateDecimal } from "../../../../common/text-formatter";
 import { RiskStrategyLevels } from "../new-credit-request/new-credit-request.types";
 
@@ -22,7 +27,7 @@ export class ManageCreditLineText {
         const healthyFactorText =
             cld.healthyFactor === 0n
                 ? ""
-                : `Healthy Factor: ${bigintToFormattedPercent(cld.healthyFactor, 3)}}\n`;
+                : `Healthy Factor: ${truncateDecimal(formatUnits(cld.healthyFactor))}\n`;
         const liquidationRiskText = this.getCurrentLiquidationRisk(
             cld.utilizationRate,
             ep.collateralFactor
@@ -30,23 +35,23 @@ export class ManageCreditLineText {
 
         const liquidatedStatusText = cld.isLiquidated ? "Yes" : "No";
 
-        return (
+        return escapeSpecialCharacters(
             `💶 *${collateralSymbol}/${debtSymbol} credit line details* \n\n` +
-            "📊 *Applied rates:*\n" +
-            `APR: ${vld.mdAprPercent} %\n` +
-            `Collateral Factor: ${vld.mdCollateralFactorPercent} %\n` +
-            `Liquidation Factor: ${vld.mdLiquidationFactorPercent} %\n` +
-            `Liquidation Fee: ${vld.mdLiquidationFeePercent} %\n` +
-            "\n\n" +
-            "📊 *Credit details:*\n" +
-            healthyFactorText +
-            `Utilization Rate: ${vld.mdUtilizationRatePercent} %\n` +
-            `Total fee accumulated: ${vld.mdFeeAccumulatedFiatAmount} ${debtSymbol}\n` +
-            `Deposit amount: ${vld.mdFiatCollateralAmount} ${debtSymbol} / ${vld.mdRawCollateralAmount} ${collateralSymbol}\n` +
-            `Debt amount: ${vld.mdDebtAmount} ${debtSymbol}\n` +
-            "\n" +
-            `*Has been liquidated*: ${liquidatedStatusText} \n` +
-            `*Liquidation risk*:    ${liquidationRiskText}`
+                "📊 *Applied rates:*\n" +
+                `APR: ${vld.mdAprPercent} %\n` +
+                `Collateral Factor: ${vld.mdCollateralFactorPercent} %\n` +
+                `Liquidation Factor: ${vld.mdLiquidationFactorPercent} %\n` +
+                `Liquidation Fee: ${vld.mdLiquidationFeePercent} %\n` +
+                "\n\n" +
+                "📊 *Credit details:*\n" +
+                healthyFactorText +
+                `Utilization Rate: ${vld.mdUtilizationRatePercent} %\n` +
+                `Total fee accumulated: ${vld.mdFeeAccumulatedFiatAmount} ${debtSymbol}\n` +
+                `Deposit amount: ${vld.mdFiatCollateralAmount} ${debtSymbol} / ${vld.mdRawCollateralAmount} ${collateralSymbol}\n` +
+                `Debt amount: ${vld.mdDebtAmount} ${debtSymbol}\n` +
+                "\n" +
+                `*Has been liquidated*: ${liquidatedStatusText} \n` +
+                `*Liquidation risk*:    ${liquidationRiskText}`
         );
     }
 
@@ -66,6 +71,7 @@ export class ManageCreditLineText {
         };
     }
 
+    // FIXME: remove after merge borrow scene
     private static getCurrentLiquidationRisk(rawUtilRate: bigint, rawCollateralFactor: bigint) {
         const utilRate = formatUnitsNumber(rawUtilRate);
         const collateralFactor = formatUnitsNumber(rawCollateralFactor);
