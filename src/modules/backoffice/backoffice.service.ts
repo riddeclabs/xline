@@ -234,6 +234,10 @@ export class BackOfficeService {
             .getMany();
     }
 
+    getBorrowRequest(id: string) {
+        return this.borrowRepo.createQueryBuilder("borrow").where("borrow.id = :id", { id }).getOne();
+    }
+
     getRepayRequestDetails(
         page: number,
         id: string,

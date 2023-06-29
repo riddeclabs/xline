@@ -335,8 +335,13 @@ export class BackOfficeController {
         @CreditLineDetails() query: CreditLineDetailsDto
     ) {
         const { page, sortField, sortDirection } = query;
-
+        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(
+            creditLineId
+        );
+        let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
+        const borrow = await this.backofficeService.getBorrowRequest(id);
+
         switch (type) {
             case "Borrow":
                 resultTable = await this.backofficeService.getBorrowRequestDetails(
@@ -344,6 +349,11 @@ export class BackOfficeController {
                     id,
                     sortField,
                     sortDirection
+                );
+                initialRistStrategy = truncateDecimal(
+                    formatUnits(borrow?.initialRiskStrategy ?? 0n),
+                    2,
+                    false
                 );
                 break;
             case "Deposit":
@@ -377,9 +387,6 @@ export class BackOfficeController {
             sortDirection,
         };
 
-        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(
-            creditLineId
-        );
         const resultPageInfo = {
             mainInfo: {
                 name: generalUserInfo?.user.name,
@@ -388,6 +395,11 @@ export class BackOfficeController {
                 collateral: generalUserInfo?.collateralCurrency.symbol,
                 type,
                 refNumber: createRepayRequestRefNumber(generalUserInfo?.refNumber || "", Number(id)),
+                address: await this.botManager.getUserWallet(
+                    String(generalUserInfo?.user.chatId),
+                    String(generalUserInfo?.collateralCurrency.symbol)
+                ),
+                initialRistStrategy,
             },
 
             rowTable: resultTable.map(item => {

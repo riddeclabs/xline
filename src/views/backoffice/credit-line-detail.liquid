@@ -47,7 +47,7 @@
         <div>Requested Borrow Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
       </li>
       <li>
-        <div>Initial Risk Strategy: ??</div>
+        <div>Initial Risk Strategy: {{ resultPageInfo.mainInfo.initialRistStrategy }}</div>
       </li>
       <li>
         <div>IBAN: {{ resultPageInfo.rowTable[0].ibanTo }}</div>
@@ -60,7 +60,7 @@
           <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
         </li>
         <li>
-          <div>Address to Deposit: ??</div>
+          <div>Address to Deposit: {{ resultPageInfo.mainInfo.address }}</div>
         </li>
         
       </ul>
@@ -70,7 +70,7 @@
             <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
           </li>
           <li>
-            <div>Address to Withdraw: ??</div>
+            <div>Address to Withdraw: {{ resultPageInfo.mainInfo.address }}</div>
           </li>
           <li>
             <div>Raw Withdraw Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.collateral }}</div>
