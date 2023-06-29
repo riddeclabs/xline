@@ -11,10 +11,14 @@ import flash = require("connect-flash");
 import { bootstrapLocals } from "./common";
 import queryMutator from "./common/query-mutator";
 import { env } from "process";
+import * as morgan from "morgan";
+import { GlobalHttpExceptionFilter } from "./filters/global-http-exceptions.filter";
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     app.useGlobalPipes(new ValidationPipe());
+
+    app.use(morgan(":method :url :status :res[content-length] - :response-time ms"));
 
     // View connection
     const liquid = new Liquid({
