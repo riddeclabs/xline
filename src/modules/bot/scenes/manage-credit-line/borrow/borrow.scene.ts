@@ -184,13 +184,7 @@ export class BorrowActionWizard {
         }
 
         const borrowFiatAmount = parseUnits(amount);
-        try {
-            await this.botManager.verifyHypBorrowRequest(cdl.lineDetails, borrowFiatAmount);
-        } catch (e) {
-            const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
-            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
-            return;
-        }
+
         const stateBefore = getCreditLineStateData(cdl);
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 

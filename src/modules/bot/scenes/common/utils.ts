@@ -27,6 +27,7 @@ export function getCreditLineStateData(cld: CreditLineDetailsExt): CreditLineSta
     };
 }
 
+//FIXME: Use risk-engine to calculate max allowed borrow amount in future
 export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
     return (
         (((cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE -
