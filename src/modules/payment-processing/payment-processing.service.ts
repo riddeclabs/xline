@@ -4,12 +4,13 @@ import { ResolveCryptoBasedRequestDto } from "../request-resolver/dto/resolve-re
 import { InjectRepository } from "@nestjs/typeorm";
 import { PaymentProcessing } from "../../database/entities";
 import { Repository } from "typeorm";
-import axios from "axios";
-import { GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
+import axios, { AxiosError } from "axios";
+import { CallbackTransactionStatus, GET_WALLET_PATH, WITHDRAWAL_PATH } from "./constants";
 import { ConfigService } from "@nestjs/config";
 import { CreatePaymentProcessingDto } from "./dto/create-payment-processing.dto";
 import { UpdatePaymentProcessingDto } from "./dto/update-payment-processing.dto";
 import { CryptoCallbackDto } from "./dto/callback.dto";
+import { XGWValidationErrorResponse } from "./payment-processing.types";
 
 interface XGateWayAddressResponse {
     data: {
@@ -100,7 +101,7 @@ export class PaymentProcessingService {
         currencySymbol: string,
         withdrawAmount: string,
         addressToWithdraw: string,
-        chatId: string
+        chatId: number
     ) {
         const paymentGateway = await this.getCurrentPaymentGateway();
         if (!paymentGateway) {
@@ -116,8 +117,8 @@ export class PaymentProcessingService {
             const res = await axios.post(
                 baseUrl + WITHDRAWAL_PATH,
                 {
-                    customerId: chatId,
-                    amount: withdrawAmount,
+                    customerId: chatId.toString(),
+                    amount: Number(withdrawAmount), // FIXME: After XGW fix data structure, should be `string` instead of `number`
                     address: addressToWithdraw,
                     currency: currencySymbol,
                 },
@@ -131,9 +132,14 @@ export class PaymentProcessingService {
             );
             resData = res.data;
         } catch (e) {
+            if (e instanceof AxiosError) {
+                const responseData = e.response?.data as XGWValidationErrorResponse;
+                console.error(`${e.message}. Reason: ${responseData?.errors[0]?.message}`);
+            }
             throw e;
         }
         if (!resData.success) {
+            console.error("Response data:", resData);
             throw new Error("Unsuccessful withdrawal request");
         }
     }
@@ -141,7 +147,7 @@ export class PaymentProcessingService {
     // Callback handler for the deposit action
     async handleCryptoCallback(dto: CryptoCallbackDto) {
         const depositReqDto = Object.assign(new ResolveCryptoBasedRequestDto(), {
-            txHash: "0xMock_transaction_hash_fixme", // FIXME: Add transaction hash when XGateway implements new callback version
+            txHash: dto.txHash,
             paymentProcessingTxId: dto.id,
             rawTransferAmount: dto.amount,
             usdTransferAmount: dto.usd.toString(),
@@ -149,6 +155,13 @@ export class PaymentProcessingService {
             chatId: dto.customerId,
             callbackType: dto.type,
         });
+
+        // TODO: When XGW implements flow for FAILED txs, we will need to handle this case
+        //  WARNING! Currently, if transaction is failed, we get `CONFIRMED` anyway
+        if (dto.status !== CallbackTransactionStatus.CONFIRMED) {
+            return;
+        }
+
         await this.requestResolver.resolveCryptoRequest(depositReqDto);
 
         return {
