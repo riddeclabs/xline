@@ -153,7 +153,7 @@ export class RepayActionWizard {
         const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
 
         if (callbackValue === SignApplicationOptions.APPROVE) {
-            const debtSymbol = this.botCommon.getDebtSymbolFromSceneDto(ctx);
+            const debtSymbol = this.botCommon.getDebtCurrencyFromSceneDto(ctx).symbol;
             const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
 
             const businessPaymentRequisite = await this.botManager.getFreshBusinessPayReqByDebtSymbol(
