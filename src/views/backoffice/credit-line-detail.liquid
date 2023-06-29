@@ -1,14 +1,88 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-2 text-white fs-1'>Requests</h1>
-  <div style="color: #fff;" class="pb-3">
-    <div>Credit line: {{ resultPageInfo.mainInfo.collateral }} / {{ resultPageInfo.mainInfo.debt }}</div>
-    <div>User name: {{ resultPageInfo.mainInfo.name }}</div>
-    <div>Chat ID: {{ resultPageInfo.mainInfo.chatId }}</div>
+<h1 class='pb-2 text-white fs-1'>{{ resultPageInfo.mainInfo.type }} request</h1>
+<div class="d-flex">
+  <div style="color: #fff; margin-right: 80px;" class="pb-3">
+    <h1 class='pb-2 text-white fs-4'>General info:</h1>
+    <ul>
+      <li>
+        <div>Credit line: {{ resultPageInfo.mainInfo.collateral }} / {{ resultPageInfo.mainInfo.debt }}</div>
+      </li>
+      <li>
+        <div>User name: {{ resultPageInfo.mainInfo.name }}</div>
+      </li>
+      <li>
+        <div>Chat ID: {{ resultPageInfo.mainInfo.chatId }}</div>
+      </li>
+    </ul>
   </div>
+
+  <div style="color: #fff; margin-right: 80px;" class="pb-3">
+    <h1 class='pb-2 text-white fs-4'>Request info:</h1>
+    {% if resultPageInfo.mainInfo.type == "Repay" %}
+    <ul>
+      <li>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.rowTable[0].status }}</div></div>
+      </li>
+      <li>
+        <div>User Reference Number: {{ resultPageInfo.mainInfo.refNumber }}</div>
+      </li>
+    </ul>
+
+    <h1 class='pb-2 text-white fs-4'>Associated XLine Requisites:</h1>
+    <ul>
+      <li>
+        <div>Name: {{ resultPageInfo.rowTable[0].nameTo }}</div>
+      </li>
+      <li>
+        <div>IBAN: {{ resultPageInfo.rowTable[0].ibanTo }}</div>
+      </li>
+    </ul>
+    {% elsif resultPageInfo.mainInfo.type == "Borrow" %}
+    <ul>
+      <li>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.rowTable[0].status }}</div></div>
+      </li>
+      <li>
+        <div>Requested Borrow Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
+      </li>
+      <li>
+        <div>Initial Risk Strategy: ??</div>
+      </li>
+      <li>
+        <div>IBAN: {{ resultPageInfo.rowTable[0].ibanTo }}</div>
+      </li>
+    </ul>
+
+    {% elsif resultPageInfo.mainInfo.type == "Deposit" %}
+      <ul>
+        <li>
+          <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
+        </li>
+        <li>
+          <div>Address to Deposit: ??</div>
+        </li>
+        
+      </ul>
+      {% else %}
+        <ul>
+          <li>
+            <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
+          </li>
+          <li>
+            <div>Address to Withdraw: ??</div>
+          </li>
+          <li>
+            <div>Raw Withdraw Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.collateral }}</div>
+          </li>
+        </ul>
+    {% endif %}
+  </div>
+</div>
+  
   
   <div class='card bg-dark shadow-sm wrapper-table'>
-    <h1 class='m-3 text-white fs-5'>Requests list</h1>
+    <h1 class='m-3 text-white fs-5'>Transactions</h1>
     {% if resultPageInfo.depTable %}
     <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
       <thead>
@@ -65,7 +139,7 @@
               <td class='align-middle'>
                 {{ transaction.usdTransferAmount }} USD
               </td>
-              <td class='align-middle'>
+              <td class='align-middle' style="font-size: 10px;">
                 {{ transaction.txHash }}
               </td>
               <td class='align-middle'>
@@ -152,7 +226,7 @@
                 {{ transaction.nameTo }}
               </td>
               <td class='align-middle'>
-                {{ transaction.rawTransferAmount }}
+                {{ transaction.rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}
               </td>
               <td class='align-middle'>
                 {{ transaction.status }}

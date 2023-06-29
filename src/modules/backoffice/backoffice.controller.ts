@@ -326,10 +326,11 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customers/credit-line-detail/:type/:id")
+    @Get("customers/credit-line-detail/:type/:creditLineId/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
         @Param("id") id: string,
+        @Param("creditLineId") creditLineId: string,
         @Param("type") type: string,
         @CreditLineDetails() query: CreditLineDetailsDto
     ) {
@@ -370,30 +371,38 @@ export class BackOfficeController {
                 );
                 break;
         }
-
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
             sortField,
             sortDirection,
         };
 
-        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(id);
+        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(
+            creditLineId
+        );
         const resultPageInfo = {
             mainInfo: {
                 name: generalUserInfo?.user.name,
                 chatId: generalUserInfo?.user.chatId,
                 debt: generalUserInfo?.debtCurrency.symbol,
                 collateral: generalUserInfo?.collateralCurrency.symbol,
+                type,
+                refNumber: createRepayRequestRefNumber(generalUserInfo?.refNumber || "", Number(id)),
             },
+
             rowTable: resultTable.map(item => {
                 return {
                     ...item,
                     createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                     updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
                     rawTransferAmount: truncateDecimal(formatUnits(item.rawTransferAmount), 2, false),
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    //@ts-ignore
-                    usdTransferAmount: truncateDecimal(formatUnits(item.usdTransferAmount), 2, false),
+                    usdTransferAmount: truncateDecimal(
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        //@ts-ignore
+                        formatUnits(item.usdTransferAmount ?? 0n),
+                        2,
+                        false
+                    ),
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     //@ts-ignore
                     status: FiatTransactionStatus[item.status as FiatTransactionStatus],
@@ -474,6 +483,7 @@ export class BackOfficeController {
         const totalPageCount = Math.ceil(Number(totalCount) / PAGE_LIMIT_REQUEST);
         return {
             resultTable,
+            creditLineId,
             page: {
                 current: page,
                 query: queryWithDefaults,

@@ -182,19 +182,6 @@ export class BackOfficeService {
             .getRawOne();
     }
 
-    getBorrow() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.debtCurrencyId", "borrowRequest")
-            .getMany();
-    }
-
-    getDeposit() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "deptCurrenty")
-            .getMany();
-    }
     getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
@@ -268,13 +255,16 @@ export class BackOfficeService {
         sortField = "created_at",
         sortDirection: "ASC" | "DESC"
     ) {
-        return this.cryptoTransaction
-            .createQueryBuilder("crypto")
-            .where("crypto.depositRequestId = :id", { id })
-            .skip(page * PAGE_LIMIT_REQUEST)
-            .take(PAGE_LIMIT_REQUEST)
-            .orderBy(`crypto.${sortField}`, sortDirection)
-            .getMany();
+        return (
+            this.cryptoTransaction
+                .createQueryBuilder("crypto")
+                .where("crypto.depositRequestId = :id", { id })
+                // .leftJoinAndSelect("crypto.depositRequest", "depositRequest")
+                .skip(page * PAGE_LIMIT_REQUEST)
+                .take(PAGE_LIMIT_REQUEST)
+                .orderBy(`crypto.${sortField}`, sortDirection)
+                .getMany()
+        );
     }
 
     getWithdrawRequestDetails(
@@ -283,13 +273,16 @@ export class BackOfficeService {
         sortField = "created_at",
         sortDirection: "ASC" | "DESC"
     ) {
-        return this.cryptoTransaction
-            .createQueryBuilder("crypto")
-            .where("crypto.withdrawRequestId = :id", { id })
-            .skip(page * PAGE_LIMIT_REQUEST)
-            .take(PAGE_LIMIT_REQUEST)
-            .orderBy(`crypto.${sortField}`, sortDirection)
-            .getMany();
+        return (
+            this.cryptoTransaction
+                .createQueryBuilder("crypto")
+                .where("crypto.withdrawRequestId = :id", { id })
+                // .leftJoinAndSelect("crypto.withdrawRequest", "withdrawRequest")
+                .skip(page * PAGE_LIMIT_REQUEST)
+                .take(PAGE_LIMIT_REQUEST)
+                .orderBy(`crypto.${sortField}`, sortDirection)
+                .getMany()
+        );
     }
 
     getAllRequestByCreditLine(
