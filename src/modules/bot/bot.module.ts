@@ -5,9 +5,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { UserSession } from "../../common/middlewares/session.middleware";
 import { entities } from "../../database";
 import { NewCreditRequestWizard } from "./scenes/new-credit-request/new-credit-request.scene";
-import { ViewActiveCreditLineWizard } from "./scenes/view-active-line.scene";
 import { MainScene } from "./scenes/main.scene";
-import { WithdrawActionWizard } from "./scenes/withdraw.scene";
 import { ViewRequestWizard } from "./scenes/view-request.scene";
 import { BotCommonService } from "./bot-common.service";
 import { BotManagerService } from "./bot-manager.service";
@@ -26,6 +24,7 @@ import { NewCreditRequestText } from "./scenes/new-credit-request/new-credit-req
 import { ManageCreditLineWizard } from "./scenes/manage-credit-line/manage-credit-line.scene";
 import { DepositActionWizard } from "./scenes/manage-credit-line/deposit/deposit.scene";
 import { RepayActionWizard } from "./scenes/manage-credit-line/repay/repay.scene";
+import { WithdrawActionWizard } from "./scenes/manage-credit-line/withdraw/withdraw.scene";
 
 @Module({
     imports: [
@@ -63,8 +62,6 @@ import { RepayActionWizard } from "./scenes/manage-credit-line/repay/repay.scene
         BotManagerService,
         MainScene,
         NewCreditRequestWizard,
-        ViewActiveCreditLineWizard,
-        WithdrawActionWizard,
         ViewRequestWizard,
         ManagePortfolioWizard,
         BotCommonService,
@@ -73,6 +70,7 @@ import { RepayActionWizard } from "./scenes/manage-credit-line/repay/repay.scene
         ManageCreditLineWizard,
         DepositActionWizard,
         RepayActionWizard,
+        WithdrawActionWizard,
     ],
 })
 export class BotModule {}
