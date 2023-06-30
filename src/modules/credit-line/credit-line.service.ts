@@ -33,6 +33,19 @@ export class CreditLineService {
         return await this.getCreditLineById(creditLineId);
     }
 
+    async updateDebtAmountAndFeeAccumulatedById(
+        creditLineId: number,
+        newDebtAmount: bigint,
+        newFeeAccumulatedAmount: bigint
+    ) {
+        return this.creditLineRepo
+            .createQueryBuilder()
+            .update()
+            .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
+    }
+
     async increaseAccumulatedFeeAmountById(
         creditLineId: number,
         addAmount: bigint
@@ -80,6 +93,15 @@ export class CreditLineService {
         return this.getCreditLineById(creditLineId);
     }
 
+    async updateSupplyAmountById(creditLineId: number, newSupplyAmount: bigint) {
+        return this.creditLineRepo
+            .createQueryBuilder()
+            .update()
+            .set({ rawCollateralAmount: newSupplyAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
+    }
+
     async getCreditLineByChatIdAndColSymbol(
         chatId: number,
         collateralSymbol: string
@@ -88,6 +110,7 @@ export class CreditLineService {
             .createQueryBuilder("creditLine")
             .leftJoin("creditLine.user", "user")
             .leftJoinAndSelect("creditLine.collateralCurrency", "cc")
+            .leftJoinAndSelect("creditLine.economicalParameters", "ep")
             .where("user.chatId = :chatId", { chatId })
             .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();

@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { CreateCryptoTransactionDto, CreateFiatTransactionDto } from "./dto/create-transaction.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CryptoTransaction, FiatTransaction } from "../../database/entities";
-import { Repository } from "typeorm";
+import { DeepPartial, Repository } from "typeorm";
+import { CreateFiatTransactionDto } from "./dto/create-transaction.dto";
 import { FiatTransactionStatus } from "src/common";
 import { validateDto } from "src/decorators/class-validator-extended.decorator";
 
@@ -65,11 +65,8 @@ export class TransactionService {
         return this.getFiatTransactionById(fiatTx.id);
     }
 
-    async createCryptoTransaction(
-        createCryptoTransactionDto: CreateCryptoTransactionDto
-    ): Promise<CryptoTransaction> {
-        await validateDto(createCryptoTransactionDto);
-        const cryptoTx = this.cryptoTransactionRepo.create(createCryptoTransactionDto);
-        return this.cryptoTransactionRepo.save(cryptoTx);
+    async createCryptoTransaction(cryptoTransaction: DeepPartial<CryptoTransaction>) {
+        const newCryptoTxEntity = this.cryptoTransactionRepo.create(cryptoTransaction);
+        return this.cryptoTransactionRepo.save(newCryptoTxEntity);
     }
 }

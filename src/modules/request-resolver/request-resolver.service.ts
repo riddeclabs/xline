@@ -26,9 +26,11 @@ import {
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
-import { CallbackTypes } from "../payment-processing/constants";
+import { EXP_SCALE } from "../../common/constants";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
-import { validateIban, validateName } from "src/common/input-validation";
+import { validateIban, validateName } from "../../common/input-validation";
+import { CallbackTypes } from "../payment-processing/payment-processing.types";
 
 @Injectable()
 export class RequestResolverService {
@@ -37,12 +39,13 @@ export class RequestResolverService {
         private creditLineService: CreditLineService,
         private riskEngineService: RiskEngineService,
         private transactionService: TransactionService,
-        private paymentRequisiteService: PaymentRequisiteService
+        private paymentRequisiteService: PaymentRequisiteService,
+        private priceOracleService: PriceOracleService
     ) {}
 
     /**
      Used by operator to resolve borrow request. Resolves request by creating a fiat transaction and updating the request status.
-     Should be used for "initial" request resolving. 
+     Should be used for "initial" request resolving.
      To finalize resolving process use finalizeBorrowRequest or rejectBorrowRequest functions.
      @param {ResolveBorrowRequestDto} resolveBorrowRequest - The request to resolve
      @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
@@ -307,11 +310,6 @@ export class RequestResolverService {
         );
     }
 
-    // Used to verify user requested withdraw amount during the creation of new withdraw request
-    async verifyHypWithdrawRequest(creditLineId: number, hypotheticalWithdrawAmount: bigint) {
-        // TODO: add impl
-    }
-
     /**
      Used by operator to resolve pending repay request after user's payment has been received.
      @param {ResolveRepayRequestDto} resolveRepayRequestDto - The data object containing the information needed to resolve the repay request.
@@ -422,6 +420,7 @@ export class RequestResolverService {
         }
 
         const collateralCurrency = creditLine.collateralCurrency;
+        const economicalParams = creditLine.economicalParameters;
 
         this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralCurrency.decimals);
 
@@ -431,16 +430,18 @@ export class RequestResolverService {
             ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
                 creditLine,
                 collateralCurrency,
+                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
                 creditLine,
                 collateralCurrency,
+                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else {
-            throw new Error("Incorrect callback type");
+            throw new HttpException("Incorrect callback type", HttpStatus.BAD_REQUEST);
         }
 
         // Create new CryptoTransaction
@@ -525,9 +526,11 @@ export class RequestResolverService {
     // and increasing the supply amount for the associated credit line.
     private async resolveDepositRequest(
         creditLine: CreditLine,
-        collateralCurrency: CollateralCurrency,
+        collateralToken: CollateralCurrency,
+        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
+        // FIXME: VERIFY IF REQUEST IS INITIAL AND UPDATE BORROW REQUEST IN THAT CASE
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
             creditLine.id
         );
@@ -540,14 +543,30 @@ export class RequestResolverService {
             DepositRequestStatus.FINISHED
         );
 
+        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const newSupplyAmount = creditLine.rawCollateralAmount + convRawTransferAmount;
+
+        // FIXME: merge 2 creditLine based db requests to one
         // Increase supply amount for credit line
-        await this.creditLineService.increaseSupplyAmountById(
+        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+
+        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
+        const processingFeeCryptoAmount = (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
+        const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
+            collateralToken.symbol,
+            collateralToken.decimals,
+            processingFeeCryptoAmount
+        );
+        // Increase the debt position and fee accumulated by the amount of processing fee
+        const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
+        const newFeeAccumulatedAmount = creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
+        await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
             creditLine.id,
-            parseUnits(rawTransferAmount, collateralCurrency.decimals)
+            newDebtAmount,
+            newFeeAccumulatedAmount
         );
 
         return {
-            updatedRequest,
             depositRequestId: updatedRequest.id,
             withdrawRequestId: null,
         };
@@ -557,30 +576,62 @@ export class RequestResolverService {
     // and decreasing the supply amount for the associated credit line.
     private async resolveWithdrawRequest(
         creditLine: CreditLine,
-        collateralCurrency: CollateralCurrency,
+        collateralToken: CollateralCurrency,
+        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingWithdrawReq(
             creditLine.id
         );
 
-        this.verifyWithdrawAmount(pendingRequest, collateralCurrency, rawTransferAmount);
+        if (!pendingRequest) {
+            throw new Error("Pending withdraw request not found");
+        }
 
-        const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
+        // FIXME: do we need somehow handle exception and save failed callbacks ?
+        this.verifyWithdrawAmount(pendingRequest, collateralToken, rawTransferAmount);
+
+        // Decrease supply amount for credit line
+        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const newSupplyAmount = creditLine.rawCollateralAmount - convRawTransferAmount;
+
+        if (newSupplyAmount < 0) {
+            // FIXME: do we need somehow handle it and save failed callbacks ?
+            // Throw 500 in that case
+            throw new Error("Deposit amount after withdraw can not be negative");
+        }
+
+        await this.requestHandlerService.updateWithdrawReqStatus(
             pendingRequest.id,
             WithdrawRequestStatus.FINISHED
         );
 
-        // Decrease supply amount for credit line
-        await this.creditLineService.decreaseSupplyAmountById(
-            creditLine.id,
-            parseUnits(rawTransferAmount, collateralCurrency.decimals)
-        );
+        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+
+        // Apply processing fee for all cases, except the case when user withdraw all his collateral
+        if (newSupplyAmount !== 0n) {
+            // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
+            const processingFeeCryptoAmount =
+                (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
+            const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
+                collateralToken.symbol,
+                collateralToken.decimals,
+                processingFeeCryptoAmount
+            );
+            // Increase the debt position by the amount of processing fee
+            const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
+            const newFeeAccumulatedAmount =
+                creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
+            await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
+                creditLine.id,
+                newDebtAmount,
+                newFeeAccumulatedAmount
+            );
+        }
 
         return {
-            updatedRequest,
             depositRequestId: null,
-            withdrawRequestId: updatedRequest.id,
+            withdrawRequestId: pendingRequest.id,
         };
     }
 
@@ -593,7 +644,7 @@ export class RequestResolverService {
         const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralCurrency.decimals);
 
         if (!(request.withdrawAmount === actualWithdrawAmount)) {
-            throw new Error("Incorrect withdraw amount received");
+            throw new HttpException("Incorrect withdraw amount received", HttpStatus.BAD_REQUEST);
         }
     }
 

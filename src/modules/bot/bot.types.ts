@@ -1,6 +1,7 @@
 import { Scenes } from "telegraf";
 import { WizardSession, WizardSessionData } from "telegraf/typings/scenes";
 import { InlineKeyboardButton } from "typegram/markup";
+import { CollateralCurrency, DebtCurrency } from "../../database/entities";
 
 export type DefaultSessionState = {
     sceneMessageIds?: number[];
@@ -27,8 +28,8 @@ export type SceneTransferObject = {
 
 export type CreditLineSceneData = {
     creditLineId?: number;
-    collateralSymbol?: string;
-    debtSymbol?: string;
+    collateralCurrency?: CollateralCurrency;
+    debtCurrency?: DebtCurrency;
 };
 
 export type CallbackButton = InlineKeyboardButton.CallbackButton;

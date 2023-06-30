@@ -14,13 +14,39 @@ export class PriceOracleService {
     }
 
     // Note! rawTokenAmount - is raw crypto amount and must be scaled in original accuracy
-    async convertCryptoToUsd(tokenSymbol: string, tokenDecimals: number, rawTokenAmount: bigint) {
-        const tokenPair = this.getTokenPairBySymbol(tokenSymbol);
-        const tokenPrice = await this.getTokenPriceByPair(tokenPair);
-        const scaledPrice = parseUnits(tokenPrice);
+    async convertCryptoToUsd(
+        tokenSymbol: string,
+        tokenDecimals: number,
+        rawTokenAmount: bigint,
+        externalScaledPrice?: bigint
+    ) {
+        const scaledPrice = externalScaledPrice ?? (await this.getScaledTokenPriceBySymbol(tokenSymbol));
         const priceMultiplier = this.getPriceMultiplierByCryptoDecimals(tokenDecimals);
 
         return (rawTokenAmount * scaledPrice * priceMultiplier) / EXP_SCALE;
+    }
+
+    async convertUsdToCrypto(
+        tokenSymbol: string,
+        tokenDecimals: number,
+        usdAmount: bigint,
+        externalScaledPrice?: bigint
+    ) {
+        const scaledPrice = externalScaledPrice ?? (await this.getScaledTokenPriceBySymbol(tokenSymbol));
+        const priceMultiplier = this.getPriceMultiplierByCryptoDecimals(tokenDecimals);
+
+        return (usdAmount * EXP_SCALE) / (scaledPrice * priceMultiplier);
+    }
+
+    async getScaledTokenPriceBySymbol(tokenSymbol: string) {
+        const tokenPair = this.getTokenPairBySymbol(tokenSymbol);
+        const tokenPrice = await this.getTokenPriceByPair(tokenPair);
+        const formattedPrice = parseUnits(tokenPrice);
+
+        if (formattedPrice <= 0n)
+            throw new Error("Price oracle: token price can not be less or equal to zero");
+
+        return formattedPrice;
     }
 
     // Returns raw token price in float format

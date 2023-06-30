@@ -1,5 +1,6 @@
-import { IsNumber, IsString } from "class-validator";
+import { IsNumber, IsString, IsOptional, IsEnum } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { CallbackTransactionStatus, CallbackTypes } from "../payment-processing.types";
 
 export class CryptoCallbackDto {
     @IsString()
@@ -23,12 +24,19 @@ export class CryptoCallbackDto {
     })
     readonly customerId!: string;
 
-    @IsString()
+    @IsEnum(CallbackTypes)
     @ApiProperty({
-        description: `"DEPOSIT" or "WITHDRAWAL"`,
-        example: "DEPOSIT",
+        description: `Type of the Transaction`,
+        example: CallbackTypes.DEPOSIT,
     })
-    readonly type!: string;
+    readonly type!: CallbackTypes;
+
+    @IsEnum(CallbackTransactionStatus)
+    @ApiProperty({
+        description: `Status of the Transaction`,
+        example: CallbackTransactionStatus.CONFIRMED,
+    })
+    readonly status!: CallbackTransactionStatus;
 
     @IsNumber()
     @ApiProperty({
@@ -59,4 +67,27 @@ export class CryptoCallbackDto {
         example: "6c1846a5-d941-4842-af2d-969d342facc3",
     })
     readonly id!: string;
+
+    @IsString()
+    @ApiProperty({
+        description: "Hash of the transaction in network",
+        example: "0xAbcDeF1234567890AbCdEf1234567890aBcDeF12",
+    })
+    readonly txHash!: string;
+
+    @IsString()
+    @IsOptional()
+    @ApiProperty({
+        description: "The invoice identification in the XGateway system",
+        example: "9b2451a5-d941-4842-af2d-969d342facc3",
+    })
+    readonly invoiceId!: string;
+
+    @IsString()
+    @IsOptional()
+    @ApiProperty({
+        description: "The invoice identification in the merchant system",
+        example: "9b2451a5-d941-4842-af2d-969d342facc3",
+    })
+    readonly orderId!: string;
 }

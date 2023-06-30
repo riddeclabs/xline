@@ -71,6 +71,7 @@ export class RequestHandlerService {
     }
 
     async saveNewWithdrawRequest(dto: CreateWithdrawRequestHandlerDto) {
+        await validateDto(dto);
         const newReq = this.withdrawRequestRepo.create(dto);
         return this.withdrawRequestRepo.save(newReq);
     }
@@ -79,23 +80,22 @@ export class RequestHandlerService {
         return this.withdrawRequestRepo.findOne({ where: { creditLineId } });
     }
 
-    async getOldestPendingWithdrawReq(creditLineId: number) {
+    async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
             .orderBy("wr.createdAt", "ASC")
-            .getOneOrFail();
+            .getOne();
     }
 
-    async updateWithdrawReqStatus(requestId: number, newStatus: WithdrawRequestStatus) {
-        await this.withdrawRequestRepo
+    async updateWithdrawReqStatus(requestID: number, newStatus: WithdrawRequestStatus) {
+        return this.withdrawRequestRepo
             .createQueryBuilder()
-            .update(WithdrawRequest)
+            .update()
             .set({ withdrawRequestStatus: newStatus })
-            .where("id = :id", { id: requestId })
+            .where("id = :requestID", { requestID })
             .execute();
-        return this.getWithdrawRequest(requestId);
     }
 
     // BorrowRequest block
