@@ -379,7 +379,7 @@ export class BackOfficeController {
         let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         const borrow = await this.backofficeService.getBorrowRequest(id);
-        let status = "";
+        let status = { id: 0, status: "" };
         switch (type) {
             case "Borrow":
                 resultTable = await this.backofficeService.getBorrowRequestDetails(
@@ -394,7 +394,7 @@ export class BackOfficeController {
                     false
                 );
                 const borrowStatus = await this.backofficeService.getBorrowStatus(id);
-                status = borrowStatus?.borrowRequestStatus || "";
+                status = { status: borrowStatus?.borrowRequestStatus || "", id: borrowStatus?.id || 0 };
                 break;
             case "Deposit":
                 resultTable = await this.backofficeService.getDepositRequestDetails(
@@ -404,7 +404,10 @@ export class BackOfficeController {
                     sortDirection
                 );
                 const depositStatus = await this.backofficeService.getDepositStatus(id);
-                status = depositStatus?.depositRequestStatus || "";
+                status = {
+                    status: depositStatus?.depositRequestStatus || "",
+                    id: depositStatus?.id || 0,
+                };
                 break;
             case "Withdraw":
                 resultTable = await this.backofficeService.getWithdrawRequestDetails(
@@ -414,7 +417,10 @@ export class BackOfficeController {
                     sortDirection
                 );
                 const withdrawStatus = await this.backofficeService.getWithdrawStatus(id);
-                status = withdrawStatus?.withdrawRequestStatus || "";
+                status = {
+                    status: withdrawStatus?.withdrawRequestStatus || "",
+                    id: withdrawStatus?.id || 0,
+                };
                 break;
             case "Repay":
                 resultTable = await this.backofficeService.getRepayRequestDetails(
@@ -424,7 +430,10 @@ export class BackOfficeController {
                     sortDirection
                 );
                 const repayStatus = await this.backofficeService.getRepayStatus(id);
-                status = repayStatus?.repayRequestStatus || "";
+                status = {
+                    status: repayStatus?.repayRequestStatus || "",
+                    id: repayStatus?.id || 0,
+                };
                 break;
         }
         const checkStatus = (type: string, status: string) => {
@@ -464,7 +473,8 @@ export class BackOfficeController {
                     String(generalUserInfo?.collateralCurrency.symbol)
                 ),
                 initialRistStrategy,
-                status: checkStatus(type, status),
+                status: checkStatus(type, status.status),
+                id: status.id,
             },
             rowTable: resultTable.map(item => {
                 return {

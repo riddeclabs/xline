@@ -354,7 +354,7 @@ export class BackOfficeService {
         return this.borrowRepo
             .createQueryBuilder("borrow")
             .where("borrow.id = :id", { id })
-            .select(["borrow.borrowRequestStatus"])
+            .select(["borrow.borrowRequestStatus", "borrow.id"])
             .getOne();
     }
 
@@ -362,7 +362,7 @@ export class BackOfficeService {
         return this.depositRepo
             .createQueryBuilder("deposit")
             .where("deposit.id = :id", { id })
-            .select(["deposit.depositRequestStatus"])
+            .select(["deposit.depositRequestStatus", "deposit.id"])
             .getOne();
     }
 
@@ -370,7 +370,7 @@ export class BackOfficeService {
         return this.repayRepo
             .createQueryBuilder("repay")
             .where("repay.id = :id", { id })
-            .select(["repay.repayRequestStatus"])
+            .select(["repay.repayRequestStatus", "repay.id"])
             .getOne();
     }
 
@@ -378,7 +378,7 @@ export class BackOfficeService {
         return this.withdrawRepo
             .createQueryBuilder("withdraw")
             .where("withdraw.id = :id", { id })
-            .select(["withdraw.withdrawRequestStatus"])
+            .select(["withdraw.withdrawRequestStatus", "withdraw.id"])
             .getOne();
     }
 }
