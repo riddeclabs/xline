@@ -3,6 +3,7 @@ import { CreditLineDetails } from "../../../credit-line/credit-line.types";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
 import { BasicSourceText } from "../common/basic-source.text";
 import { getCreditLineStateData as getCreditLineState } from "../common/utils";
+import { CreditLineDetailsExt } from "../../bot-manager.service";
 
 export class ManageCreditLineText extends BasicSourceText {
     static getChoseCreditLineText() {
@@ -14,12 +15,15 @@ export class ManageCreditLineText extends BasicSourceText {
         };
     }
 
-    static getViewLineDetailsText(ep: EconomicalParameters, cld: CreditLineDetails) {
-        const vld = this.prepareViewLineData(ep, cld);
-        const collateralSymbol = cld.collateralCurrency.symbol;
-        const debtSymbol = cld.debtCurrency.symbol;
+    static getViewLineDetailsText(creditLineDetailsExtended: CreditLineDetailsExt) {
+        const vld = this.prepareViewLineData(
+            creditLineDetailsExtended.economicalParams,
+            creditLineDetailsExtended.lineDetails
+        );
+        const collateralSymbol = creditLineDetailsExtended.lineDetails.collateralCurrency.symbol;
+        const debtSymbol = creditLineDetailsExtended.lineDetails.debtCurrency.symbol;
 
-        const state = getCreditLineState({ economicalParams: ep, lineDetails: cld });
+        const state = getCreditLineState(creditLineDetailsExtended);
         const creditLineStateText = this.getCreditLineStateText(state, false);
 
         return escapeSpecialCharacters(

@@ -13,7 +13,13 @@ import { BorrowRequestStatus, createUserGatewayId, generateReferenceNumber, xor 
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
-import { CollateralCurrency,BorrowRequest, CreditLine, DebtCurrency, EconomicalParameters } from "src/database/entities";
+import {
+    CollateralCurrency,
+    BorrowRequest,
+    CreditLine,
+    DebtCurrency,
+    EconomicalParameters,
+} from "src/database/entities";
 import { EXP_SCALE, maxUint256 } from "../../common/constants";
 import { CreditLineDetails } from "../credit-line/credit-line.types";
 
@@ -36,6 +42,7 @@ export interface WithdrawRequestDetails {
 export type CreditLineDetailsExt = {
     economicalParams: EconomicalParameters;
     lineDetails: CreditLineDetails;
+    scaledTokenPrice: bigint;
 };
 
 @Injectable()
@@ -356,8 +363,8 @@ export class BotManagerService {
 
     // Used to verify user requested withdraw amount during the creation of new withdraw request
     async verifyHypWithdrawRequestOrThrow(
-      maxAllowedCryptoToWithdraw: bigint,
-      withdrawAmount: bigint
+        maxAllowedCryptoToWithdraw: bigint,
+        withdrawAmount: bigint
     ): Promise<void> {
         if (withdrawAmount > maxAllowedCryptoToWithdraw) {
             throw new Error("Insufficient liquidity to withdraw");

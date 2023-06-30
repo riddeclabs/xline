@@ -5,7 +5,7 @@ import {
     formatUnitsNumber,
     WithdrawRequestStatus,
 } from "../../../../../common";
-import { floatToMd, truncateDecimal } from "../../../../../common/text-formatter";
+import { floatToMd, truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { CollateralCurrency } from "../../../../../database/entities";
 import { SUPPORTED_TOKENS } from "../../../constants";
 import { RiskStrategyLevels } from "../../new-credit-request/new-credit-request.types";
@@ -19,7 +19,10 @@ export class WithdrawTextSource {
         walletToWithdraw: string,
         requestStatus: WithdrawRequestStatus
     ) {
-        const withdrawAmount = truncateDecimal(formatUnits(rawWithdrawAmount, collateralDecimals), 4);
+        const withdrawAmount = truncateDecimalsToStr(
+            formatUnits(rawWithdrawAmount, collateralDecimals),
+            4
+        );
         return escapeSpecialCharacters(
             "‼ *You already have pending 'Withdraw' request.*\n" +
                 "\n" +
@@ -84,12 +87,12 @@ export class WithdrawTextSource {
         utilizationRate: bigint,
         collateralFactor: bigint
     ) {
-        const mdDepositAmount = truncateDecimal(
+        const mdDepositAmount = truncateDecimalsToStr(
             formatUnits(rawDepositAmount, collateralCurrency.decimals)
         );
         const mdUtilizationRate = bigintToFormattedPercent(utilizationRate);
         const mdMaxUtilizationRate = bigintToFormattedPercent(collateralFactor);
-        const mdMaxAmountToWithdraw = truncateDecimal(
+        const mdMaxAmountToWithdraw = truncateDecimalsToStr(
             formatUnits(maxAmountToWithdraw, collateralCurrency.decimals),
             4
         );
@@ -114,7 +117,7 @@ export class WithdrawTextSource {
         maxAmountToWithdraw: bigint,
         utilizationRate: bigint
     ) {
-        const mdDepositAmount = truncateDecimal(
+        const mdDepositAmount = truncateDecimalsToStr(
             formatUnits(rawDepositAmount, collateralCurrency.decimals)
         );
         const mdUtilizationRate = bigintToFormattedPercent(utilizationRate);
@@ -218,11 +221,11 @@ export class WithdrawTextSource {
         const newState = withdrawRequestDetails.newState;
         return {
             cs: {
-                mdRawDepositAmount: truncateDecimal(
+                mdRawDepositAmount: truncateDecimalsToStr(
                     formatUnits(currentState.rawDepositAmount, collateralCurrency.decimals),
                     4
                 ),
-                mdDebtAmount: truncateDecimal(
+                mdDebtAmount: truncateDecimalsToStr(
                     formatUnits(currentState.debtAmount, debtCurrency.decimals)
                 ),
                 mdUtilizationPercent: bigintToFormattedPercent(currentState.utilizationRate),
@@ -232,11 +235,13 @@ export class WithdrawTextSource {
                 ),
             },
             ns: {
-                mdRawDepositAmount: truncateDecimal(
+                mdRawDepositAmount: truncateDecimalsToStr(
                     formatUnits(newState.rawDepositAmount, collateralCurrency.decimals),
                     4
                 ),
-                mdDebtAmount: truncateDecimal(formatUnits(newState.debtAmount, debtCurrency.decimals)),
+                mdDebtAmount: truncateDecimalsToStr(
+                    formatUnits(newState.debtAmount, debtCurrency.decimals)
+                ),
                 mdUtilizationPercent: bigintToFormattedPercent(newState.utilizationRate),
                 mdLiquidationRisk: this.getCurrentLiquidationRisk(
                     newState.utilizationRate,
@@ -249,7 +254,7 @@ export class WithdrawTextSource {
                     collateralCurrency.decimals
                 )
             ),
-            mdProcessingFeeFiatAmount: truncateDecimal(
+            mdProcessingFeeFiatAmount: truncateDecimalsToStr(
                 formatUnits(withdrawRequestDetails.processingFeeFiatAmount, debtCurrency.decimals)
             ),
             mdWithdrawAmount: formatUnits(withdrawAmount, collateralCurrency.decimals),
