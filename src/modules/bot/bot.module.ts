@@ -76,5 +76,6 @@ import { RepayActionWizard } from "./scenes/manage-credit-line/repay/repay.scene
         BorrowActionWizard,
         RepayActionWizard,
     ],
+    exports: [BotManagerService],
 })
 export class BotModule {}

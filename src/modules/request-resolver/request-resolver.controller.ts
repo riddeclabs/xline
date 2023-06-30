@@ -1,13 +1,20 @@
-import { Controller, Post, Body, Param, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Controller, Post, Body, UsePipes, ValidationPipe, Param, Get } from "@nestjs/common";
 import { RequestResolverService } from "./request-resolver.service";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { ResolveFiatBasedRequestDto, ResolveRepayRequestDto } from "./dto/resolve-request.dto";
+import {
+    FinalizeOrRejectBorrowRequestDto,
+    ResolveFiatBasedRequestDto,
+    ResolveRepayRequestDto,
+} from "./dto/resolve-request.dto";
 
 @ApiTags("Request resolver")
 @Controller("request-resolver")
 export class RequestResolverController {
     constructor(private readonly requestResolverService: RequestResolverService) {}
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Resolve borrow request" })
@@ -16,18 +23,30 @@ export class RequestResolverController {
         return this.requestResolverService.resolveBorrowRequest(resolveBorrowRequestDto);
     }
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow-finalize")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Finalize borrow request" })
-    async finalizeBorrowRequest(@Param("reqId") reqId: string) {
-        return this.requestResolverService.finalizeBorrowRequest(+reqId);
+    @ApiBody({ description: "Finalize borrow request", type: FinalizeOrRejectBorrowRequestDto })
+    async finalizeBorrowRequest(
+        @Body() finalizeOrRejectBorrowRequestDto: FinalizeOrRejectBorrowRequestDto
+    ) {
+        return this.requestResolverService.finalizeBorrowRequest(finalizeOrRejectBorrowRequestDto);
     }
 
+    // FIXME: Uncomment during backoffice implementation
+    //    @Roles(Role.ADMIN, Role.OPERATOR)
+    //    @UseGuards(AuthenticatedGuard, RoleGuard)
     @Post("resolve-request/borrow-reject")
     @UsePipes(ValidationPipe)
     @ApiOperation({ summary: "Reject borrow request" })
-    async rejectBorrowRequest(@Param("reqId") reqId: string) {
-        return this.requestResolverService.rejectBorrowRequest(+reqId);
+    @ApiBody({ description: "Reject borrow request", type: FinalizeOrRejectBorrowRequestDto })
+    async rejectBorrowRequest(
+        @Body() finalizeOrRejectBorrowRequestDto: FinalizeOrRejectBorrowRequestDto
+    ) {
+        return this.requestResolverService.rejectBorrowRequest(finalizeOrRejectBorrowRequestDto);
     }
 
     @Post("resolve-request/repay")
@@ -36,5 +55,10 @@ export class RequestResolverController {
     @ApiBody({ description: "Resolve repay request", type: ResolveRepayRequestDto })
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
         return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
+    }
+
+    @Get("verify/borrow:reqId")
+    async verifyBorrowRequest(@Param("reqId") reqId: string) {
+        return this.requestResolverService.verifyBorrowRequest(+reqId);
     }
 }

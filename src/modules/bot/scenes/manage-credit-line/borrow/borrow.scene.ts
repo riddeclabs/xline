@@ -13,7 +13,11 @@ import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.t
 import { BorrowTextSource } from "./borrow.text";
 import { BotManagerService } from "src/modules/bot/bot-manager.service";
 import { CreditLineStateMsgData, Requisites } from "../../common/types";
-import { getCreditLineStateMsgData, getXLineRequestMsgData } from "../../common/utils";
+import {
+    getCreditLineStateMsgData,
+    getXLineRequestMsgData,
+    getMaxAllowedBorrowAmount,
+} from "../../common/utils";
 import { validateAmountDecimals } from "src/common/input-validation";
 import { truncateDecimals } from "src/common/text-formatter";
 
@@ -56,11 +60,9 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_IS_BORROW_POSSIBLE)
     async onVerifyIsBorrowPossible(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            creditLineId
-        );
+        const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        if (lineDetails.rawCollateralAmount <= 0n) {
+        if (cld.lineDetails.rawCollateralAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -73,16 +75,12 @@ export class BorrowActionWizard {
             return;
         }
 
-        if (lineDetails.utilizationRate >= economicalParams.collateralFactor) {
-            await ctx.editMessageText(
-                BorrowTextSource.getInsufficientBalanceText(
-                    lineDetails.utilizationRate,
-                    economicalParams.collateralFactor
-                ),
-                {
-                    parse_mode: "MarkdownV2",
-                }
-            );
+        const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
+
+        if (maxAllowedBorrowAmount <= 0n) {
+            await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
+                parse_mode: "MarkdownV2",
+            });
             await ctx.editMessageReplyMarkup(
                 Markup.inlineKeyboard([this.botCommon.goBackButton()], {
                     columns: 1,
@@ -107,7 +105,7 @@ export class BorrowActionWizard {
         const fee = bigintToFormattedPercent(creditLine.economicalParameters.fiatProcessingFee);
 
         const msg = (await ctx.editMessageText(
-            BorrowTextSource.getBorrowTermsText(collateralFactor, fee),
+            BorrowTextSource.getBorrowTermsText(collateralFactor, fee, creditLine.debtCurrency.symbol),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -147,6 +145,7 @@ export class BorrowActionWizard {
 
     @WizardStep(BorrowActionSteps.SIGN_TERMS)
     async onSignTerms(@Ctx() ctx: BorrowContext) {
+        // FIXME: Optimize database and oracle usage
         const amount = Number(ctx.scene.session.state.borrowAmount);
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cdl = await this.botManager.getCreditLineDetails(creditLineId);
@@ -156,13 +155,7 @@ export class BorrowActionWizard {
         }
 
         const borrowFiatAmount = parseUnits(amount);
-        try {
-            await this.botManager.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
-        } catch (e) {
-            const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
-            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
-            return;
-        }
+
         const stateBefore = getCreditLineStateMsgData(cdl);
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
@@ -300,7 +293,7 @@ export class BorrowActionWizard {
 
             //FIXME: Think about adding some threshold for the amount
             try {
-                await this.botManager.saveNewBorrowRequest(creditLineId, borrowFiatAmount);
+                await this.botManager.saveNewBorrowRequest(creditLine, borrowFiatAmount);
             } catch (e) {
                 const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
                 await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);

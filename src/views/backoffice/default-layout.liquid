@@ -52,6 +52,10 @@
     color: #fff;
     border: 1px solid #0d6efd;
     background: #0d6efd;
+    border-radius: 8px;
+  }
+  .td-status {
+    color: #D07400 !important;
   }
 
 input::-webkit-outer-spin-button,
@@ -67,6 +71,59 @@ input::-webkit-inner-spin-button {
     box-shadow: 0px 0px 8px 7px rgba(255, 255, 255, 0.1);
 
   }
+
+  .req-bor-wrapper {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    border-radius: 12px;
+  }
+  .req-bor-wrapper p {
+    margin-bottom: 0;
+  }
+  .reject-button {
+    background: #880F0F;
+    border: 2px solid #880F0F;
+    color: #fff;
+    width: fit-content;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .reject-button:hover {
+  background: #fff;
+  color: #880F0F;
+  -webkit-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  -moz-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  }
+
+  .accept-button {
+    background: #18652E;
+    border: 2px solid #18652E;
+    color: #fff;
+    width: fit-content;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .accept-button:hover {
+  background: #fff;
+  color: #18652E;
+  -webkit-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  -moz-box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  box-shadow: 0px 0px 26px 10px rgba(255, 255, 255, 0.34);
+  }
+  .wrapper-count {
+    background: #34373B !important;
+    border: none;
+    width: 49%;
+    padding: 17px 32px;
+    margin-bottom: 15px;
+    float: left;
+  }
+  .content-item {
+    width: 49%;
+  }
+  
   .clear-btn {
     margin-left: auto;
     margin-right: 12px;
@@ -89,19 +146,63 @@ input::-webkit-inner-spin-button {
   table {
     border-radius: 8px !important;
   }
+  .sortingTitle {
+    text-decoration: none; 
+    color: #CDCCCD;
+  }
+  .content-wrapper-request {
+    background: #34373B !important;
+    border: none;
+    padding: 21px 27px;
+    border-radius: 12px;
+    color: #fff;
+    max-width: 1280px;
+  }
 
+  .wrapper-buttons {
+    margin: 0 auto;
+    width: fit-content;
+  }
+  .customer-CL-wrapper {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .customer-CL-wrapper > div {
+    width: 32%;
+  }
+  .row-container {
+    display: flex;
+    color: #CDCCCD;
+    width: 100%;
+  }
+
+  .row-container > div {
+    border: 1px solid #CDCCCD;
+    text-align: center;
+    padding: 10px 0;
+    width: 50%;
+    font-size: 12px;
+  }
+
+  .left-row {
+    background: #525252;
+  }
+
+  .right-row {
+    background: #212529;
+    color: rgb(173, 181, 189);
+  }
   .home-wrapper {
     display: flex;
-    justify-content: space-around;
-  }
-  .total-home, .suported-home {
-    width: 47%;
-    max-width: 600px;
-    color: #fff;
+    justify-content: space-between;
+    max-width: 1280px;
+  } .home-wrapper > div {
+    width: 48%;
   }
 
-  hr {
-    color: #fff;
+  .arrow-position {
+    position: absolute;
   }
   
     </style>
@@ -129,18 +230,29 @@ input::-webkit-inner-spin-button {
               >
               Home
             </a>
+            </li>
+            <li>
             <a
-            href='/backoffice/unresolved-request'
-            class='nav-link text-white {% if current_url == '/backoffice/unresolved-request'%}active{% endif %}'
+            href='/backoffice/borrow-request'
+            class='nav-link text-white {% if current_url == '/backoffice/borrow-request'%}active{% endif %}'
             aria-current='page'
             >
-            Unresolved requests
+            Borrow requests
+          </a>
+          </li>
+          <li>
+            <a
+            href='/backoffice/repay-request'
+            class='nav-link text-white {% if current_url == '/backoffice/repay-request'%}active{% endif %}'
+            aria-current='page'
+            >
+            Repay requests
           </a>
           </li>
           <li>
             <a
               href='/backoffice/customers'
-              class='nav-link text-white {% if current_url == '/backoffice/customers'%}active{% endif %}'
+              class='nav-link text-white {% if current_url contains 'customers'%}active{% endif %}'
               >
               Customers
             </a>

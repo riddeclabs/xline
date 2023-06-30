@@ -51,3 +51,12 @@ export class ResolveRepayRequestDto extends ResolveFiatBasedRequestDto {
     @IsString()
     nameFrom!: string;
 }
+
+export class FinalizeOrRejectBorrowRequestDto {
+    @ApiProperty({
+        description: "ID of the request to finalize or reject",
+        example: 1,
+    })
+    @IsNumber()
+    requestId!: number;
+}

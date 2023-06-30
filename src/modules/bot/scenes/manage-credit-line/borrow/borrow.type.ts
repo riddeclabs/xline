@@ -26,14 +26,3 @@ export type BorrowActionSessionData = ExtendedSessionData & {
 };
 
 export type BorrowContext = ExtendedWizardContext<BorrowActionSessionData>;
-
-export type CreditLineSnapshot = {
-    depositCrypto: number;
-    depositFiat: number;
-    cryptoCurrency: string;
-    fiatCurrency: string;
-    debtAmount: number;
-    utilizationRate: number;
-    maxUtilizationRate: number;
-    maxAllowedAmount: number;
-};

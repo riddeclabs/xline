@@ -43,16 +43,15 @@ export abstract class BasicSourceText {
         }
     }
 
-    static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed = true): string {
+    static getCreditLineStateText(data: CreditLineStateMsgData, printMaxAllowed: boolean): string {
         const maxAllowedText = printMaxAllowed
-            ? `🎯 *Max allowed amount to borrow:* ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
+            ? `\n🎯 *Max allowed amount to borrow:* ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
             : "";
         return (
             `Deposit amount: ${data.supplyAmountCrypto} ${data.cryptoCurrency} / ${data.supplyAmountFiat} ${data.debtCurrency}\n` +
             `Debt amount:       ${data.debtAmount} ${data.debtCurrency}\n` +
             `Utilization rate:    ${data.utilizationRatePercent}%\n` +
             `Liquidation risk:   ${data.liquidationRisk}\n` +
-            `Been liquidated:   ${data.hasBeenLiquidated}\n\n` +
             maxAllowedText
         );
     }

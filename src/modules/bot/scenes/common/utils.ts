@@ -131,10 +131,7 @@ export function getTxDataForRequest(request: XLineRequestsTypes): FiatTxMsgData[
 }
 
 export function getCreditLineStateMsgData(cld: CreditLineDetailsExt): CreditLineStateMsgData {
-    const maxAllowedBorrowAmount = formatUnitsNumber(
-        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE -
-            cld.lineDetails.debtAmount
-    );
+    const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
 
     return {
         supplyAmountCrypto: formatUnitsNumber(
@@ -144,14 +141,22 @@ export function getCreditLineStateMsgData(cld: CreditLineDetailsExt): CreditLine
         supplyAmountFiat: truncateDecimals(formatUnitsNumber(cld.lineDetails.fiatCollateralAmount), 2),
         cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
         debtCurrency: cld.lineDetails.debtCurrency.symbol,
-        debtAmount: formatUnitsNumber(cld.lineDetails.debtAmount),
+        debtAmount: truncateDecimals(formatUnitsNumber(cld.lineDetails.debtAmount), 2),
         utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
-        maxAllowedBorrowAmount: truncateDecimals(maxAllowedBorrowAmount, 2),
+        maxAllowedBorrowAmount: truncateDecimals(formatUnitsNumber(maxAllowedBorrowAmount), 2),
         liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
-            cld.lineDetails.utilizationRate * 100n,
+            cld.lineDetails.utilizationRate,
             cld.economicalParams.collateralFactor
         ),
         hasBeenLiquidated: cld.lineDetails.isLiquidated ? "Yes" : "No",
     };
 }
-export { XLineRequestsTypes };
+
+//FIXME: Use risk-engine to calculate max allowed borrow amount in future
+export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
+    const fiatCollateralAmount =
+        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE;
+    const freeLiquidityFiatAmount = fiatCollateralAmount - cld.lineDetails.debtAmount;
+    const processingFee = (freeLiquidityFiatAmount * cld.economicalParams.fiatProcessingFee) / EXP_SCALE;
+    return freeLiquidityFiatAmount - processingFee;
+}

@@ -10,8 +10,9 @@ import { CustomExceptionFilter } from "../../exception-filter";
 import { ViewRequestText } from "./view-request.text";
 import { BotManagerService } from "../../bot-manager.service";
 import { SceneRequestTypes } from "./view-request.types";
-import { XLineRequestsTypes, getTxDataForRequest, getXLineRequestMsgData } from "../common/utils";
+import { getTxDataForRequest, getXLineRequestMsgData } from "../common/utils";
 import { escapeSpecialCharacters } from "src/common";
+import { XLineRequestsTypes } from "../common/types";
 
 enum ViewRequestSteps {
     CHOSE_COLLATERAL_TYPE,
