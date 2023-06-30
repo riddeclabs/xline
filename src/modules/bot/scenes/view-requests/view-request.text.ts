@@ -14,7 +14,7 @@ function isFiatTxMsgDataArray(txs: FiatTxMsgData[] | CryptoTxMsgData[]): txs is 
 }
 
 function isCryptoTxMsgDataArray(txs: FiatTxMsgData[] | CryptoTxMsgData[]): txs is CryptoTxMsgData[] {
-    return txs[0] ? !isCryptoTxMsgData(txs[0]) : false;
+    return txs[0] ? isCryptoTxMsgData(txs[0]) : false;
 }
 
 export class ViewRequestText extends BasicSourceText {
@@ -45,24 +45,26 @@ export class ViewRequestText extends BasicSourceText {
         }
 
         if (txList.length > 0) {
-            requestMsgText += "\n----\n\n";
+            requestMsgText += "----\n\n";
+            let txText = "";
+
             if (
                 (requestType === SceneRequestTypes.REPAY || requestType === SceneRequestTypes.BORROW) &&
                 isFiatTxMsgDataArray(txList)
             ) {
-                const txText = txList
+                txText = txList
                     .map(tx => BasicSourceText.getFiatTxMsgText(tx, txList.indexOf(tx) + 1))
                     .join("\n\n");
-                requestMsgText += txText;
             } else if (
                 (requestType === SceneRequestTypes.DEPOSIT ||
                     requestType === SceneRequestTypes.WITHDRAW) &&
                 isCryptoTxMsgDataArray(txList)
             ) {
-                requestMsgText += txList
-                    .map(tx => this.getCryptoTxMsgText(tx, txList.indexOf(tx) + 1))
+                txText = txList
+                    .map(tx => BasicSourceText.getCryptoTxMsgText(tx, txList.indexOf(tx) + 1))
                     .join("\n\n");
             }
+            requestMsgText += txText;
         }
 
         return escapeSpecialCharacters(requestMsgText);

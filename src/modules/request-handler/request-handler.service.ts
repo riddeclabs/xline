@@ -245,6 +245,8 @@ export class RequestHandlerService {
             .leftJoinAndSelect("rr.businessPaymentRequisite", "brp")
             .leftJoinAndSelect("cl.collateralCurrency", "cc")
             .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
             .leftJoinAndSelect("rr.fiatTransactions", "ftx")
             .where("rr.id = :repayRequestId", { repayRequestId })
             .getOneOrFail();

@@ -65,7 +65,7 @@ export abstract class BasicSourceText {
     }
 
     static getBorrowRequestMsgText(data: XLineRequestMsgData): string {
-        const msgHeader = "*Borrow request*\n\n";
+        const msgHeader = "⬅️ *Borrow request*\n\n";
 
         if (!data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
             throw new Error("Invalid borrow request");
@@ -73,16 +73,16 @@ export abstract class BasicSourceText {
 
         let borrowAmountText;
         if (typeof data.amountOrStrategy === "string") {
-            borrowAmountText = `Strategy: ${data.amountOrStrategy}\n\n`;
+            borrowAmountText = `📈 Strategy: ${data.amountOrStrategy}\n\n`;
         } else {
-            borrowAmountText = `Borrow amount: ${data.amountOrStrategy} ${data.currency}\n\n`;
+            borrowAmountText = `💵 Borrow amount: ${data.amountOrStrategy} ${data.currency}\n\n`;
         }
 
         const requisitesText = BasicSourceText.getRequisitesText(data.requisitesOrWallet);
 
         return (
             msgHeader +
-            `Status: ${data.status}\n` +
+            `ℹ️ Status: ${data.status}\n\n` +
             borrowAmountText +
             requisitesText +
             "\n" +
@@ -92,7 +92,7 @@ export abstract class BasicSourceText {
     }
 
     static getDepositRequestMsgText(data: XLineRequestMsgData): string {
-        const msgHeader = "*Deposit request*\n\n";
+        const msgHeader = "➡️ *Deposit request*\n\n";
 
         if (data.amountOrStrategy || data.requisitesOrWallet) {
             throw new Error("Invalid deposit request");
@@ -100,14 +100,14 @@ export abstract class BasicSourceText {
 
         return (
             msgHeader +
-            `Status: ${data.status}\n\n` +
+            `ℹ️ Status: ${data.status}\n\n` +
             `Created: ${data.created}\n` +
             `Updated: ${data.updated}\n\n`
         );
     }
 
     static getWithdrawRequestMsgText(data: XLineRequestMsgData): string {
-        const msgHeader = "*Withdraw request*\n\n";
+        const msgHeader = "↩️ *Withdraw request*\n\n";
 
         if (typeof data.amountOrStrategy !== "number" || typeof data.requisitesOrWallet !== "string") {
             throw new Error("Invalid withdraw request");
@@ -115,9 +115,9 @@ export abstract class BasicSourceText {
 
         return (
             msgHeader +
-            `Status: ${data.status}\n` +
-            `Withdraw amount: ${data.amountOrStrategy} ${data.currency}\n\n` +
-            "*Requisites*\n" +
+            `ℹ️ Status: ${data.status}\n\n` +
+            `💵 Withdraw amount: ${data.amountOrStrategy} ${data.currency}\n\n` +
+            "📬 *Requisites*\n" +
             `Wallet: ${data.requisitesOrWallet}\n\n` +
             `Created: ${data.created}\n` +
             `Updated: ${data.updated}\n\n`
@@ -125,16 +125,19 @@ export abstract class BasicSourceText {
     }
 
     static getRepayRequestMsgText(data: XLineRequestMsgData): string {
+        const msgHeader = "↪️*Repay request*\n\n";
+
         if (data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
             throw new Error("Invalid repay request");
         }
 
+        const requisitesText = BasicSourceText.getRequisitesText(data.requisitesOrWallet);
+
         return (
-            "*Repay request*\n\n" +
-            `Status: ${data.status}\n` +
-            "*Bank requisites*\n" +
-            `IBAN: ${data.requisitesOrWallet.iban}\n` +
-            `Account Name: ${data.requisitesOrWallet.accountName}\n\n` +
+            msgHeader +
+            `ℹ️ Status: ${data.status}\n\n` +
+            requisitesText +
+            "\n" +
             `Created: ${data.created}\n` +
             `Updated: ${data.updated}\n\n`
         );
@@ -154,16 +157,16 @@ export abstract class BasicSourceText {
         return (
             msgHeader +
             "\n\n" +
-            `*Status:* ${data.status}\n` +
-            `*Amount:* ${data.amount} ${data.currency}\n\n` +
-            "*From:*\n" +
+            `ℹ️ Status: ${data.status}\n\n` +
+            `💵 Amount: ${data.amount} ${data.currency}\n\n` +
+            "🛸 *From:*\n" +
             `Name: ${data.nameFrom}\n` +
             `IBAN: ${data.ibanFrom}\n\n` +
-            "*To:*\n" +
+            "🦄 *To:*\n" +
             `Name: ${data.nameTo}\n` +
             `IBAN: ${data.ibanTo}\n\n` +
-            `*Created:* ${data.created}\n` +
-            `*Updated:* ${data.updated}\n\n`
+            `Created: ${data.created}\n` +
+            `Updated: ${data.updated}\n\n`
         );
     }
 
