@@ -132,6 +132,7 @@ export class BackOfficeController {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
+            //TODO must be fixed when new debt currency will be added
             totalDebt: truncateDecimalsToStr(
                 formatUnits(BigInt(totalDebt), debtCurrencyInitial[0]?.decimals),
                 2,
@@ -140,6 +141,7 @@ export class BackOfficeController {
             debtCurrencyInitial: debtCurrencyInitial.map(item => {
                 return {
                     ...item,
+                    //TODO must be fixed when new debt currency will be added
                     amount: truncateDecimalsToStr(
                         formatUnits(BigInt(item.amount || 0n), debtCurrencyInitial[0]?.decimals),
                         2,
@@ -147,6 +149,7 @@ export class BackOfficeController {
                     ),
                 };
             }),
+            //TODO must be fixed when new debt currency will be added
             totalFeeAccumulatedUsd: truncateDecimalsToStr(
                 formatUnits(
                     BigInt(feeAccumulatedUsd?.feeAccumulatedUsd || 0n),
