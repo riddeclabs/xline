@@ -1,68 +1,94 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-3 text-white fs-1'>Borrow request result page.</h1>
-  <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
-  <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
-
-  <div class="req-bor-wrapper text-white mt-4">
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <p class='fs-6'>Requested amount: {{ requestAmount }} ??</p>
-      <p class='fs-6 mt-2'>Request validation: {{ requestValidation }}</p>
-    </div>
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <h1 class='pb-2 fs-5'>User requisites</h1>
-      <p class='fs-6'>Bank account name: {{ resultPageData.accountName }}</p>
-      <p class='fs-6'>IBAN: {{ resultPageData.iban }}</p>
-    </div>
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <h1 class='pb-2 fs-5'>User state:</h1>
-      <div class="d-flex">
-        <div>
-          <br/>
-          <p class='fs-6'>Supply amount:</p>
-          <p class='fs-6'>Collateral amount:</p>
-          <p class='fs-6'>Borrow amount:</p>
-          <p class='fs-6'>Utilization rate:</p>
+  <h1 class='pb-3 text-white fs-1'>Borrow request resolve page.</h1>
+  {% if resultPageData.status == 'VERIFICATION_PENDING' %}
+    <div class='pb-1 text-white fs-5'>Step 2: Confirm that the transaction completed successfully</div>
+    <div class='text-white fs-6'>Please make sure that the sent transaction was completed successfully and the funds were credited to the applicant's account.</div>
+    <div class='content-wrapper-request mt-4'>
+      <div class='pb-1 text-white fs-5'>Fiat transaction details:</div>
+      <div class="req-bor-wrapper">
+        <div class="wrapper-count">
+          <h1 class='text-white fs-5'>Xline requisites:</h1>
+          <p>IBAN:  EE232200221076140757</p>
+          <p>Bank account name:  Riddec OU</p>
         </div>
-        <div style="margin-left: 30px;">
-          <p class='fs-6'>Before</p>
-          <p class='fs-6'>{{ resultPageData.beforeSupplyAmount }} {{ resultPageData.symbol }}</p>
-          <p class='fs-6'>{{ resultPageData.beforeCollateralAmount }} {{ resultPageData.symbol }}</p>
-          <p class='fs-6'>{{ resultPageData.beforeBorrowAmount }} {{ resultPageData.symbol }}</p>
-          <p class='fs-6'>{{ resultPageData.utitlizationFactor }} %</p>
 
+        <div class="wrapper-count">
+          <h1 class='text-white fs-5'>Transfer information:</h1>
+          <p>Currency: USD</p>
+          <p>Amount: 2470</p>
         </div>
-        <div style="margin-left: 60px;">
-          <p class='fs-6'>After</p>
-          <p class='fs-6'>1242 usd</p>
-          <p class='fs-6'>214 usd</p>
-          <p class='fs-6'>1224 usd</p>
-          <p class='fs-6'>88.1 %</p>
 
+        <div class="wrapper-count">
+          <h1 class='text-white fs-5'>User requisites</h1>
+          <p>IBAN:  EE78300229276140754</p>
+          <p>Bank account name: John Doe</p>
+        </div>
+
+      </div>
+      <div class="wrapper-buttons">
+        <button class="accept-button" style="padding: 5px 40px; margin-right: 10px">Confirm</button>
+        <button class="reject-button" style="padding: 5px 42px; margin-left: 10px;">Reject</button>
+      </div>
+    </div>
+  {% else %}
+    <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
+    <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
+    <div class="req-bor-wrapper text-white mt-4">
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <p class='fs-6'>Requested amount: {{ requestAmount }} ??</p>
+        <p class='fs-6 mt-2'>Request validation: {{ requestValidation }}</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>User requisites</h1>
+        <p class='fs-6'>Bank account name: {{ resultPageData.accountName }}</p>
+        <p class='fs-6'>IBAN: {{ resultPageData.iban }}</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>User state:</h1>
+        <div class="d-flex">
+          <div>
+            <br/>
+            <p class='fs-6'>Supply amount:</p>
+            <p class='fs-6'>Collateral amount:</p>
+            <p class='fs-6'>Borrow amount:</p>
+            <p class='fs-6'>Utilization rate:</p>
+          </div>
+          <div style="margin-left: 30px;">
+            <p class='fs-6'>Before</p>
+            <p class='fs-6'>{{ resultPageData.beforeSupplyAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.beforeCollateralAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.beforeBorrowAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.utitlizationFactor }} %</p>
+          </div>
+          <div style="margin-left: 60px;">
+            <p class='fs-6'>After</p>
+            <p class='fs-6'>1242 usd</p>
+            <p class='fs-6'>214 usd</p>
+            <p class='fs-6'>1224 usd</p>
+            <p class='fs-6'>88.1 %</p>
+          </div>
         </div>
       </div>
-
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>Credit line rates:</h1>
+        <p class='fs-6'>Collateral factor: {{ resultPageData.collateralFactor }} %</p>
+        <p class='fs-6'>Liquidation factor: {{ resultPageData.liquidationFactor }} %</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>Resolve request form:</h1>
+        <p class='fs-6'>IBAN from:</p>
+        <input type="text" class="input-resolve">
+        <p class='fs-6 mt-2'>Transfer amount:</p>
+        <input type="text" class="input-resolve">
+        <button class="accept-button mt-3" style="padding: 6px 20px;">Resolve</button>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <p class='fs-6 mt-5'>
+          If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
+        </p>
+        <button class="reject-button" style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
+      </div>
     </div>
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <h1 class='pb-2 fs-5'>Credit line rates:</h1>
-      <p class='fs-6'>Collateral factor: {{ resultPageData.collateralFactor }} %</p>
-      <p class='fs-6'>Liquidation factor: {{ resultPageData.liquidationFactor }} %</p>
-    </div>
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <h1 class='pb-2 fs-5'>Resolve request form:</h1>
-      <p class='fs-6'>IBAN from:</p>
-      <input type="text" class="input-resolve">
-      <p class='fs-6 mt-2'>Transfer amount:</p>
-      <input type="text" class="input-resolve">
-      <button class="accept-button mt-3" style="padding: 6px 20px;">Resolve</button>
-
-    </div>
-    <div class='card bg-dark shadow-sm wrapper-count'>
-      <p class='fs-6 mt-5'>
-        If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
-      </p>
-      <button class="reject-button" style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
-    </div>
-
-  </div>
+  {% endif %}
 {% endblock %}

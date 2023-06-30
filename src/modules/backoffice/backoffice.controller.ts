@@ -272,7 +272,6 @@ export class BackOfficeController {
         const generalUserByBorrowId = await this.backofficeService.getGeneralUserInformationByBorrowId(
             id
         );
-        console.log("status", status);
 
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             generalUserByBorrowId?.creditLines[0]?.id || 0
@@ -283,8 +282,16 @@ export class BackOfficeController {
                 generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
                     ?.bankName,
             iban: generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]?.iban,
-            collateralFactor: truncateDecimal(formatUnits(economicalParams.collateralFactor * 100n)),
-            liquidationFactor: truncateDecimal(formatUnits(economicalParams.liquidationFactor * 100n)),
+            collateralFactor: truncateDecimal(
+                formatUnits(economicalParams.collateralFactor * 100n),
+                2,
+                false
+            ),
+            liquidationFactor: truncateDecimal(
+                formatUnits(economicalParams.liquidationFactor * 100n),
+                2,
+                false
+            ),
             beforeCollateralAmount: truncateDecimal(
                 formatUnits(
                     (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE,
@@ -311,6 +318,7 @@ export class BackOfficeController {
                 2,
                 false
             ),
+            status,
         };
         return { resultPageData };
     }

@@ -238,7 +238,7 @@ input::-webkit-inner-spin-button {
             <li>
             <a
             href='/backoffice/borrow-request'
-            class='nav-link text-white {% if current_url == '/backoffice/borrow-request'%}active{% endif %}'
+            class='nav-link text-white {% if current_url contains 'borrow-request'%}active{% endif %}'
             aria-current='page'
             >
             Borrow requests
