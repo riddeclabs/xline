@@ -1,0 +1,37 @@
+import { bigintToFormattedPercent, formatUnitsNumber } from "src/common";
+import { CreditLineDetailsExt } from "../../bot-manager.service";
+import { CreditLineStateMsgData } from "./types";
+import { EXP_SCALE } from "src/common/constants";
+import { BasicSourceText } from "./basic-source.text";
+import { truncateDecimals } from "src/common/text-formatter";
+
+export function getCreditLineStateData(cld: CreditLineDetailsExt): CreditLineStateMsgData {
+    const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
+
+    return {
+        supplyAmountCrypto: formatUnitsNumber(
+            cld.lineDetails.rawCollateralAmount,
+            cld.lineDetails.collateralCurrency.decimals
+        ),
+        supplyAmountFiat: truncateDecimals(formatUnitsNumber(cld.lineDetails.fiatCollateralAmount), 2),
+        cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
+        debtCurrency: cld.lineDetails.debtCurrency.symbol,
+        debtAmount: truncateDecimals(formatUnitsNumber(cld.lineDetails.debtAmount), 2),
+        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
+        maxAllowedBorrowAmount: truncateDecimals(formatUnitsNumber(maxAllowedBorrowAmount), 2),
+        liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
+            cld.lineDetails.utilizationRate,
+            cld.economicalParams.collateralFactor
+        ),
+        hasBeenLiquidated: cld.lineDetails.isLiquidated ? "Yes" : "No",
+    };
+}
+
+//FIXME: Use risk-engine to calculate max allowed borrow amount in future
+export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
+    const fiatCollateralAmount =
+        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE;
+    const freeLiquidityFiatAmount = fiatCollateralAmount - cld.lineDetails.debtAmount;
+    const processingFee = (freeLiquidityFiatAmount * cld.economicalParams.fiatProcessingFee) / EXP_SCALE;
+    return freeLiquidityFiatAmount - processingFee;
+}

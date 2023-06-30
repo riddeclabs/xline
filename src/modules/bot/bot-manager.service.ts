@@ -9,12 +9,18 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
-import { createUserGatewayId, generateReferenceNumber, xor } from "../../common";
+import { BorrowRequestStatus, createUserGatewayId, generateReferenceNumber, xor } from "../../common";
 import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
-import { CreditLine } from "src/database/entities";
+import { BorrowRequest, CreditLine, EconomicalParameters } from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
+import { CreditLineDetails } from "../credit-line/credit-line.types";
+
+export type CreditLineDetailsExt = {
+    economicalParams: EconomicalParameters;
+    lineDetails: CreditLineDetails;
+};
 
 @Injectable()
 export class BotManagerService {
@@ -92,6 +98,7 @@ export class BotManagerService {
             creditLineId: creditLine.id,
             borrowFiatAmount: null,
             initialRiskStrategy: riskStrategy,
+            borrowRequestStatus: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
         });
     }
 
@@ -155,12 +162,14 @@ export class BotManagerService {
     }
 
     // Credit line
-
-    async getCreditLineDetails(creditLineId: number) {
+    //FIXME: "I think we need to recalculate the Healthy factor each time we show the fresh state."
+    async getCreditLineDetails(creditLineId: number): Promise<CreditLineDetailsExt> {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(creditLineId);
+        const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
+            creditLineId
+        );
 
         const depositUsdAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
@@ -168,13 +177,18 @@ export class BotManagerService {
             creditLine.rawCollateralAmount
         );
 
-        const getUtilRate = () => (depositUsdAmount * EXP_SCALE) / creditLine.debtAmount;
+        const getUtilRate = () => {
+            if (depositUsdAmount === 0n) return 0n;
+            return (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
+        };
 
         return {
             economicalParams: lineEconomicalParams,
             lineDetails: {
                 ...creditLine,
-                utilizationRate: creditLine.debtAmount === 0n ? 0n : getUtilRate(),
+                // collateral === 0 => utilizationRate = 0%
+                // debt === 0 => utilizationRate = 0%
+                utilizationRate: getUtilRate(),
                 fiatCollateralAmount: depositUsdAmount,
             },
         };
@@ -206,17 +220,22 @@ export class BotManagerService {
         });
     }
 
-    async saveNewBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
-        await this.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+    async saveNewBorrowRequest(creditLine: CreditLine, borrowFiatAmount: bigint) {
+        await this.verifyHypBorrowRequest(creditLine, borrowFiatAmount);
         await this.requestHandlerService.saveNewBorrowRequest({
-            creditLineId,
+            creditLineId: creditLine.id,
             borrowFiatAmount,
             initialRiskStrategy: null,
+            borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING,
         });
     }
 
-    async verifyHypBorrowRequest(creditLineId: number, borrowFiatAmount: bigint) {
-        await this.requestResolverService.verifyHypBorrowRequest(creditLineId, borrowFiatAmount);
+    async calculateBorrowAmountWithFee(creditLineId: number, borrowFiatAmount: bigint) {
+        return this.riskEngineService.calculateBorrowAmountWithFees(creditLineId, borrowFiatAmount);
+    }
+
+    async verifyHypBorrowRequest(creditLine: CreditLine, borrowFiatAmount: bigint) {
+        await this.requestResolverService.verifyHypBorrowRequest(creditLine, borrowFiatAmount);
     }
 
     async verifyHypWithdrawRequest(creditLineId: number, withdrawAmount: bigint) {
@@ -242,6 +261,14 @@ export class BotManagerService {
         return this.creditLineService.getCreditLinesByChatIdCurrencyExtended(chatId);
     }
 
+    async getOldestPendingBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestPendingBorrowReq(creditLineId);
+    }
+
+    async getOldestUnfinalizedBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
+        return this.requestHandlerService.getOldestUnfinalizedBorrowReq(creditLineId);
+    }
+
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.requestHandlerService.getOldestPendingDepositReq(creditLineId);
     }
@@ -260,5 +287,8 @@ export class BotManagerService {
 
     async getCreditLineById(creditLineId: number) {
         return this.creditLineService.getCreditLineById(creditLineId);
+    }
+    async getCreditLinesByIdAllSettingsExtended(creditLineId: number) {
+        return this.creditLineService.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
 }
