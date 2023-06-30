@@ -12,6 +12,8 @@ import {
     FiatTransaction,
     CryptoTransaction,
     CollateralCurrency,
+    DepositRequest,
+    WithdrawRequest,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -32,6 +34,8 @@ import { BotModule } from "../bot/bot.module";
             DebtCurrency,
             FiatTransaction,
             CryptoTransaction,
+            DepositRequest,
+            WithdrawRequest,
         ]),
         BotModule,
         PriceOracleModule,

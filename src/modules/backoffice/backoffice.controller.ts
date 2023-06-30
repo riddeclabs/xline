@@ -23,7 +23,6 @@ import {
     BorrowRequestStatus,
     createRepayRequestRefNumber,
     DepositRequestStatus,
-    FiatTransactionStatus,
     formatUnits,
     makePagination,
     RepayRequestStatus,
@@ -380,7 +379,7 @@ export class BackOfficeController {
         let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         const borrow = await this.backofficeService.getBorrowRequest(id);
-
+        let status = "";
         switch (type) {
             case "Borrow":
                 resultTable = await this.backofficeService.getBorrowRequestDetails(
@@ -394,6 +393,8 @@ export class BackOfficeController {
                     2,
                     false
                 );
+                const borrowStatus = await this.backofficeService.getBorrowStatus(id);
+                status = borrowStatus?.borrowRequestStatus || "";
                 break;
             case "Deposit":
                 resultTable = await this.backofficeService.getDepositRequestDetails(
@@ -402,6 +403,8 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
+                const depositStatus = await this.backofficeService.getDepositStatus(id);
+                status = depositStatus?.depositRequestStatus || "";
                 break;
             case "Withdraw":
                 resultTable = await this.backofficeService.getWithdrawRequestDetails(
@@ -410,6 +413,8 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
+                const withdrawStatus = await this.backofficeService.getWithdrawStatus(id);
+                status = withdrawStatus?.withdrawRequestStatus || "";
                 break;
             case "Repay":
                 resultTable = await this.backofficeService.getRepayRequestDetails(
@@ -418,8 +423,28 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
+                const repayStatus = await this.backofficeService.getRepayStatus(id);
+                status = repayStatus?.repayRequestStatus || "";
                 break;
         }
+        const checkStatus = (type: string, status: string) => {
+            switch (type) {
+                case "Deposit":
+                    return DepositRequestStatus[status as DepositRequestStatus];
+
+                case "Borrow":
+                    return BorrowRequestStatus[status as BorrowRequestStatus];
+
+                case "Withdraw":
+                    return WithdrawRequestStatus[status as WithdrawRequestStatus];
+
+                case "Repay":
+                    return RepayRequestStatus[status as RepayRequestStatus];
+
+                default:
+                    return "";
+            }
+        };
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
             sortField,
@@ -439,8 +464,8 @@ export class BackOfficeController {
                     String(generalUserInfo?.collateralCurrency.symbol)
                 ),
                 initialRistStrategy,
+                status: checkStatus(type, status),
             },
-
             rowTable: resultTable.map(item => {
                 return {
                     ...item,
@@ -458,9 +483,6 @@ export class BackOfficeController {
                         2,
                         false
                     ),
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    //@ts-ignore
-                    status: FiatTransactionStatus[item.status as FiatTransactionStatus],
                 };
             }),
             depTable: type === "Withdraw" || type === "Deposit",
@@ -623,10 +645,14 @@ export class BackOfficeController {
                         },
                         appliedRates: {
                             collateralFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.collateralFactor * 100n)
+                                formatUnits(economicalParams.collateralFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                             liquidationFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.liquidationFactor * 100n)
+                                formatUnits(economicalParams.liquidationFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                         },
                         dates: {

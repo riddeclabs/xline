@@ -22,7 +22,7 @@
     {% if resultPageInfo.mainInfo.type == "Repay" %}
     <ul>
       <li>
-        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.rowTable[0].status }}</div></div>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
       </li>
       <li>
         <div>User Reference Number: {{ resultPageInfo.mainInfo.refNumber }}</div>
@@ -41,7 +41,7 @@
     {% elsif resultPageInfo.mainInfo.type == "Borrow" %}
     <ul>
       <li>
-        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.rowTable[0].status }}</div></div>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
       </li>
       <li>
         <div>Requested Borrow Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
@@ -57,7 +57,7 @@
     {% elsif resultPageInfo.mainInfo.type == "Deposit" %}
       <ul>
         <li>
-          <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
+          <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
         </li>
         <li>
           <div>Address to Deposit: {{ resultPageInfo.mainInfo.address }}</div>
@@ -67,7 +67,7 @@
       {% else %}
         <ul>
           <li>
-            <div class="d-flex">Status: <div class="status-wrapper">PENDING</div></div>
+            <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
           </li>
           <li>
             <div>Address to Withdraw: {{ resultPageInfo.mainInfo.address }}</div>

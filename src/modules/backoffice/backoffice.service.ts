@@ -10,6 +10,8 @@ import {
     User,
     FiatTransaction,
     CryptoTransaction,
+    WithdrawRequest,
+    DepositRequest,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -60,8 +62,14 @@ export class BackOfficeService {
         private fiatTransaction: Repository<FiatTransaction>,
         @InjectRepository(CryptoTransaction)
         private cryptoTransaction: Repository<CryptoTransaction>,
+        @InjectRepository(WithdrawRequest)
+        private withdrawRepo: Repository<WithdrawRequest>,
+        @InjectRepository(DepositRequest)
+        private depositRepo: Repository<DepositRequest>,
         private connection: Connection
     ) {}
+
+    //
 
     accountInfo() {
         return {
@@ -262,16 +270,13 @@ export class BackOfficeService {
         sortField = "created_at",
         sortDirection: "ASC" | "DESC"
     ) {
-        return (
-            this.cryptoTransaction
-                .createQueryBuilder("crypto")
-                .where("crypto.depositRequestId = :id", { id })
-                // .leftJoinAndSelect("crypto.depositRequest", "depositRequest")
-                .skip(page * PAGE_LIMIT_REQUEST)
-                .take(PAGE_LIMIT_REQUEST)
-                .orderBy(`crypto.${sortField}`, sortDirection)
-                .getMany()
-        );
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.depositRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
 
     getWithdrawRequestDetails(
@@ -280,16 +285,13 @@ export class BackOfficeService {
         sortField = "created_at",
         sortDirection: "ASC" | "DESC"
     ) {
-        return (
-            this.cryptoTransaction
-                .createQueryBuilder("crypto")
-                .where("crypto.withdrawRequestId = :id", { id })
-                // .leftJoinAndSelect("crypto.withdrawRequest", "withdrawRequest")
-                .skip(page * PAGE_LIMIT_REQUEST)
-                .take(PAGE_LIMIT_REQUEST)
-                .orderBy(`crypto.${sortField}`, sortDirection)
-                .getMany()
-        );
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.withdrawRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
     getRepayRequestById(id: string) {
         return this.repayRepo
@@ -345,6 +347,38 @@ export class BackOfficeService {
             .where("creditLine.id = :id", { id })
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .getOne();
+    }
+
+    getBorrowStatus(id: string) {
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("borrow.id = :id", { id })
+            .select(["borrow.borrowRequestStatus"])
+            .getOne();
+    }
+
+    getDepositStatus(id: string) {
+        return this.depositRepo
+            .createQueryBuilder("deposit")
+            .where("deposit.id = :id", { id })
+            .select(["deposit.depositRequestStatus"])
+            .getOne();
+    }
+
+    getRepayStatus(id: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .select(["repay.repayRequestStatus"])
+            .getOne();
+    }
+
+    getWithdrawStatus(id: string) {
+        return this.withdrawRepo
+            .createQueryBuilder("withdraw")
+            .where("withdraw.id = :id", { id })
+            .select(["withdraw.withdrawRequestStatus"])
             .getOne();
     }
 }
