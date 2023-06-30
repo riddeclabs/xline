@@ -135,6 +135,20 @@ export class BorrowActionWizard {
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
         const state = getCreditLineStateMsgData(cld);
+
+        if (state.maxAllowedBorrowAmount <= 0) {
+            await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
+                parse_mode: "MarkdownV2",
+            });
+            await ctx.editMessageReplyMarkup(
+                Markup.inlineKeyboard([this.botCommon.goBackButton()], {
+                    columns: 1,
+                }).reply_markup
+            );
+            ctx.wizard.next();
+            return;
+        }
+
         const text = await BorrowTextSource.getAmountInputText(state);
 
         await ctx.editMessageText(text, {

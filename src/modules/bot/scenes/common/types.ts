@@ -42,7 +42,6 @@ export interface CryptoTxMsgData {
     txHash: string;
     amount: number;
     currency: string;
-    //type: string; TODO: Add type DEPOSIT/ WITHDRAW/ FEE?
     created: string;
     updated: string;
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe, Param, Get } from "@nestjs/common";
+import { Controller, Post, Body, UsePipes, ValidationPipe } from "@nestjs/common";
 import { RequestResolverService } from "./request-resolver.service";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
@@ -55,10 +55,5 @@ export class RequestResolverController {
     @ApiBody({ description: "Resolve repay request", type: ResolveRepayRequestDto })
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
         return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
-    }
-
-    @Get("verify/borrow:reqId")
-    async verifyBorrowRequest(@Param("reqId") reqId: string) {
-        return this.requestResolverService.verifyBorrowRequest(+reqId);
     }
 }
