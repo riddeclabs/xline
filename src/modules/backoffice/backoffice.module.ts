@@ -16,6 +16,7 @@ import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
 import { PriceOracleModule } from "../price-oracle/price-oracle.module";
 import { BotModule } from "../bot/bot.module";
+import { RiskEngineModule } from "../risk-engine/risk-engine.module";
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { BotModule } from "../bot/bot.module";
         ]),
         BotModule,
         PriceOracleModule,
+        RiskEngineModule,
     ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],

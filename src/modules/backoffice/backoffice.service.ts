@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, Role } from "../../common";
+import { BigintPropertiesToString, CreditLineStatus, Role, parseBigintProperties } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -11,12 +11,14 @@ import {
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
+import { EXP_SCALE, PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import {
     AllRequestByCreditLineType,
     CollatetalCurrencyType,
     DebtCurrencyType,
 } from "./backoffice.types";
+import { BotManagerService } from "../bot/bot-manager.service";
+import { RiskEngineService } from "../risk-engine/risk-engine.service";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -37,6 +39,15 @@ export enum ModifyReserveDirection {
     reduce = "reduce",
 }
 
+interface CreditLineStateDataRaw {
+    depositAmountFiat: bigint;
+    collateralAmount: bigint;
+    debtAmount: bigint;
+    utilizationRate: bigint;
+}
+
+type CreditLineStateDataParsed = BigintPropertiesToString<CreditLineStateDataRaw>;
+
 @Injectable()
 export class BackOfficeService {
     constructor(
@@ -54,7 +65,9 @@ export class BackOfficeService {
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
-        private connection: Connection
+        private connection: Connection,
+        private readonly botManagerService: BotManagerService,
+        private readonly riskEngineService: RiskEngineService
     ) {}
 
     accountInfo() {
@@ -271,5 +284,54 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .getOne();
+    }
+
+    async getCreditLineStateBeforeAndAfterBorrowResolved(
+        creditLineId: number,
+        borrowRequestId: number
+    ): Promise<{
+        stateBefore: CreditLineStateDataParsed;
+        stateAfter: CreditLineStateDataParsed;
+    }> {
+        const cld = await this.botManagerService.getCreditLineDetails(creditLineId);
+        const borrowRequest = await this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("borrow.id = :id", { id: borrowRequestId })
+            .getOneOrFail();
+
+        if (!borrowRequest.borrowFiatAmount) {
+            throw new Error("Borrow amount does not exist");
+        }
+
+        const stateBefore: CreditLineStateDataRaw = {
+            depositAmountFiat: cld.lineDetails.fiatCollateralAmount,
+            collateralAmount:
+                (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
+                EXP_SCALE,
+            debtAmount: cld.lineDetails.debtAmount,
+            utilizationRate: cld.lineDetails.utilizationRate,
+        };
+
+        const borrowWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            cld.lineDetails.id,
+            borrowRequest.borrowFiatAmount
+        );
+        const debtAfter = stateBefore.debtAmount + borrowWithFee;
+        //FIXME Move to cpmmon
+        const getUtilRate = () => {
+            if (cld.lineDetails.fiatCollateralAmount === 0n) return 0n;
+            return (debtAfter * EXP_SCALE) / cld.lineDetails.fiatCollateralAmount;
+        };
+
+        const stateAfter: CreditLineStateDataRaw = {
+            ...stateBefore,
+            debtAmount: debtAfter,
+            utilizationRate: getUtilRate(),
+        };
+
+        return {
+            stateBefore: parseBigintProperties<CreditLineStateDataRaw>(stateBefore),
+            stateAfter: parseBigintProperties<CreditLineStateDataRaw>(stateAfter),
+        };
     }
 }
