@@ -3,7 +3,6 @@ import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import * as filters from "telegraf/filters";
 import { callbackQuery } from "telegraf/filters";
-import { DefaultSessionState, ExtendedSessionData, ExtendedWizardContext } from "../../../bot.types";
 import { CustomExceptionFilter } from "../../../exception-filter";
 import { BotCommonService } from "../../../bot-common.service";
 import { BotManagerService } from "../../../bot-manager.service";
@@ -13,7 +12,7 @@ import { InlineKeyboardButton } from "typegram/markup";
 import { MainScene } from "../../main.scene";
 import { Message } from "typegram";
 import {
-    isIncorrectWithdrawInputValue,
+    validateWithdrawInputValue,
     validateAddressToWithdraw,
     WithdrawSceneIncorrectInputReason,
 } from "../../../../../common/input-validation";
@@ -21,33 +20,7 @@ import { formatUnits, parseUnits, WithdrawRequestStatus } from "../../../../../c
 import { DepositActionWizard } from "../deposit/deposit.scene";
 import { maxUint256 } from "../../../../../common/constants";
 import { WithdrawRequest } from "../../../../../database/entities";
-
-export enum WithdrawSteps {
-    VERIFY_PENDING_REQUESTS,
-    SIGN_WITHDRAW_TERMS,
-    ENTER_WITHDRAW_AMOUNT,
-    ENTER_ADDRESS_TO_WITHDRAW,
-    SIGN_WITHDRAW_APPLICATION,
-}
-
-export enum WithdrawCallbacks {
-    DEPOSIT_REDIRECT = "depositRedirect",
-    SIGN_WITHDRAW_TERMS = "signWithdrawTerms",
-    SIGN_APPLICATION = "signApplication",
-    INCORRECT_USER_INPUT = "incorrectInput",
-    WITHDRAW_ALL = "withdrawAll",
-    BACK_TO_MAIN_MENU = "back",
-}
-
-export type WithdrawSessionData = ExtendedSessionData & {
-    state: DefaultSessionState & {
-        addressToWithdraw?: string;
-        requestedWithdrawAmountRaw?: string;
-        isWithdrawAllCase?: boolean;
-    };
-};
-
-export type WithdrawContext = ExtendedWizardContext<WithdrawSessionData>;
+import { WithdrawCallbacks, WithdrawContext, WithdrawSteps } from "./withdraw.types";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -67,7 +40,7 @@ export class WithdrawActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const pendingRequest = await this.botManager.getOldestPendingWithdrawRequest(creditLineId);
 
-        const updateMessage = async (messageText: string, isRedirect = false) => {
+        const updateMessage = async (messageText: string, isRedirect: boolean) => {
             const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
 
             if (isRedirect)
@@ -89,15 +62,15 @@ export class WithdrawActionWizard {
                 creditLineId
             );
 
-            if (lineDetails.rawCollateralAmount > 0n && lineDetails.maxAllowedCryptoToWithdraw <= 0n) {
+            if (lineDetails.rawCollateralAmount <= 0n) {
+                const msgText = WithdrawTextSource.getZeroBalanceText();
+                await updateMessage(msgText, true);
+                return;
+            } else if (lineDetails.maxAllowedCryptoToWithdraw <= 0n) {
                 const msgText = WithdrawTextSource.getInsufficientBalanceText(
                     lineDetails.utilizationRate,
                     economicalParams.collateralFactor
                 );
-                await updateMessage(msgText, true);
-                return;
-            } else if (lineDetails.rawCollateralAmount === 0n) {
-                const msgText = WithdrawTextSource.getZeroBalanceText();
                 await updateMessage(msgText, true);
                 return;
             }
@@ -116,7 +89,7 @@ export class WithdrawActionWizard {
             pendingRequest.withdrawRequestStatus
         );
 
-        await updateMessage(mainMsgText);
+        await updateMessage(mainMsgText, false);
     }
 
     @WizardStep(WithdrawSteps.SIGN_WITHDRAW_TERMS)
@@ -354,7 +327,7 @@ export class WithdrawActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const { lineDetails } = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const incorrectInputReasonOrNull = isIncorrectWithdrawInputValue(
+        const incorrectInputReasonOrNull = validateWithdrawInputValue(
             userInput,
             lineDetails.collateralCurrency,
             lineDetails.maxAllowedCryptoToWithdraw

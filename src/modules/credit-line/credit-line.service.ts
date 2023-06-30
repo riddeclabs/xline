@@ -34,16 +34,16 @@ export class CreditLineService {
     }
 
     async updateDebtAmountAndFeeAccumulatedById(
-      creditLineId: number,
-      newDebtAmount: bigint,
-      newFeeAccumulatedAmount: bigint
+        creditLineId: number,
+        newDebtAmount: bigint,
+        newFeeAccumulatedAmount: bigint
     ) {
         return this.creditLineRepo
-          .createQueryBuilder()
-          .update()
-          .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
-          .where("id = :creditLineId", { creditLineId })
-          .execute();
+            .createQueryBuilder()
+            .update()
+            .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
     }
 
     async increaseAccumulatedFeeAmountById(
@@ -84,22 +84,22 @@ export class CreditLineService {
 
     async decreaseSupplyAmountById(creditLineId: number, subAmount: bigint) {
         await this.creditLineRepo
-          .createQueryBuilder()
-          .update(CreditLine)
-          .set({ rawCollateralAmount: () => `rawCollateralAmount - ${subAmount}` })
-          .where("id = :id", { id: creditLineId })
-          .execute();
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ rawCollateralAmount: () => `rawCollateralAmount - ${subAmount}` })
+            .where("id = :id", { id: creditLineId })
+            .execute();
 
         return this.getCreditLineById(creditLineId);
     }
 
     async updateSupplyAmountById(creditLineId: number, newSupplyAmount: bigint) {
         return this.creditLineRepo
-          .createQueryBuilder()
-          .update()
-          .set({ rawCollateralAmount: newSupplyAmount })
-          .where("id = :creditLineId", { creditLineId })
-          .execute();
+            .createQueryBuilder()
+            .update()
+            .set({ rawCollateralAmount: newSupplyAmount })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
     }
 
     async getCreditLineByChatIdAndColSymbol(

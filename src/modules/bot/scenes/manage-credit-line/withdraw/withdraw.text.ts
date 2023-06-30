@@ -2,16 +2,15 @@ import {
     bigintToFormattedPercent,
     escapeSpecialCharacters,
     formatUnits,
-    formatUnitsNumber,
     WithdrawRequestStatus,
 } from "../../../../../common";
 import { floatToMd, truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { CollateralCurrency } from "../../../../../database/entities";
 import { SUPPORTED_TOKENS } from "../../../constants";
-import { RiskStrategyLevels } from "../../new-credit-request/new-credit-request.types";
 import { WithdrawRequestDetails } from "../../../bot-manager.service";
+import { BasicSourceText } from "../../common/basic-source.text";
 
-export class WithdrawTextSource {
+export class WithdrawTextSource extends BasicSourceText {
     static getExistedPendingRequestText(
         rawWithdrawAmount: bigint,
         collateralSymbol: string,
@@ -101,8 +100,8 @@ export class WithdrawTextSource {
             `💶 *Please enter ${collateralCurrency.symbol} amount you want to withdraw*\n` +
                 "\n" +
                 "📝 *Current credit line state:*\n" +
-                `Deposit amount: *${mdDepositAmount} ${collateralCurrency.symbol}*\n` +
-                `Utilization rate: *${mdUtilizationRate} %*\n` +
+                `Deposit amount:      *${mdDepositAmount} ${collateralCurrency.symbol}*\n` +
+                `Utilization rate:         *${mdUtilizationRate} %*\n` +
                 `Max utilization rate: *${mdMaxUtilizationRate} %*\n` +
                 "\n" +
                 `🎯 *Max allowed amount to withdraw:*  *${mdMaxAmountToWithdraw} ${collateralCurrency.symbol}*\n` +
@@ -173,15 +172,15 @@ export class WithdrawTextSource {
                 "\n" +
                 "📉 *Current state:*\n" +
                 `Deposit amount: ${cs.mdRawDepositAmount} ${colSymbol}\n` +
-                `Debt amount: ${cs.mdDebtAmount} ${debtSymbol}\n` +
-                `Utilization rate: ${cs.mdUtilizationPercent} %\n` +
-                `Liquidation risk: ${cs.mdLiquidationRisk}\n` +
+                `Debt amount:      ${cs.mdDebtAmount} ${debtSymbol}\n` +
+                `Utilization rate:    ${cs.mdUtilizationPercent} %\n` +
+                `Liquidation risk:  ${cs.mdLiquidationRisk}\n` +
                 "\n" +
                 "📈 *New state:*\n" +
                 `Deposit amount: ${ns.mdRawDepositAmount} ${colSymbol}\n` +
-                `Debt amount: ${ns.mdDebtAmount} ${debtSymbol}\n` +
-                `Utilization rate: ${ns.mdUtilizationPercent} %\n` +
-                `Liquidation risk: ${ns.mdLiquidationRisk}\n` +
+                `Debt amount:      ${ns.mdDebtAmount} ${debtSymbol}\n` +
+                `Utilization rate:    ${ns.mdUtilizationPercent} %\n` +
+                `Liquidation risk:  ${ns.mdLiquidationRisk}\n` +
                 "\n" +
                 `💸 Processing fee: ${mdProcessingFeeCryptoAmount} ${colSymbol} ( ${mdProcessingFeeFiatAmount} ${debtSymbol} )\n` +
                 "\n" +
@@ -284,9 +283,9 @@ export class WithdrawTextSource {
         collateralCurrency: CollateralCurrency,
         maxAllowedWithdrawAmount: bigint
     ) {
-        const mdMaxAllowedWithdrawAmount = formatUnits(
-            maxAllowedWithdrawAmount,
-            collateralCurrency.decimals
+        const mdMaxAllowedWithdrawAmount = truncateDecimalsToStr(
+            formatUnits(maxAllowedWithdrawAmount, collateralCurrency.decimals),
+            4
         );
 
         const caseText =
@@ -358,19 +357,5 @@ export class WithdrawTextSource {
             default:
                 throw new Error("Unsupported collateral token received");
         }
-    }
-
-    // FIXME: Move to common after Borrow scene will be merged
-    private static getCurrentLiquidationRisk(rawUtilRate: bigint, rawCollateralFactor: bigint) {
-        const utilRate = formatUnitsNumber(rawUtilRate);
-        const collateralFactor = formatUnitsNumber(rawCollateralFactor);
-
-        if (utilRate <= RiskStrategyLevels.MEDIUM) {
-            return "🟢 LOW";
-        }
-        if (utilRate <= collateralFactor) {
-            return "🟠 MEDIUM";
-        }
-        return "🔴 HIGH";
     }
 }

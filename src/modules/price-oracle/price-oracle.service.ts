@@ -41,7 +41,12 @@ export class PriceOracleService {
     async getScaledTokenPriceBySymbol(tokenSymbol: string) {
         const tokenPair = this.getTokenPairBySymbol(tokenSymbol);
         const tokenPrice = await this.getTokenPriceByPair(tokenPair);
-        return parseUnits(tokenPrice);
+        const formattedPrice = parseUnits(tokenPrice);
+
+        if (formattedPrice <= 0n)
+            throw new Error("Price oracle: token price can not be less or equal to zero");
+
+        return formattedPrice;
     }
 
     // Returns raw token price in float format

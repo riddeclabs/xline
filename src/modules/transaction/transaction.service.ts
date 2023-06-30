@@ -52,15 +52,15 @@ export class TransactionService {
     }
 
     async updateFiatTransactionStatus(
-      fiatTx: FiatTransaction,
-      newStatus: FiatTransactionStatus
+        fiatTx: FiatTransaction,
+        newStatus: FiatTransactionStatus
     ): Promise<FiatTransaction> {
         await this.fiatTransactionRepo
-          .createQueryBuilder()
-          .update(FiatTransaction)
-          .set({ status: newStatus })
-          .where("id = :id", { id: fiatTx.id })
-          .execute();
+            .createQueryBuilder()
+            .update(FiatTransaction)
+            .set({ status: newStatus })
+            .where("id = :id", { id: fiatTx.id })
+            .execute();
 
         return this.getFiatTransactionById(fiatTx.id);
     }

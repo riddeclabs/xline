@@ -2,8 +2,8 @@ import { electronicFormatIBAN, validateIBAN, ValidateIBANResult, ValidationError
 import { CollateralCurrency } from "../database/entities";
 import { parseUnits } from "./fixed-number";
 import { SUPPORTED_TOKENS } from "../modules/bot/constants";
-import { isAddress } from "ethers";
-import { validate } from "bitcoin-address-validation";
+import { isAddress as validateEthAddress } from "ethers";
+import { validate as validateBtcAddress } from "bitcoin-address-validation";
 
 export enum WithdrawSceneIncorrectInputReason {
     INCORRECT_STRUCT_OR_ZERO,
@@ -28,7 +28,20 @@ export function validateAmountDecimals(amount: number, decimals: number): boolea
     return regex.test(amount.toString());
 }
 
-export function isIncorrectWithdrawInputValue(
+/**
+ @description
+ This function validates the user-provided input value for a withdrawal transaction. It ensures the input value meets the required criteria,
+ including accuracy, format, and maximum allowed amount.
+ If the input value is incorrect, it returns the corresponding error reason.
+ If the input value is valid, it returns null.
+ @param {string} inputValue - The user-provided input value to be validated.
+ @param {CollateralCurrency} collateralCurrency - The collateral currency used in the transaction.
+ @param {bigint} maxAllowedWithdrawAmount - The maximum allowed withdrawal amount.
+ @returns {WithdrawSceneIncorrectInputReason | null} - The reason for incorrect input if any, or null if the input is valid.
+ @throws {Error} - If the input value exceeds the defined number of decimals for the collateral currency.
+
+ */
+export function validateWithdrawInputValue(
     inputValue: string,
     collateralCurrency: CollateralCurrency,
     maxAllowedWithdrawAmount: bigint
@@ -62,10 +75,10 @@ export function validateAddressToWithdraw(inputValue: string, collateralCurrency
 
     switch (collateralCurrency.symbol) {
         case SUPPORTED_TOKENS.ETH:
-            isValid = isAddress(inputValue);
+            isValid = validateEthAddress(inputValue);
             break;
         case SUPPORTED_TOKENS.BTC:
-            isValid = validate(inputValue);
+            isValid = validateBtcAddress(inputValue);
             break;
         default:
             throw new Error("Unsupported currency. Cannot validate the address");

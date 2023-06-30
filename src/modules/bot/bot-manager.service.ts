@@ -204,11 +204,10 @@ export class BotManagerService {
             scaledTokenPrice
         );
 
-        const getUtilRate = () => {
-            // sanity check
-            if (!depositUsdAmount) return 0n;
-            return (creditLine.debtAmount * EXP_SCALE) / depositUsdAmount;
-        };
+        const utilizationRate = this.riskEngineService.calculateUtilizationRate(
+            depositUsdAmount,
+            creditLine.debtAmount
+        );
 
         const maxAllowedCryptoToWithdraw = await this.calculateMaxAllowedToWithdraw(
             creditLine.debtAmount,
@@ -224,7 +223,7 @@ export class BotManagerService {
             economicalParams: lineEconomicalParams,
             lineDetails: {
                 ...creditLine,
-                utilizationRate: getUtilRate(),
+                utilizationRate,
                 fiatCollateralAmount: depositUsdAmount,
                 maxAllowedCryptoToWithdraw,
             },
@@ -265,6 +264,7 @@ export class BotManagerService {
             processingFeeCryptoAmount = 0n;
             processingFeeFiatAmount = 0n;
         } else {
+            // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
             processingFeeCryptoAmount =
                 (actualWithdrawAmount * economicalParams.cryptoProcessingFee) / EXP_SCALE;
             processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
@@ -277,16 +277,15 @@ export class BotManagerService {
 
         const newDebtAmount = lineDetails.debtAmount + processingFeeFiatAmount;
 
-        const getUtilRate = () => {
-            // sanity check
-            if (!newDepositAmountFiat) return 0n;
-            return (newDebtAmount * EXP_SCALE) / newDepositAmountFiat;
-        };
+        const newUtilizationRate = this.riskEngineService.calculateUtilizationRate(
+            newDepositAmountFiat,
+            newDebtAmount
+        );
 
         const newState = {
             rawDepositAmount: newDepositAmountRaw,
             debtAmount: newDebtAmount,
-            utilizationRate: newDebtAmount === 0n ? 0n : getUtilRate(),
+            utilizationRate: newUtilizationRate,
         };
 
         return {
@@ -331,6 +330,8 @@ export class BotManagerService {
             scaledTokenPrice
         );
 
+        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
+        //        and return ZERO in case (freeLiquidityCrypto - processingFeeCrypto) < 0
         // Calculate processing fee based on entire free liquidity amount
         const processingFeeCrypto = (freeLiquidityCrypto * cryptoProcessingFeeRate) / EXP_SCALE;
         return freeLiquidityCrypto - processingFeeCrypto;

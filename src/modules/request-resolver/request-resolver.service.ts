@@ -550,6 +550,7 @@ export class RequestResolverService {
         // Increase supply amount for credit line
         await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
 
+        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
         const processingFeeCryptoAmount = (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
         const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralToken.symbol,
@@ -609,6 +610,7 @@ export class RequestResolverService {
 
         // Apply processing fee for all cases, except the case when user withdraw all his collateral
         if (newSupplyAmount !== 0n) {
+            // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
             const processingFeeCryptoAmount =
                 (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
             const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
