@@ -126,15 +126,35 @@ export class BackOfficeController {
         const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
-        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
 
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
-            totalDebt,
-            debtCurrencyInitial,
-            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            totalDebt: truncateDecimalsToStr(
+                formatUnits(BigInt(totalDebt), debtCurrencyInitial[0]?.decimals),
+                2,
+                false
+            ),
+            debtCurrencyInitial: debtCurrencyInitial.map(item => {
+                return {
+                    ...item,
+                    amount: truncateDecimalsToStr(
+                        formatUnits(BigInt(item.amount || 0n), debtCurrencyInitial[0]?.decimals),
+                        2,
+                        false
+                    ),
+                };
+            }),
+            totalFeeAccumulatedUsd: truncateDecimalsToStr(
+                formatUnits(
+                    BigInt(feeAccumulatedUsd?.feeAccumulatedUsd || 0n),
+                    debtCurrencyInitial[0]?.decimals
+                ),
+                2,
+                false
+            ),
             currenciesAllSymbol,
             debtAllSymbol,
         };
@@ -183,8 +203,6 @@ export class BackOfficeController {
             sort,
             chatIdFilter
         );
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
@@ -263,6 +281,24 @@ export class BackOfficeController {
                 disabled: totalCount > PAGE_LIMIT_REQUEST,
             },
         };
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("repay-request/:id")
+    @Render("backoffice/repay-request-item")
+    async repayItem(@Req() req: Request, @Param("id") id: string) {
+        const repayRequestById = await this.backofficeService.getRepayRequestById(id);
+        const resultRepayRequestById = {
+            refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
+            iban: repayRequestById?.businessPaymentRequisite.iban,
+            debtAmountUSD: truncateDecimalsToStr(
+                formatUnits(repayRequestById?.creditLine.debtAmount || 0n),
+                2,
+                false
+            ),
+        };
+        return resultRepayRequestById;
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
