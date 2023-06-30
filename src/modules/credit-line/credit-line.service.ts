@@ -22,36 +22,84 @@ export class CreditLineService {
         return this.creditLineRepo.save(newLine);
     }
 
-    async increaseDebtAmountById(creditLine: CreditLine, addAmount: bigint) {
-        creditLine.debtAmount = creditLine.debtAmount + addAmount;
-        return this.creditLineRepo.save(creditLine);
+    async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => `debtAmount + ${addAmount}` })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return await this.getCreditLineById(creditLineId);
     }
 
     async updateDebtAmountAndFeeAccumulatedById(
-        creditLineId: number,
-        newDebtAmount: bigint,
-        newFeeAccumulatedAmount: bigint
+      creditLineId: number,
+      newDebtAmount: bigint,
+      newFeeAccumulatedAmount: bigint
     ) {
         return this.creditLineRepo
-            .createQueryBuilder()
-            .update()
-            .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
-            .where("id = :creditLineId", { creditLineId })
-            .execute();
+          .createQueryBuilder()
+          .update()
+          .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
+          .where("id = :creditLineId", { creditLineId })
+          .execute();
     }
 
-    async decreaseDebtAmountById(creditLine: CreditLine, subAmount: bigint) {
-        creditLine.debtAmount = creditLine.debtAmount - subAmount;
-        return this.creditLineRepo.save(creditLine);
+    async increaseAccumulatedFeeAmountById(
+        creditLineId: number,
+        addAmount: bigint
+    ): Promise<CreditLine> {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ feeAccumulatedFiatAmount: () => `feeAccumulatedFiatAmount + ${addAmount}` })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
+    }
+
+    async decreaseDebtAmountById(creditLineId: number, subAmount: bigint) {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => `debtAmount - ${subAmount}` })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
+    }
+
+    async increaseSupplyAmountById(creditLineId: number, addAmount: bigint) {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ rawCollateralAmount: () => `rawCollateralAmount + ${addAmount}` })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return this.getCreditLineById(creditLineId);
+    }
+
+    async decreaseSupplyAmountById(creditLineId: number, subAmount: bigint) {
+        await this.creditLineRepo
+          .createQueryBuilder()
+          .update(CreditLine)
+          .set({ rawCollateralAmount: () => `rawCollateralAmount - ${subAmount}` })
+          .where("id = :id", { id: creditLineId })
+          .execute();
+
+        return this.getCreditLineById(creditLineId);
     }
 
     async updateSupplyAmountById(creditLineId: number, newSupplyAmount: bigint) {
         return this.creditLineRepo
-            .createQueryBuilder()
-            .update()
-            .set({ rawCollateralAmount: newSupplyAmount })
-            .where("id = :creditLineId", { creditLineId })
-            .execute();
+          .createQueryBuilder()
+          .update()
+          .set({ rawCollateralAmount: newSupplyAmount })
+          .where("id = :creditLineId", { creditLineId })
+          .execute();
     }
 
     async getCreditLineByChatIdAndColSymbol(
@@ -83,6 +131,20 @@ export class CreditLineService {
             .createQueryBuilder("creditLine")
             .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .where("creditLine.id = :creditLineId", { creditLineId })
+            .getOneOrFail();
+    }
+
+    async getCreditLinesByIdAllSettingsExtended(
+        creditLineId: number
+    ): Promise<CreditLineCurrencyExtended> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .innerJoinAndSelect("creditLine.user", "user")
+            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
     }

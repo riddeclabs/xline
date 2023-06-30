@@ -17,6 +17,7 @@ import {
 } from "./manage-credit-line.types";
 import { DepositActionWizard } from "./deposit/deposit.scene";
 import { Message } from "typegram";
+import { BorrowActionWizard } from "./borrow/borrow.scene";
 import { RepayActionWizard } from "./repay/repay.scene";
 import { WithdrawActionWizard } from "./withdraw/withdraw.scene";
 
@@ -169,7 +170,7 @@ export class ManageCreditLineWizard {
                 break;
             }
             case LineActions.BORROW: {
-                await ctx.scene.enter(MainScene.ID);
+                await ctx.scene.enter(BorrowActionWizard.ID);
                 break;
             }
             case LineActions.REPAY: {
