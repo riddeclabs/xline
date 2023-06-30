@@ -22,28 +22,28 @@ export function floatToMd(value: number | string): string {
  * @throws {Error} If the source string is incorrect (missing integer part or has more than one decimal part).
  *
  * @example
- * truncateDecimal(10.12345); // Returns "10`.`12"
+ * truncateDecimalToStr(10.12345); // Returns "10`.`12"
  *
- * truncateDecimal("15.9876", 1, false); // Returns "15.9"
+ * truncateDecimalToStr("15.9876", 1, false); // Returns "15.9"
  *
- * truncateDecimal(5.8, 0, false); // Returns "5"
+ * truncateDecimalToStr(5.8, 0, false); // Returns "5"
  */
-export function truncateDecimal(value: string | number, accuracy = 2, md = true): string {
-    const stringValue = typeof value === "number" ? value.toString() : value;
+export function truncateDecimalsToStr(value: string | number, accuracy = 2, md = true): string {
+    const res = truncateDecimals(value, accuracy);
+    return md ? floatToMd(res) : res.toString();
+}
 
-    const parts = stringValue.split(".");
+export function truncateDecimals(value: number | string, decimals: number): number {
+    const valueStr = typeof value === "string" ? value : value.toString();
+    const dotIndex = valueStr.indexOf(".");
+    if (dotIndex === -1) {
+        return Number(valueStr);
+    }
 
-    if (!parts[0] || parts.length > 2) throw new Error("Incorrect source string");
-    if (parts.length === 1) return parts[0];
-    else {
-        const fraction = parts[1]!.slice(0, accuracy);
-
-        if (checkIfAllZeros(fraction)) {
-            return parts[0];
-        } else {
-            const concatRes = parts[0] + "." + fraction;
-            return md ? floatToMd(concatRes) : concatRes;
-        }
+    if (checkIfAllZeros(valueStr.slice(dotIndex + 1, dotIndex + decimals + 1))) {
+        return Number(valueStr.slice(0, dotIndex));
+    } else {
+        return Number(valueStr.slice(0, dotIndex + decimals + 1));
     }
 }
 
