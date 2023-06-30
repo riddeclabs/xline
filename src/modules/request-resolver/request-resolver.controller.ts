@@ -54,6 +54,18 @@ export class RequestResolverController {
     @ApiOperation({ summary: "Resolve repay request" })
     @ApiBody({ description: "Resolve repay request", type: ResolveRepayRequestDto })
     async resolveRepayRequest(@Body() resolveRepayRequestDto: ResolveRepayRequestDto) {
-        return this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
+        await this.requestResolverService.resolveRepayRequest(resolveRepayRequestDto);
+        return {
+            success: true,
+        };
+    }
+
+    @Post("reject-request/repay")
+    @UsePipes(ValidationPipe)
+    async rejectRepayRequest(@Body() rejectBody: { repayId: number }) {
+        await this.requestResolverService.rejectRepayRequest(rejectBody.repayId);
+        return {
+            success: true,
+        };
     }
 }

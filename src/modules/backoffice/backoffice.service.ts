@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, Role } from "../../common";
+import { CreditLineStatus, RepayRequestStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -148,7 +148,10 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .where("repay.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
@@ -287,6 +290,15 @@ export class BackOfficeService {
                 .orderBy(`crypto.${sortField}`, sortDirection)
                 .getMany()
         );
+    }
+    getRepayRequestById(id: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .getOne();
     }
 
     getAllRequestByCreditLine(
