@@ -5,10 +5,11 @@ import { SUPPORTED_TOKENS } from "../modules/bot/constants";
 import { isAddress as validateEthAddress } from "ethers";
 import { validate as validateBtcAddress } from "bitcoin-address-validation";
 
-export enum WithdrawSceneIncorrectInputReason {
+export enum WithdrawSceneValidationStatus {
     INCORRECT_STRUCT_OR_ZERO,
     INCORRECT_DECIMALS,
     EXCEEDS_MAX_AMOUNT,
+    CORRECT,
 }
 
 export function validateIban(input: string): ValidateIBANResult {
@@ -29,23 +30,19 @@ export function validateAmountDecimals(amount: number, decimals: number): boolea
 }
 
 /**
- @description
- This function validates the user-provided input value for a withdrawal transaction. It ensures the input value meets the required criteria,
- including accuracy, format, and maximum allowed amount.
- If the input value is incorrect, it returns the corresponding error reason.
- If the input value is valid, it returns null.
+ Validates the user input value for a withdrawal transaction.
  @param {string} inputValue - The user-provided input value to be validated.
  @param {CollateralCurrency} collateralCurrency - The collateral currency used in the transaction.
  @param {bigint} maxAllowedWithdrawAmount - The maximum allowed withdrawal amount.
- @returns {WithdrawSceneIncorrectInputReason | null} - The reason for incorrect input if any, or null if the input is valid.
- @throws {Error} - If the input value exceeds the defined number of decimals for the collateral currency.
-
+ @returns {WithdrawSceneValidationStatus} - The validation status.
+ @description Validates the user input value for a withdrawal transaction. It checks accuracy, format, and maximum amount.
+ Returns the corresponding validation status
  */
 export function validateWithdrawInputValue(
     inputValue: string,
     collateralCurrency: CollateralCurrency,
     maxAllowedWithdrawAmount: bigint
-): WithdrawSceneIncorrectInputReason | null {
+): WithdrawSceneValidationStatus {
     let formattedValue;
 
     try {
@@ -54,20 +51,20 @@ export function validateWithdrawInputValue(
         formattedValue = parseUnits(inputValue, collateralCurrency.decimals);
     } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("exceeds decimals")) {
-            return WithdrawSceneIncorrectInputReason.INCORRECT_DECIMALS;
+            return WithdrawSceneValidationStatus.INCORRECT_DECIMALS;
         }
-        return WithdrawSceneIncorrectInputReason.INCORRECT_STRUCT_OR_ZERO;
+        return WithdrawSceneValidationStatus.INCORRECT_STRUCT_OR_ZERO;
     }
 
     if (formattedValue <= 0n) {
-        return WithdrawSceneIncorrectInputReason.INCORRECT_STRUCT_OR_ZERO;
+        return WithdrawSceneValidationStatus.INCORRECT_STRUCT_OR_ZERO;
     }
 
     if (formattedValue > maxAllowedWithdrawAmount) {
-        return WithdrawSceneIncorrectInputReason.EXCEEDS_MAX_AMOUNT;
+        return WithdrawSceneValidationStatus.EXCEEDS_MAX_AMOUNT;
     }
 
-    return null;
+    return WithdrawSceneValidationStatus.CORRECT;
 }
 
 export function validateAddressToWithdraw(inputValue: string, collateralCurrency: CollateralCurrency) {

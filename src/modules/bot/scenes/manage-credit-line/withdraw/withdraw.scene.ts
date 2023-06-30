@@ -12,9 +12,9 @@ import { InlineKeyboardButton } from "typegram/markup";
 import { MainScene } from "../../main.scene";
 import { Message } from "typegram";
 import {
-    validateWithdrawInputValue,
     validateAddressToWithdraw,
-    WithdrawSceneIncorrectInputReason,
+    validateWithdrawInputValue,
+    WithdrawSceneValidationStatus,
 } from "../../../../../common/input-validation";
 import { formatUnits, parseUnits, WithdrawRequestStatus } from "../../../../../common";
 import { DepositActionWizard } from "../deposit/deposit.scene";
@@ -327,14 +327,14 @@ export class WithdrawActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const { lineDetails } = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const incorrectInputReasonOrNull = validateWithdrawInputValue(
+        const validationStatus = validateWithdrawInputValue(
             userInput,
             lineDetails.collateralCurrency,
             lineDetails.maxAllowedCryptoToWithdraw
         );
 
         // In case of correct input go to the next step
-        if (incorrectInputReasonOrNull === null) {
+        if (validationStatus === WithdrawSceneValidationStatus.CORRECT) {
             ctx.scene.session.state.requestedWithdrawAmountRaw = userInput;
             await this.botCommon.executeCurrentStep(ctx);
             return;
@@ -342,20 +342,20 @@ export class WithdrawActionWizard {
 
         // In case of invalid input, render error message accordingly
         let errorMsg: string;
-        switch (incorrectInputReasonOrNull) {
-            case WithdrawSceneIncorrectInputReason.INCORRECT_DECIMALS:
+        switch (validationStatus) {
+            case WithdrawSceneValidationStatus.INCORRECT_DECIMALS:
                 errorMsg = WithdrawTextSource.getIncorrectInputDecimalsText(
                     userInput,
                     lineDetails.collateralCurrency
                 );
                 break;
-            case WithdrawSceneIncorrectInputReason.INCORRECT_STRUCT_OR_ZERO:
+            case WithdrawSceneValidationStatus.INCORRECT_STRUCT_OR_ZERO:
                 errorMsg = WithdrawTextSource.getIncorrectInputStructText(
                     userInput,
                     lineDetails.collateralCurrency
                 );
                 break;
-            case WithdrawSceneIncorrectInputReason.EXCEEDS_MAX_AMOUNT:
+            case WithdrawSceneValidationStatus.EXCEEDS_MAX_AMOUNT:
                 errorMsg = WithdrawTextSource.getIncorrectInputMaxAmountText(
                     userInput,
                     lineDetails.collateralCurrency,
