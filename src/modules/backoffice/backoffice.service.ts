@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { BigintPropertiesToString, CreditLineStatus, Role, parseBigintProperties } from "../../common";
+import { CreditLineStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -19,6 +19,7 @@ import {
 } from "./backoffice.types";
 import { BotManagerService } from "../bot/bot-manager.service";
 import { RiskEngineService } from "../risk-engine/risk-engine.service";
+import { RequestHandlerService } from "../request-handler/request-handler.service";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -41,12 +42,10 @@ export enum ModifyReserveDirection {
 
 interface CreditLineStateDataRaw {
     depositAmountFiat: bigint;
-    collateralAmount: bigint;
+    collateralAmountFiat: bigint;
     debtAmount: bigint;
     utilizationRate: bigint;
 }
-
-type CreditLineStateDataParsed = BigintPropertiesToString<CreditLineStateDataRaw>;
 
 @Injectable()
 export class BackOfficeService {
@@ -67,7 +66,8 @@ export class BackOfficeService {
         private debtCurrency: Repository<DebtCurrency>,
         private connection: Connection,
         private readonly botManagerService: BotManagerService,
-        private readonly riskEngineService: RiskEngineService
+        private readonly riskEngineService: RiskEngineService,
+        private readonly requestHandlerService: RequestHandlerService
     ) {}
 
     accountInfo() {
@@ -290,14 +290,11 @@ export class BackOfficeService {
         creditLineId: number,
         borrowRequestId: number
     ): Promise<{
-        stateBefore: CreditLineStateDataParsed;
-        stateAfter: CreditLineStateDataParsed;
+        stateBefore: CreditLineStateDataRaw;
+        stateAfter: CreditLineStateDataRaw;
     }> {
         const cld = await this.botManagerService.getCreditLineDetails(creditLineId);
-        const borrowRequest = await this.borrowRepo
-            .createQueryBuilder("borrow")
-            .where("borrow.id = :id", { id: borrowRequestId })
-            .getOneOrFail();
+        const borrowRequest = await this.requestHandlerService.getBorrowRequest(borrowRequestId);
 
         if (!borrowRequest.borrowFiatAmount) {
             throw new Error("Borrow amount does not exist");
@@ -305,7 +302,7 @@ export class BackOfficeService {
 
         const stateBefore: CreditLineStateDataRaw = {
             depositAmountFiat: cld.lineDetails.fiatCollateralAmount,
-            collateralAmount:
+            collateralAmountFiat:
                 (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
                 EXP_SCALE,
             debtAmount: cld.lineDetails.debtAmount,
@@ -330,8 +327,8 @@ export class BackOfficeService {
         };
 
         return {
-            stateBefore: parseBigintProperties<CreditLineStateDataRaw>(stateBefore),
-            stateAfter: parseBigintProperties<CreditLineStateDataRaw>(stateAfter),
+            stateBefore,
+            stateAfter,
         };
     }
 }
