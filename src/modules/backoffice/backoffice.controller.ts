@@ -379,7 +379,7 @@ export class BackOfficeController {
         let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         const borrow = await this.backofficeService.getBorrowRequest(id);
-        let status = { id: 0, status: "" };
+        let status = { id: 0, status: "", wallet: "" };
         switch (type) {
             case "Borrow":
                 resultTable = await this.backofficeService.getBorrowRequestDetails(
@@ -394,7 +394,11 @@ export class BackOfficeController {
                     false
                 );
                 const borrowStatus = await this.backofficeService.getBorrowStatus(id);
-                status = { status: borrowStatus?.borrowRequestStatus || "", id: borrowStatus?.id || 0 };
+                status = {
+                    status: borrowStatus?.borrowRequestStatus || "",
+                    id: borrowStatus?.id || 0,
+                    wallet: "",
+                };
                 break;
             case "Deposit":
                 resultTable = await this.backofficeService.getDepositRequestDetails(
@@ -407,6 +411,7 @@ export class BackOfficeController {
                 status = {
                     status: depositStatus?.depositRequestStatus || "",
                     id: depositStatus?.id || 0,
+                    wallet: "",
                 };
                 break;
             case "Withdraw":
@@ -420,6 +425,7 @@ export class BackOfficeController {
                 status = {
                     status: withdrawStatus?.withdrawRequestStatus || "",
                     id: withdrawStatus?.id || 0,
+                    wallet: withdrawStatus?.walletToWithdraw || "",
                 };
                 break;
             case "Repay":
@@ -433,6 +439,7 @@ export class BackOfficeController {
                 status = {
                     status: repayStatus?.repayRequestStatus || "",
                     id: repayStatus?.id || 0,
+                    wallet: "",
                 };
                 break;
         }
@@ -475,6 +482,7 @@ export class BackOfficeController {
                 initialRistStrategy,
                 status: checkStatus(type, status.status),
                 id: status.id,
+                wallet: status.wallet,
             },
             rowTable: resultTable.map(item => {
                 return {

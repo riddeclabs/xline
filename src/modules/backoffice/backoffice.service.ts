@@ -378,7 +378,7 @@ export class BackOfficeService {
         return this.withdrawRepo
             .createQueryBuilder("withdraw")
             .where("withdraw.id = :id", { id })
-            .select(["withdraw.withdrawRequestStatus", "withdraw.id"])
+            .select(["withdraw.withdrawRequestStatus", "withdraw.id", "withdraw.walletToWithdraw"])
             .getOne();
     }
 }
