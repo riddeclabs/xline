@@ -13,6 +13,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "test": "jest",
     "typeorm": "typeorm-ts-node-commonjs",
     "database:seed": "ts-node src/database/seeding/database-seeder.ts",
     "database:fixture:fe": "ts-node src/database/seeding/fixtures/fe-seed.fixture.ts"
