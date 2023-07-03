@@ -102,7 +102,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
     @Render("backoffice/home")
-    async home(@Req() req: Request) {
+    async home() {
         const allCustomersLength = await this.backofficeService.getAllCustomersCount();
         const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
         const collateralInitial = await this.backofficeService.getCollateralCurrency();
@@ -193,7 +193,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request")
     @Render("backoffice/borrow-request")
-    async borrowList(@Req() req: Request, @BorrowRequest() query: BorrowRequestDto) {
+    async borrowList(@BorrowRequest() query: BorrowRequestDto) {
         const { page, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
 
@@ -246,7 +246,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("repay-request")
     @Render("backoffice/repay-request")
-    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequestDto) {
+    async repayList(@RepayListQuery() query: RepayRequestDto) {
         const { page, sort, chatId, refNumber } = query;
         const chatIdFilter = chatId?.trim() ?? "";
         const refNumberFilter = refNumber?.trim() ?? "";
@@ -300,11 +300,6 @@ export class BackOfficeController {
             id
         );
 
-        console.log(
-            "generalUserByBorrowId",
-            generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus
-        );
-
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(creditLineId)
         );
@@ -356,7 +351,7 @@ export class BackOfficeController {
     }
     @Get("repay-request/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Req() req: Request, @Param("id") id: string) {
+    async repayItem(@Param("id") id: string) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         const resultRepayRequestById = {
             refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),

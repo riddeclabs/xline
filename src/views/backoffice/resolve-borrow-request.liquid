@@ -84,7 +84,7 @@
           type="text"
           class="input-resolve">
         <button
-          id="accept-btn"
+          id="acceptBtn"
           class="accept-button mt-3"
           style="padding: 6px 20px;">Resolve</button>
       </div>
@@ -125,7 +125,7 @@
       </div>
       <div class="wrapper-buttons">
         <button
-          id="finelize-btn"
+          id="finelizeBtn"
           class="accept-button"
           style="padding: 5px 40px; margin-right: 10px">Confirm</button>
         <button
@@ -142,14 +142,18 @@
     const transferInput = document.getElementById('transferAmount');
     const ibanInput = document.getElementById('iban');
     const baseUrl = document.location.origin;
-    const acceptBtn = document.getElementById('accept-btn');
-    const finelizeBtn = document.getElementById('finelize-btn');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const finelizeBtn = document.getElementById('finelizeBtn');
     const borrowId = document
       .location
       .pathname
       .split("/")
       .slice(-1)[0];
-
+    const creditLineId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-2)[0];
     rejectBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -165,7 +169,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/borrow-request`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"
@@ -175,7 +179,7 @@
           }, 3000)
         }
       });
-    })
+    });
     acceptBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -185,8 +189,8 @@
         body: JSON.stringify(
           {
             requestId: + borrowId,
-            ibanFrom: ibanInput.value,
-            rawTransferAmount: transferInput.value
+            ibanFrom: String(ibanInput.value),
+            rawTransferAmount: String(transferInput.value)
           }
         )
       };
@@ -195,7 +199,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/borrow-request`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
           }, 3000)
         } else {
           error.style.right = "30px"
@@ -205,9 +209,10 @@
           }, 3000)
         }
       });
-    })
+    });
 
     finelizeBtn.addEventListener('click', () => {
+      console.log(1)
       const requestOptions = {
         method: 'POST',
         headers: {
@@ -217,13 +222,12 @@
           {requestId: Number(borrowId)}
         )
       };
-      console.log("1")
       fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
         if (resJSON.success) {
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/borrow-request`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"
@@ -233,6 +237,6 @@
           }, 3000)
         }
       });
-    })
+    });
   </script>
 {% endblock %}

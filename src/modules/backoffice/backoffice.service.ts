@@ -154,7 +154,12 @@ export class BackOfficeService {
     }
 
     getRepayCount() {
-        return this.repayRepo.createQueryBuilder().getCount();
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .getCount();
     }
 
     getFullyAssociatedUserById(id: string) {
