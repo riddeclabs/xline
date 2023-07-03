@@ -13,6 +13,7 @@ import { SceneRequestTypes } from "./view-request.types";
 import { getTxDataForRequest, getXLineRequestMsgData } from "../common/utils";
 import { escapeSpecialCharacters } from "src/common";
 import { XLineRequestsTypes } from "../common/types";
+import { Message } from "telegraf/typings/core/types/typegram";
 
 enum ViewRequestSteps {
     CHOSE_COLLATERAL_TYPE,
@@ -47,10 +48,42 @@ export class ViewRequestWizard {
         private readonly botManagerService: BotManagerService
     ) {}
 
+    @WizardStep(ViewRequestSteps.CHOSE_COLLATERAL_TYPE)
+    async onChoseCollateralType(@Ctx() ctx: ViewRequestContext) {
+        const msg = (await ctx.editMessageText(`💰 Chose the collateral type\n\n`, {
+            parse_mode: "MarkdownV2",
+        })) as Message;
+
+        await ctx.editMessageReplyMarkup(
+            Markup.inlineKeyboard(
+                [
+                    {
+                        text: "ETH",
+                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.ETH}`,
+                    },
+                    {
+                        text: "BTC",
+                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.BTC}`,
+                    },
+                    this.botCommon.goBackButton(),
+                ],
+                {
+                    columns: 1,
+                }
+            ).reply_markup
+        );
+
+        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
+        ctx.wizard.next();
+    }
+
     @WizardStep(ViewRequestSteps.CHOSE_REQUEST_TYPE)
     async onChoseRequestType(@Ctx() ctx: ViewRequestContext) {
-        const msg = await ctx.replyWithMarkdownV2(
-            "📋 Choose the request type you want to see" + "\n" + "\n",
+        await ctx.editMessageText("📋 Choose the request type you want to see" + "\n" + "\n", {
+            parse_mode: "MarkdownV2",
+        });
+
+        await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
                 [
                     {
@@ -72,34 +105,9 @@ export class ViewRequestWizard {
                     this.botCommon.goBackButton(),
                 ],
                 { columns: 1 }
-            )
+            ).reply_markup
         );
-        this.botCommon.tryToSaveSceneMessage(ctx, msg);
-        ctx.wizard.next();
-    }
 
-    @WizardStep(ViewRequestSteps.CHOSE_COLLATERAL_TYPE)
-    async onChoseCollateralType(@Ctx() ctx: ViewRequestContext) {
-        const msg = await ctx.replyWithMarkdownV2(
-            `💰 Chose the collateral type\n\n`,
-            Markup.inlineKeyboard(
-                [
-                    {
-                        text: "ETH",
-                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.ETH}`,
-                    },
-                    {
-                        text: "BTC",
-                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.BTC}`,
-                    },
-                    this.botCommon.goBackButton(),
-                ],
-                {
-                    columns: 1,
-                }
-            )
-        );
-        this.botCommon.tryToSaveSceneMessage(ctx, msg);
         ctx.wizard.next();
     }
 
@@ -137,10 +145,11 @@ export class ViewRequestWizard {
             });
         }
 
-        const introduceMsg = await ctx.replyWithMarkdownV2(
+        await ctx.editMessageText(
             escapeSpecialCharacters(
                 `📒 Here you go.\n` + `This is your last ${requestType} request data`
-            )
+            ),
+            { parse_mode: "MarkdownV2" }
         );
 
         buttons.push(this.botCommon.goBackButton());
@@ -149,7 +158,7 @@ export class ViewRequestWizard {
             msgText,
             Markup.inlineKeyboard(buttons, { columns: 1 })
         );
-        this.botCommon.tryToSaveSceneMessage(ctx, [introduceMsg, mainMsg]);
+        this.botCommon.tryToSaveSceneMessage(ctx, [mainMsg]);
         ctx.wizard.next();
     }
 
@@ -228,6 +237,8 @@ export class ViewRequestWizard {
             throw new Error(`Requests not found for credit line id: ${clId}`);
         }
 
+        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
+
         const msgs = [];
         for (const req of requests) {
             const data = getXLineRequestMsgData(req);
@@ -235,8 +246,14 @@ export class ViewRequestWizard {
 
             const msgText = ViewRequestText.getRequestMsgText(data, requestType, associatedTxsData);
 
-            const msg = await ctx.replyWithMarkdownV2(msgText);
-            msgs.push(msg);
+            if (requests.indexOf(req) === 0) {
+                await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, msgText, {
+                    parse_mode: "MarkdownV2",
+                });
+            } else {
+                const msg = await ctx.replyWithMarkdownV2(msgText);
+                msgs.push(msg);
+            }
         }
 
         const introduceMsg = await ctx.replyWithMarkdownV2(
@@ -252,7 +269,6 @@ export class ViewRequestWizard {
 
     @Action(/.*/)
     async onActionHandler(@Ctx() ctx: ViewRequestContext) {
-        await this.botCommon.tryToDeleteMessages(ctx);
         // Enter scene handler.
         if (ctx.scene.session.cursor == ViewRequestSteps.CHOSE_COLLATERAL_TYPE) {
             await this.botCommon.executeCurrentStep(ctx);
@@ -270,9 +286,11 @@ export class ViewRequestWizard {
                 await this.collateralTypeActionHandler(ctx, value);
                 break;
             case ViewRequestCallbacks.VIEW_ALL:
+                await this.botCommon.tryToDeleteMessages(ctx);
                 await this.botCommon.executeCurrentStep(ctx);
                 break;
             case ViewRequestCallbacks.BACK_TO_MAIN_MENU:
+                await this.botCommon.tryToDeleteMessages(ctx, true);
                 await ctx.scene.enter(MainScene.ID);
                 break;
             default:

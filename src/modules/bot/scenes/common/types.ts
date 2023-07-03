@@ -46,9 +46,7 @@ export interface CryptoTxMsgData {
     updated: string;
 }
 
-export type XLineCryptoBaseRequestsTypes = DepositRequest | WithdrawRequest;
-export type XLineFiatBaseRequestsTypes = BorrowRequest | RepayRequest;
-export type XLineRequestsTypes = XLineCryptoBaseRequestsTypes | XLineFiatBaseRequestsTypes;
+export type XLineRequestsTypes = DepositRequest | WithdrawRequest | BorrowRequest | RepayRequest;
 
 export function isBorrowRequest(req: XLineRequestsTypes): req is BorrowRequest {
     return "borrowRequestStatus" in req;
