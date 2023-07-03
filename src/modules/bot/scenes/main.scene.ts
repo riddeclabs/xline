@@ -3,8 +3,6 @@ import { Action, Ctx, Hears, Scene, SceneEnter } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MAIN_MENU_OPTIONS } from "../constants";
-import { NewCreditRequestWizard } from "./new-credit-request/new-credit-request.scene";
-import { ViewActiveCreditLineWizard } from "./view-active-line.scene";
 import { ViewRequestWizard } from "./view-requests/view-request.scene";
 import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
@@ -16,7 +14,7 @@ import { ManagePortfolioWizard } from "./manage-portfolio.scene";
 import { BotManagerService } from "../bot-manager.service";
 import * as filters from "telegraf/filters";
 
-type GotoVariant = "newCreditRequest" | "viewActiveLine" | "viewRequest" | "managePortfolio";
+type GotoVariant = "viewRequest" | "managePortfolio";
 
 type MainSessionData = ExtendedSessionData;
 type MainSceneContext = ExtendedWizardContext<MainSessionData>;
@@ -178,8 +176,6 @@ export class MainScene {
         if (!direction) return;
 
         const sceneIdMap: Record<GotoVariant, string> = {
-            newCreditRequest: NewCreditRequestWizard.ID,
-            viewActiveLine: ViewActiveCreditLineWizard.ID,
             viewRequest: ViewRequestWizard.ID,
             managePortfolio: ManagePortfolioWizard.ID,
         };

@@ -48,6 +48,24 @@
     border: none;
     border-radius: 8px;;
   }
+  .form-buttons {
+    margin: 30px auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .form-input {
+    border: none;
+    border-radius: 8px;
+    margin-top: 4px;
+    width: 100%;
+    padding: 4px;
+    max-width: 350px;
+  }
+  .label-input {
+    font-size: 14px;
+    margin-top: 15px;
+  }
   .blue-button {
     color: #fff;
     border: 1px solid #0d6efd;
@@ -119,6 +137,8 @@ input::-webkit-inner-spin-button {
     padding: 17px 32px;
     margin-bottom: 15px;
     float: left;
+    border-radius: 12px;
+    color: #fff;
   }
   .content-item {
     width: 49%;
@@ -201,6 +221,29 @@ input::-webkit-inner-spin-button {
     width: 48%;
   }
 
+  .success-mess {
+    position: fixed;
+    top: 40px;
+    right: -300px;
+    color: #fff;
+    background: green;
+    border-radius: 12px;
+    padding: 6px 30px;
+    text-align: center;
+    transition: all 1s;
+  }
+
+  .error-mess {
+    position: fixed;
+    top: 40px;
+    right: -300px;
+    color: #fff;
+    background: red;
+    border-radius: 12px;
+    padding: 6px 30px;
+    text-align: center;
+    transition: all 1s;
+  }
   .arrow-position {
     position: absolute;
   }
@@ -243,7 +286,7 @@ input::-webkit-inner-spin-button {
           <li>
             <a
             href='/backoffice/repay-request'
-            class='nav-link text-white {% if current_url == '/backoffice/repay-request'%}active{% endif %}'
+            class='nav-link text-white {% if current_url contains 'repay-request'%}active{% endif %}'
             aria-current='page'
             >
             Repay requests

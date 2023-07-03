@@ -96,6 +96,7 @@ export class RequestHandlerService {
     }
 
     async saveNewWithdrawRequest(dto: CreateWithdrawRequestHandlerDto) {
+        await validateDto(dto);
         const newReq = this.withdrawRequestRepo.create(dto);
         return this.withdrawRequestRepo.save(newReq);
     }
@@ -108,7 +109,7 @@ export class RequestHandlerService {
             .getManyAndCount();
     }
 
-    async getOldestPendingWithdrawReq(creditLineId: number) {
+    async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
             .where("wr.creditLineId = :creditLineId", { creditLineId })

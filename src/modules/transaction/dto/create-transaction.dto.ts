@@ -7,12 +7,3 @@ export class CreateFiatTransactionDto {
     readonly nameTo!: string;
     readonly rawTransferAmount!: bigint;
 }
-
-export class CreateCryptoTransactionDto {
-    readonly withdrawRequestId!: number | null;
-    readonly depositRequestId!: number | null;
-    readonly rawTransferAmount!: bigint;
-    readonly usdTransferAmount!: bigint;
-    readonly txHash!: string;
-    readonly paymentProcessingTxId!: string;
-}

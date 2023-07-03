@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, Role } from "../../common";
+import { CreditLineStatus, RepayRequestStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -11,12 +11,15 @@ import {
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
+import { EXP_SCALE, PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import {
     AllRequestByCreditLineType,
     CollatetalCurrencyType,
     DebtCurrencyType,
 } from "./backoffice.types";
+import { BotManagerService } from "../bot/bot-manager.service";
+import { RiskEngineService } from "../risk-engine/risk-engine.service";
+import { RequestHandlerService } from "../request-handler/request-handler.service";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -37,6 +40,13 @@ export enum ModifyReserveDirection {
     reduce = "reduce",
 }
 
+interface CreditLineStateDataRaw {
+    depositAmountFiat: bigint;
+    collateralAmountFiat: bigint;
+    debtAmount: bigint;
+    utilizationRate: bigint;
+}
+
 @Injectable()
 export class BackOfficeService {
     constructor(
@@ -54,7 +64,10 @@ export class BackOfficeService {
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
-        private connection: Connection
+        private connection: Connection,
+        private readonly botManagerService: BotManagerService,
+        private readonly riskEngineService: RiskEngineService,
+        private readonly requestHandlerService: RequestHandlerService
     ) {}
 
     accountInfo() {
@@ -142,7 +155,10 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .where("repay.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
@@ -226,6 +242,16 @@ export class BackOfficeService {
             .getRawMany();
     }
 
+    getRepayRequestById(id: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .getOne();
+    }
+
     getAllRequestByCreditLine(
         page: number,
         id: string,
@@ -271,5 +297,51 @@ export class BackOfficeService {
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .getOne();
+    }
+
+    async getCreditLineStateBeforeAndAfterBorrowResolved(
+        creditLineId: number,
+        borrowRequestId: number
+    ): Promise<{
+        stateBefore: CreditLineStateDataRaw;
+        stateAfter: CreditLineStateDataRaw;
+    }> {
+        const cld = await this.botManagerService.getCreditLineDetails(creditLineId);
+        const borrowRequest = await this.requestHandlerService.getBorrowRequest(borrowRequestId);
+
+        if (!borrowRequest.borrowFiatAmount) {
+            throw new Error("Borrow amount does not exist");
+        }
+
+        const stateBefore: CreditLineStateDataRaw = {
+            depositAmountFiat: cld.lineDetails.fiatCollateralAmount,
+            collateralAmountFiat:
+                (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
+                EXP_SCALE,
+            debtAmount: cld.lineDetails.debtAmount,
+            utilizationRate: cld.lineDetails.utilizationRate,
+        };
+
+        const borrowWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            cld.lineDetails.id,
+            borrowRequest.borrowFiatAmount
+        );
+        const debtAfter = stateBefore.debtAmount + borrowWithFee;
+        //FIXME Move to cpmmon
+        const getUtilRate = () => {
+            if (cld.lineDetails.fiatCollateralAmount === 0n) return 0n;
+            return (debtAfter * EXP_SCALE) / cld.lineDetails.fiatCollateralAmount;
+        };
+
+        const stateAfter: CreditLineStateDataRaw = {
+            ...stateBefore,
+            debtAmount: debtAfter,
+            utilizationRate: getUtilRate(),
+        };
+
+        return {
+            stateBefore,
+            stateAfter,
+        };
     }
 }
