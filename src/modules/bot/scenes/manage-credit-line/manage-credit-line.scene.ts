@@ -19,6 +19,7 @@ import { DepositActionWizard } from "./deposit/deposit.scene";
 import { Message } from "typegram";
 import { BorrowActionWizard } from "./borrow/borrow.scene";
 import { RepayActionWizard } from "./repay/repay.scene";
+import { WithdrawActionWizard } from "./withdraw/withdraw.scene";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -62,16 +63,16 @@ export class ManageCreditLineWizard {
 
     @WizardStep(ManagePortfolioSteps.VIEW_LINE_DETAILS)
     async onViewCreditLine(@Ctx() ctx: ManageCreditLineContext) {
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+        const creditLineDetailsExt = await this.botManager.getCreditLineDetails(
             Number(ctx.scene.session.state.creditLineId)
         );
 
         this.botCommon.updateSceneCreditLineDto(ctx, {
-            collateralSymbol: lineDetails.collateralCurrency.symbol,
-            debtSymbol: lineDetails.debtCurrency.symbol,
+            collateralCurrency: creditLineDetailsExt.lineDetails.collateralCurrency,
+            debtCurrency: creditLineDetailsExt.lineDetails.debtCurrency,
         });
 
-        const msgText = ManageCreditLineText.getViewLineDetailsText(economicalParams, lineDetails);
+        const msgText = ManageCreditLineText.getViewLineDetailsText(creditLineDetailsExt);
 
         const buttons = [
             {
@@ -165,7 +166,7 @@ export class ManageCreditLineWizard {
                 break;
             }
             case LineActions.WITHDRAW: {
-                await ctx.scene.enter(MainScene.ID);
+                await ctx.scene.enter(WithdrawActionWizard.ID);
                 break;
             }
             case LineActions.BORROW: {

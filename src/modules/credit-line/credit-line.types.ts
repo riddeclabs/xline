@@ -5,4 +5,5 @@ export type CreditLineCurrencyExtended = CreditLine;
 export type CreditLineDetails = CreditLineCurrencyExtended & {
     utilizationRate: bigint;
     fiatCollateralAmount: bigint;
+    maxAllowedCryptoToWithdraw: bigint;
 };

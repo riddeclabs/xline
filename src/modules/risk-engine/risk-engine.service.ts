@@ -198,4 +198,18 @@ export class RiskEngineService {
         const hypotheticalUsdBorrowAmount = creditLine.debtAmount + borrowAmount;
         return hypotheticalUsdBorrowAmount <= usdCollateralAmount;
     }
+
+    /**
+     @description
+     Calculates the utilization rate based on the provided deposit and debt amounts.
+     If the deposit amount is zero or falsy, the utilization rate is considered to be zero.
+     The utilization rate is returned as a bigint value.
+     @param {bigint} depositFiatAmount - The amount of fiat currency deposited.
+     @param {bigint} debtFiatAmount - The amount of fiat currency borrowed as debt.
+     @returns {bigint} - The utilization rate as a bigint representing a decimal value.
+     */
+    calculateUtilizationRate(depositFiatAmount: bigint, debtFiatAmount: bigint) {
+        if (!depositFiatAmount) return 0n;
+        return (debtFiatAmount * EXP_SCALE) / depositFiatAmount;
+    }
 }
