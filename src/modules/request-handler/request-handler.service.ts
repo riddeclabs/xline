@@ -14,6 +14,7 @@ import {
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
+import { validateDto } from "src/decorators/class-validator-extended.decorator";
 
 @Injectable()
 export class RequestHandlerService {
@@ -50,9 +51,17 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateDepositReqStatus(request: DepositRequest, newStatus: DepositRequestStatus) {
-        request.depositRequestStatus = newStatus;
-        return this.depositRequestRepo.save(request);
+    async updateDepositReqStatus(
+        requestId: number,
+        newStatus: DepositRequestStatus
+    ): Promise<DepositRequest> {
+        await this.depositRequestRepo
+            .createQueryBuilder()
+            .update(DepositRequest)
+            .set({ depositRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getDepositRequest(requestId);
     }
 
     // WithdrawRequest block
@@ -62,6 +71,7 @@ export class RequestHandlerService {
     }
 
     async saveNewWithdrawRequest(dto: CreateWithdrawRequestHandlerDto) {
+        await validateDto(dto);
         const newReq = this.withdrawRequestRepo.create(dto);
         return this.withdrawRequestRepo.save(newReq);
     }
@@ -70,18 +80,22 @@ export class RequestHandlerService {
         return this.withdrawRequestRepo.findOne({ where: { creditLineId } });
     }
 
-    async getOldestPendingWithdrawReq(creditLineId: number) {
+    async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
             .orderBy("wr.createdAt", "ASC")
-            .getOneOrFail();
+            .getOne();
     }
 
-    async updateWithdrawReqStatus(request: WithdrawRequest, newStatus: WithdrawRequestStatus) {
-        request.withdrawRequestStatus = newStatus;
-        return this.withdrawRequestRepo.save(request);
+    async updateWithdrawReqStatus(requestID: number, newStatus: WithdrawRequestStatus) {
+        return this.withdrawRequestRepo
+            .createQueryBuilder()
+            .update()
+            .set({ withdrawRequestStatus: newStatus })
+            .where("id = :requestID", { requestID })
+            .execute();
     }
 
     // BorrowRequest block
@@ -90,7 +104,25 @@ export class RequestHandlerService {
         return this.borrowRequestRepo.findOneByOrFail({ id: reqId });
     }
 
+    async getFullyAssociatedBorrowRequest(borrowRequestId: number): Promise<BorrowRequest> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .leftJoinAndSelect("br.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.economicalParameters", "ep")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("br.fiatTransactions", "ftx")
+            .where("br.id = :borrowRequestId", { borrowRequestId })
+            .getOneOrFail();
+    }
+
     async saveNewBorrowRequest(dto: CreateBorrowRequestHandlerDto) {
+        await validateDto(dto);
+        if (!dto.borrowFiatAmount && !dto.initialRiskStrategy) {
+            throw new Error("Borrow amount or risk strategy must be provided");
+        }
         const newReq = this.borrowRequestRepo.create(dto);
         return this.borrowRequestRepo.save(newReq);
     }
@@ -110,14 +142,34 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateBorrowReqStatus(reqId: number, newStatus: BorrowRequestStatus) {
-        const req = await this.borrowRequestRepo.findOneByOrFail({ id: reqId });
-        req.borrowRequestStatus = newStatus;
+    async getOldestUnfinalizedBorrowReq(creditLineId: number) {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.borrowRequestStatus != :statusRej", {
+                statusRej: BorrowRequestStatus.REJECTED,
+            })
+            .andWhere("br.borrowRequestStatus != :statusFin", {
+                statusFin: BorrowRequestStatus.FINISHED,
+            })
+            .andWhere("br.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("br.createdAt", "ASC")
+            .getOne();
+    }
 
-        return this.borrowRequestRepo.save(req);
+    async updateBorrowReqStatus(requestId: number, newStatus: BorrowRequestStatus) {
+        await this.borrowRequestRepo
+            .createQueryBuilder()
+            .update(BorrowRequest)
+            .set({ borrowRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getBorrowRequest(requestId);
     }
 
     // RepayRequest block
+    async getRepayRequest(reqId: number) {
+        return this.repayRequestRepo.findOneByOrFail({ id: reqId });
+    }
 
     async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
         return this.repayRequestRepo
@@ -150,8 +202,13 @@ export class RequestHandlerService {
             .getOne();
     }
 
-    async updateRepayReqStatus(request: RepayRequest, newStatus: RepayRequestStatus) {
-        request.repayRequestStatus = newStatus;
-        return this.repayRequestRepo.save(request);
+    async updateRepayReqStatus(requestId: number, newStatus: RepayRequestStatus) {
+        await this.repayRequestRepo
+            .createQueryBuilder()
+            .update(RepayRequest)
+            .set({ repayRequestStatus: newStatus })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getRepayRequest(requestId);
     }
 }

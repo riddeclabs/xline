@@ -1,4 +1,6 @@
-import { IsNumber, IsString } from "class-validator";
+import { IsNumber, IsString, IsEnum } from "class-validator";
+import { BorrowRequestStatus } from "src/common";
+import { IsBigInt } from "../../../decorators/class-validator-extended.decorator";
 
 export class CreateDepositRequestHandlerDto {
     @IsNumber()
@@ -9,6 +11,7 @@ export class CreateWithdrawRequestHandlerDto {
     readonly creditLineId!: number;
     @IsString()
     readonly walletToWithdraw!: string;
+    @IsBigInt()
     readonly withdrawAmount!: bigint;
 }
 export class CreateBorrowRequestHandlerDto {
@@ -16,6 +19,8 @@ export class CreateBorrowRequestHandlerDto {
     readonly creditLineId!: number;
     readonly borrowFiatAmount!: bigint | null;
     readonly initialRiskStrategy!: bigint | null;
+    @IsEnum(BorrowRequestStatus)
+    readonly borrowRequestStatus!: BorrowRequestStatus;
 }
 export class CreateRepayRequestHandlerDto {
     @IsNumber()

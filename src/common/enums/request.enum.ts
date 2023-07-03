@@ -2,6 +2,7 @@ export enum WithdrawRequestStatus {
     PENDING = "PENDING",
     FINISHED = "FINISHED",
     REJECTED = "REJECTED",
+    UNSUCCESSFUL_PAYMENT_PROCESSING_REQUEST = "UNSUCCESSFUL_PAYMENT_PROCESSING_REQUEST",
 }
 
 export enum DepositRequestStatus {
@@ -11,6 +12,7 @@ export enum DepositRequestStatus {
 }
 
 export enum BorrowRequestStatus {
+    WAITING_FOR_DEPOSIT = "WAITING_FOR_DEPOSIT",
     VERIFICATION_PENDING = "VERIFICATION_PENDING",
     MONEY_SENT = "MONEY_SENT",
     FINISHED = "FINISHED",

@@ -1,7 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import {
+    FinalizeOrRejectBorrowRequestDto,
+    ResolveBorrowRequestDto,
     ResolveCryptoBasedRequestDto,
-    ResolveFiatBasedRequestDto,
     ResolveRepayRequestDto,
 } from "./dto/resolve-request.dto";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
@@ -11,12 +12,12 @@ import {
     ActionTypes,
     BorrowRequestStatus,
     DepositRequestStatus,
+    FiatTransactionStatus,
     parseUnits,
     RepayRequestStatus,
     WithdrawRequestStatus,
 } from "../../common";
 import { TransactionService } from "../transaction/transaction.service";
-import { CurrencyService } from "../currency/currency.service";
 import {
     BorrowRequest,
     CollateralCurrency,
@@ -25,8 +26,11 @@ import {
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
-import { CallbackTypes } from "../payment-processing/constants";
+import { EXP_SCALE } from "../../common/constants";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
+import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
 import { validateIban, validateName } from "../../common/input-validation";
+import { CallbackTypes } from "../payment-processing/payment-processing.types";
 
 @Injectable()
 export class RequestResolverService {
@@ -35,74 +39,229 @@ export class RequestResolverService {
         private creditLineService: CreditLineService,
         private riskEngineService: RiskEngineService,
         private transactionService: TransactionService,
-        private currencyService: CurrencyService
+        private paymentRequisiteService: PaymentRequisiteService,
+        private priceOracleService: PriceOracleService
     ) {}
 
-    // Used by operator to resolve pending borrow request after fiat payment occurs.
-    async resolveBorrowRequest(resolveBorrowRequest: ResolveFiatBasedRequestDto) {
+    /**
+     Used by operator to resolve borrow request. Resolves request by creating a fiat transaction and updating the request status.
+     Should be used for "initial" request resolving.
+     To finalize resolving process use finalizeBorrowRequest or rejectBorrowRequest functions.
+     @param {ResolveBorrowRequestDto} resolveBorrowRequest - The request to resolve
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state or resolveBorrowRequest is incorrect.
+     */
+    async resolveBorrowRequest(
+        resolveBorrowRequest: ResolveBorrowRequestDto
+    ): Promise<{ success: boolean }> {
         // Accrue interest
         // FIXME: add risk engine call
 
-        const { request, creditLine } = await this.getRequestAndCreditLine(
-            resolveBorrowRequest.requestId,
-            ActionTypes.BORROW
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            resolveBorrowRequest.requestId
+        );
+        const creditLine = borrowRequest.creditLine;
+
+        const bRequisites = await this.paymentRequisiteService.getBusinessPayReqByIbanAndCurrency(
+            resolveBorrowRequest.ibanFrom,
+            creditLine.debtCurrency.symbol
         );
 
-        if (!(request instanceof BorrowRequest)) {
-            throw new Error("Incorrect request received");
+        if (!bRequisites) {
+            throw new HttpException(
+                "No business requisites found for this borrow request",
+                HttpStatus.BAD_REQUEST
+            );
         }
 
-        if (BigInt(resolveBorrowRequest.rawTransferAmount) !== request.borrowFiatAmount) {
-            throw new Error("Incorrect rawTransferAmount amount for fiat transaction");
+        if (borrowRequest.borrowRequestStatus !== BorrowRequestStatus.VERIFICATION_PENDING) {
+            throw new HttpException(
+                "Resolving request requires VERIFICATION_PENDING status",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
         }
 
-        const requestedBorrowAmount = await this.getBorrowAmount(
-            request,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount
+        if (
+            parseUnits(resolveBorrowRequest.rawTransferAmount, creditLine.debtCurrency.decimals) !==
+            borrowRequest.borrowFiatAmount
+        ) {
+            throw new HttpException("Incorrect rawTransferAmount amount", HttpStatus.BAD_REQUEST);
+        }
+
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
         );
 
-        // Verify borrow request
-        await this.riskEngineService.verifyBorrowOrThrow(
-            creditLine,
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            requestedBorrowAmount
+        if (pendingTxs.length !== 0) {
+            throw new HttpException(
+                "Resolving request has pending transactions",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount
         );
 
-        // Increase debt amount for borrow request
-        await this.creditLineService.increaseDebtAmountById(creditLine, requestedBorrowAmount);
+        try {
+            await this.riskEngineService.verifyBorrowOverLFOrThrow(
+                creditLine,
+                creditLine.collateralCurrency.symbol,
+                creditLine.collateralCurrency.decimals,
+                borrowAmountWithFee
+            );
+        } catch (e) {
+            throw new HttpException(
+                "Borrow request could not be resolved. User's collateral is insufficient",
+                HttpStatus.BAD_REQUEST
+            );
+        }
 
-        // Update status for borrow req
-        const updatedRequest = await this.requestHandlerService.updateBorrowReqStatus(
-            request.id,
+        await this.transactionService.createFiatTransaction({
+            borrowRequestId: borrowRequest.id,
+            repayRequestId: null,
+            ibanFrom: bRequisites.iban,
+            ibanTo: creditLine.userPaymentRequisite.iban,
+            nameFrom: bRequisites.bankName,
+            nameTo: creditLine.user.name,
+            rawTransferAmount: borrowRequest.borrowFiatAmount,
+        });
+
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
+            BorrowRequestStatus.MONEY_SENT
+        );
+
+        return {
+            success: true,
+        };
+    }
+
+    /**
+     Used by operator to finalize borrow request when bank tx is finalized.
+     @param {dto} FinalizeOrRejectBorrowRequestDto - Dto containing ID of the request to finalize.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state
+     */
+    async finalizeBorrowRequest(dto: FinalizeOrRejectBorrowRequestDto): Promise<{ success: boolean }> {
+        // Accrue interest
+        // FIXME: add risk engine call
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            dto.requestId
+        );
+        const creditLine = borrowRequest.creditLine;
+
+        if (!borrowRequest.borrowFiatAmount) {
+            throw new HttpException(
+                "Borrow request has no borrowFiatAmount",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        if (borrowRequest.borrowRequestStatus !== BorrowRequestStatus.MONEY_SENT) {
+            throw new HttpException(
+                "Resolving request requires MONEY_SENT status",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
+        );
+
+        if (pendingTxs.length === 0) {
+            throw new HttpException(
+                "Resolving request requires pending transaction",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        } else if (pendingTxs.length > 1) {
+            throw new HttpException(
+                "Resolving request has mode that one pending transaction",
+                HttpStatus.UNPROCESSABLE_ENTITY
+            );
+        }
+
+        // Update tx status
+        const pendingTx = pendingTxs[0]!;
+        await this.transactionService.updateFiatTransactionStatus(
+            pendingTx,
+            FiatTransactionStatus.COMPLETED
+        );
+
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
             BorrowRequestStatus.FINISHED
         );
 
-        // Create new FiatTransaction
-        const transaction = await this.transactionService.createFiatTransaction({
-            ...resolveBorrowRequest,
-            borrowRequestId: request.id,
-            repayRequestId: null,
-            rawTransferAmount: BigInt(resolveBorrowRequest.rawTransferAmount),
-        });
+        const feeAmount = await this.riskEngineService.calculateFiatProcessingFeeAmount(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount
+        );
+
+        // Increase debt amount for borrow request on borrow value
+        await this.creditLineService.increaseDebtAmountById(
+            creditLine.id,
+            borrowRequest.borrowFiatAmount + feeAmount
+        );
+
+        // Increase debt amount for borrow request on fee value
+        await this.creditLineService.increaseAccumulatedFeeAmountById(creditLine.id, feeAmount);
 
         return {
-            updatedRequest,
-            transaction,
+            success: true,
+        };
+    }
+
+    /**
+     Used by operator to reject borrow request.
+     @param {dto} FinalizeOrRejectBorrowRequestDto - Dto containing ID of the request to reject.
+     @returns {Promise<Object>} - A promise that resolves to an object containing the updated request.
+     @throws {HttpException} - If the request is not in the correct state
+     */
+    async rejectBorrowRequest(dto: FinalizeOrRejectBorrowRequestDto): Promise<{ success: boolean }> {
+        const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
+            dto.requestId
+        );
+
+        const pendingTxs = borrowRequest.fiatTransactions.filter(
+            tx => tx.status === FiatTransactionStatus.PENDING
+        );
+
+        // Update tx status if tx exists
+        if (pendingTxs.length > 0) {
+            if (pendingTxs.length > 1) {
+                throw new HttpException(
+                    "Rejecting request has more that one pending transaction",
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            const pendingTx = pendingTxs[0]!;
+            await this.transactionService.updateFiatTransactionStatus(
+                pendingTx,
+                FiatTransactionStatus.REJECTED
+            );
+        }
+
+        // Update status for borrow request
+        await this.requestHandlerService.updateBorrowReqStatus(
+            borrowRequest.id,
+            BorrowRequestStatus.REJECTED
+        );
+
+        return {
+            success: true,
         };
     }
 
     // Used by operator to verify borrow request before transfer the payment
+    //TODOL accrueInterest here
     async verifyBorrowRequest(reqId: number) {
         const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
         if (!(request instanceof BorrowRequest)) {
             throw new Error("Incorrect request received");
         }
-        const collateralToken = await this.currencyService.getCollateralCurrency(
-            creditLine.collateralCurrencyId
-        );
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
@@ -112,9 +271,9 @@ export class RequestResolverService {
         );
 
         try {
-            await this.riskEngineService.verifyBorrowOrThrow(
+            await this.riskEngineService.verifyBorrowOverLFOrThrow(
                 creditLine,
-                collateralToken.symbol,
+                creditLine.collateralCurrency.symbol,
                 creditLine.collateralCurrency.decimals,
                 requestedBorrowAmount
             );
@@ -134,22 +293,21 @@ export class RequestResolverService {
     }
 
     // Used to verify user requested borrow amount during the creation of new borrow request
-    async verifyHypBorrowRequest(creditLineId: number, hypotheticalBorrowAmount: bigint) {
-        const creditLineExtended = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
-            creditLineId
-        );
-
-        await this.riskEngineService.verifyBorrowOrThrow(
-            creditLineExtended,
-            creditLineExtended.collateralCurrency.symbol,
-            creditLineExtended.collateralCurrency.decimals,
+    async verifyHypBorrowRequest(
+        creditLineCurrencyExtended: CreditLine,
+        hypotheticalBorrowAmount: bigint
+    ) {
+        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            creditLineCurrencyExtended.id,
             hypotheticalBorrowAmount
         );
-    }
 
-    // Used to verify user requested withdraw amount during the creation of new withdraw request
-    async verifyHypWithdrawRequest(creditLineId: number, hypotheticalWithdrawAmount: bigint) {
-        // TODO: add impl
+        await this.riskEngineService.verifyBorrowOverCFOrThrow(
+            creditLineCurrencyExtended,
+            creditLineCurrencyExtended.collateralCurrency.symbol,
+            creditLineCurrencyExtended.collateralCurrency.decimals,
+            borrowAmountWithFee
+        );
     }
 
     /**
@@ -198,19 +356,19 @@ export class RequestResolverService {
 
         // Decrease debt amount for repay request
         const updatedCreditLine = await this.creditLineService.decreaseDebtAmountById(
-            creditLine,
+            creditLine.id,
             transferAmount
         );
 
         // Update status for repay request
         const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
-            repayRequest,
+            repayRequest.id,
             RepayRequestStatus.FINISHED
         );
 
         // Create new FiatTransaction
         const transaction = await this.transactionService.createFiatTransaction({
-            ibanFrom: resolveRepayRequestDto.ibanFrom.trim().toUpperCase(),
+            ibanFrom: resolveRepayRequestDto.ibanFrom.replace(/\s/g, "").toLocaleUpperCase(),
             nameFrom: resolveRepayRequestDto.nameFrom.toUpperCase(),
             ibanTo: repayRequest.businessPaymentRequisite.iban,
             nameTo: repayRequest.businessPaymentRequisite.bankName,
@@ -236,7 +394,7 @@ export class RequestResolverService {
 
         // Update status for repay request
         const updatedRequest = await this.requestHandlerService.updateRepayReqStatus(
-            repayRequest,
+            repayRequest.id,
             RepayRequestStatus.REJECTED
         );
 
@@ -261,33 +419,36 @@ export class RequestResolverService {
             throw new Error("Credit line not found");
         }
 
-        const collateralToken = creditLine.collateralCurrency;
+        const collateralCurrency = creditLine.collateralCurrency;
+        const economicalParams = creditLine.economicalParameters;
 
-        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralToken.decimals);
+        this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralCurrency.decimals);
 
         let depositRequestId;
         let withdrawRequestId;
         if (resolveDto.callbackType === CallbackTypes.DEPOSIT) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
                 creditLine,
-                collateralToken,
+                collateralCurrency,
+                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
                 creditLine,
-                collateralToken,
+                collateralCurrency,
+                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else {
-            throw new Error("Incorrect callback type");
+            throw new HttpException("Incorrect callback type", HttpStatus.BAD_REQUEST);
         }
 
         // Create new CryptoTransaction
         await this.transactionService.createCryptoTransaction({
             depositRequestId,
             withdrawRequestId,
-            rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralToken.decimals),
+            rawTransferAmount: parseUnits(resolveDto.rawTransferAmount, collateralCurrency.decimals),
             // FIXME: maybe calculate usd amount by us?
             usdTransferAmount: parseUnits(resolveDto.usdTransferAmount),
             txHash: resolveDto.txHash,
@@ -345,13 +506,17 @@ export class RequestResolverService {
     private getRequestFnByAction(action: ActionTypes) {
         switch (action) {
             case ActionTypes.DEPOSIT:
-                return this.requestHandlerService.getDepositRequest;
+                return this.requestHandlerService.getDepositRequest.bind(this.requestHandlerService);
             case ActionTypes.WITHDRAW:
-                return this.requestHandlerService.getWithdrawRequest;
+                return this.requestHandlerService.getWithdrawRequest.bind(this.requestHandlerService);
             case ActionTypes.BORROW:
-                return this.requestHandlerService.getBorrowRequest;
+                return this.requestHandlerService.getFullyAssociatedBorrowRequest.bind(
+                    this.requestHandlerService
+                );
             case ActionTypes.REPAY:
-                return this.requestHandlerService.getFullyAssociatedRepayRequest;
+                return this.requestHandlerService.getFullyAssociatedRepayRequest.bind(
+                    this.requestHandlerService
+                );
             default:
                 throw new Error("Unexpected action type");
         }
@@ -362,8 +527,10 @@ export class RequestResolverService {
     private async resolveDepositRequest(
         creditLine: CreditLine,
         collateralToken: CollateralCurrency,
+        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
+        // FIXME: VERIFY IF REQUEST IS INITIAL AND UPDATE BORROW REQUEST IN THAT CASE
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
             creditLine.id
         );
@@ -372,18 +539,34 @@ export class RequestResolverService {
         }
 
         const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
-            pendingRequest,
+            pendingRequest.id,
             DepositRequestStatus.FINISHED
         );
 
+        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const newSupplyAmount = creditLine.rawCollateralAmount + convRawTransferAmount;
+
+        // FIXME: merge 2 creditLine based db requests to one
         // Increase supply amount for credit line
-        await this.creditLineService.increaseSupplyAmountById(
-            creditLine,
-            parseUnits(rawTransferAmount, collateralToken.decimals)
+        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+
+        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
+        const processingFeeCryptoAmount = (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
+        const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
+            collateralToken.symbol,
+            collateralToken.decimals,
+            processingFeeCryptoAmount
+        );
+        // Increase the debt position and fee accumulated by the amount of processing fee
+        const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
+        const newFeeAccumulatedAmount = creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
+        await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
+            creditLine.id,
+            newDebtAmount,
+            newFeeAccumulatedAmount
         );
 
         return {
-            updatedRequest,
             depositRequestId: updatedRequest.id,
             withdrawRequestId: null,
         };
@@ -394,42 +577,74 @@ export class RequestResolverService {
     private async resolveWithdrawRequest(
         creditLine: CreditLine,
         collateralToken: CollateralCurrency,
+        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingWithdrawReq(
             creditLine.id
         );
 
+        if (!pendingRequest) {
+            throw new Error("Pending withdraw request not found");
+        }
+
+        // FIXME: do we need somehow handle exception and save failed callbacks ?
         this.verifyWithdrawAmount(pendingRequest, collateralToken, rawTransferAmount);
 
-        const updatedRequest = await this.requestHandlerService.updateWithdrawReqStatus(
-            pendingRequest,
+        // Decrease supply amount for credit line
+        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const newSupplyAmount = creditLine.rawCollateralAmount - convRawTransferAmount;
+
+        if (newSupplyAmount < 0) {
+            // FIXME: do we need somehow handle it and save failed callbacks ?
+            // Throw 500 in that case
+            throw new Error("Deposit amount after withdraw can not be negative");
+        }
+
+        await this.requestHandlerService.updateWithdrawReqStatus(
+            pendingRequest.id,
             WithdrawRequestStatus.FINISHED
         );
 
-        // Decrease supply amount for credit line
-        await this.creditLineService.decreaseSupplyAmountById(
-            creditLine,
-            parseUnits(rawTransferAmount, collateralToken.decimals)
-        );
+        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+
+        // Apply processing fee for all cases, except the case when user withdraw all his collateral
+        if (newSupplyAmount !== 0n) {
+            // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
+            const processingFeeCryptoAmount =
+                (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
+            const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
+                collateralToken.symbol,
+                collateralToken.decimals,
+                processingFeeCryptoAmount
+            );
+            // Increase the debt position by the amount of processing fee
+            const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
+            const newFeeAccumulatedAmount =
+                creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
+            await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
+                creditLine.id,
+                newDebtAmount,
+                newFeeAccumulatedAmount
+            );
+        }
 
         return {
-            updatedRequest,
             depositRequestId: null,
-            withdrawRequestId: updatedRequest.id,
+            withdrawRequestId: pendingRequest.id,
         };
     }
 
     // Verifies if the actual withdraw amount matches the expected withdrawal amount specified in the withdrawal request.
     private verifyWithdrawAmount(
         request: WithdrawRequest,
-        collateralToken: CollateralCurrency,
+        collateralCurrency: CollateralCurrency,
         rawTransferAmount: string
     ) {
-        const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const actualWithdrawAmount = parseUnits(rawTransferAmount, collateralCurrency.decimals);
 
         if (!(request.withdrawAmount === actualWithdrawAmount)) {
-            throw new Error("Incorrect withdraw amount received");
+            throw new HttpException("Incorrect withdraw amount received", HttpStatus.BAD_REQUEST);
         }
     }
 

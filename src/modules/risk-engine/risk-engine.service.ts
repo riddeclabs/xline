@@ -89,18 +89,105 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    async verifyBorrowOrThrow(
+    //TODO: Add minimum processing fee support
+    async calculateFiatProcessingFeeAmount(creditLineId: number, borrowAmount: bigint): Promise<bigint> {
+        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
+            creditLineId
+        );
+        return (borrowAmount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+    }
+
+    async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {
+        const fee = await this.calculateFiatProcessingFeeAmount(creditLineId, borrowAmount);
+        return borrowAmount + fee;
+    }
+
+    // Verify if borrow is possible over collateral factor
+    // Utilization after borrow must be less or equal than collateral factor
+    async verifyBorrowOverCFOrThrow(
         creditLine: CreditLine,
         collateralSymbol: string,
         collateralDecimals: number,
         borrowAmount: bigint
     ) {
+        if (
+            !(await this.isBorrowPossibleCollateralFactor(
+                creditLine,
+                collateralSymbol,
+                collateralDecimals,
+                borrowAmount
+            ))
+        ) {
+            throw new Error("Insufficient liquidity to process borrow");
+        }
+    }
+
+    // Verify if borrow is possible over liquidation factor
+    // Utilization after borrow must be less or equal than liquidation factor
+    // In that case utilization after borrow could be greater than collateral factor
+    async verifyBorrowOverLFOrThrow(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ) {
+        if (
+            !(await this.isBorrowPossibleLiquidationFactor(
+                creditLine,
+                collateralSymbol,
+                collateralDecimals,
+                borrowAmount
+            ))
+        ) {
+            throw new Error("Insufficient liquidity to process borrow");
+        }
+    }
+
+    async isBorrowPossibleCollateralFactor(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ): Promise<boolean> {
         const economicalParams = await this.economicalParamsService.getParamsById(
             creditLine.economicalParametersId
         );
+        return this.isBorrowPossible(
+            creditLine,
+            collateralSymbol,
+            collateralDecimals,
+            borrowAmount,
+            economicalParams.collateralFactor
+        );
+    }
 
+    async isBorrowPossibleLiquidationFactor(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint
+    ): Promise<boolean> {
+        const economicalParams = await this.economicalParamsService.getParamsById(
+            creditLine.economicalParametersId
+        );
+        return this.isBorrowPossible(
+            creditLine,
+            collateralSymbol,
+            collateralDecimals,
+            borrowAmount,
+            economicalParams.liquidationFactor
+        );
+    }
+
+    async isBorrowPossible(
+        creditLine: CreditLine,
+        collateralSymbol: string,
+        collateralDecimals: number,
+        borrowAmount: bigint,
+        collateralOrLiquidationFactor: bigint
+    ): Promise<boolean> {
         const collateralAmount =
-            (creditLine.rawCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE;
+            (creditLine.rawCollateralAmount * collateralOrLiquidationFactor) / EXP_SCALE;
 
         const usdCollateralAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralSymbol,
@@ -109,9 +196,20 @@ export class RiskEngineService {
         );
 
         const hypotheticalUsdBorrowAmount = creditLine.debtAmount + borrowAmount;
+        return hypotheticalUsdBorrowAmount <= usdCollateralAmount;
+    }
 
-        if (hypotheticalUsdBorrowAmount > usdCollateralAmount) {
-            throw new Error("Insufficient liquidity to process borrow");
-        }
+    /**
+     @description
+     Calculates the utilization rate based on the provided deposit and debt amounts.
+     If the deposit amount is zero or falsy, the utilization rate is considered to be zero.
+     The utilization rate is returned as a bigint value.
+     @param {bigint} depositFiatAmount - The amount of fiat currency deposited.
+     @param {bigint} debtFiatAmount - The amount of fiat currency borrowed as debt.
+     @returns {bigint} - The utilization rate as a bigint representing a decimal value.
+     */
+    calculateUtilizationRate(depositFiatAmount: bigint, debtFiatAmount: bigint) {
+        if (!depositFiatAmount) return 0n;
+        return (debtFiatAmount * EXP_SCALE) / depositFiatAmount;
     }
 }

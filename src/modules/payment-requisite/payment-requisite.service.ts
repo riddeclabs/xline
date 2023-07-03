@@ -41,7 +41,7 @@ export class PaymentRequisiteService {
 
     // Business requisite handlers
 
-    getAllBusinessPayReqs() {
+    getAllBusinessPayReqs(): Promise<[BusinessPaymentRequisite[], number]> {
         return this.businessPaymentRepo.findAndCount();
     }
 
@@ -68,5 +68,18 @@ export class PaymentRequisiteService {
     saveNewBusinessRequisite(dto: CreateBusinessPaymentRequisiteDto) {
         const newReq = this.businessPaymentRepo.create(dto);
         return this.businessPaymentRepo.save(newReq);
+    }
+
+    async getBusinessPayReqByIbanAndCurrency(
+        iban: string,
+        currencySymbol: string
+    ): Promise<BusinessPaymentRequisite | null> {
+        const formattedIban = iban.replace(/\s/g, "").toUpperCase();
+        return this.businessPaymentRepo
+            .createQueryBuilder("bpr")
+            .leftJoin("bpr.debtCurrency", "dc")
+            .where("bpr.iban = :formattedIban", { formattedIban })
+            .andWhere("dc.symbol = :currencySymbol", { currencySymbol })
+            .getOne();
     }
 }

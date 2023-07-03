@@ -1,5 +1,5 @@
 import { CreditLineDetails } from "../../../../credit-line/credit-line.types";
-import { truncateDecimal } from "../../../../../common/text-formatter";
+import { truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { bigintToFormattedPercent, escapeSpecialCharacters, formatUnits } from "../../../../../common";
 import { BusinessPaymentRequisite } from "../../../../../database/entities";
 
@@ -67,15 +67,17 @@ export class RepayTextSource {
         return {
             mdDebtSymbol: creditLineDetails.debtCurrency.symbol,
             mdCollateralSymbol: creditLineDetails.collateralCurrency.symbol,
-            mdDepositAmountUsd: truncateDecimal(formatUnits(creditLineDetails.fiatCollateralAmount)),
-            mdDepositAmountRaw: truncateDecimal(
+            mdDepositAmountUsd: truncateDecimalsToStr(
+                formatUnits(creditLineDetails.fiatCollateralAmount)
+            ),
+            mdDepositAmountRaw: truncateDecimalsToStr(
                 formatUnits(
                     creditLineDetails.rawCollateralAmount,
                     creditLineDetails.collateralCurrency.decimals
                 )
             ),
-            mdDebtAmount: truncateDecimal(formatUnits(creditLineDetails.debtAmount)),
-            mdHealthyFactor: truncateDecimal(formatUnits(creditLineDetails.healthyFactor)),
+            mdDebtAmount: truncateDecimalsToStr(formatUnits(creditLineDetails.debtAmount)),
+            mdHealthyFactor: truncateDecimalsToStr(formatUnits(creditLineDetails.healthyFactor)),
             mdUtilizationRate: bigintToFormattedPercent(creditLineDetails.utilizationRate),
         };
     }

@@ -390,7 +390,7 @@ export class NewCreditRequestWizard {
 
         if (!ibanValidity.valid) {
             const errorMsg = NewCreditRequestText.getIbanValidationErrorMsg(userInput);
-            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+            await this.botCommon.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.iban = formattedInput;
             await this.botCommon.executeCurrentStep(ctx);
@@ -401,7 +401,7 @@ export class NewCreditRequestWizard {
         const input = userInput.toUpperCase();
         if (!validateName(input)) {
             const errorMsg = NewCreditRequestText.getNameValidationErrorMsg(userInput);
-            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
+            await this.botCommon.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_NAME);
         } else {
             ctx.scene.session.state.bankAccountName = input;
             await this.botCommon.executeCurrentStep(ctx);
@@ -412,7 +412,11 @@ export class NewCreditRequestWizard {
         const input = Number(userInput);
         if (!input || input <= 0) {
             const errorMsg = NewCreditRequestText.getAmountValidationErrorMsg(userInput);
-            await this.retryOrBackHandler(ctx, errorMsg, NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT);
+            await this.botCommon.retryOrBackHandler(
+                ctx,
+                errorMsg,
+                NewCreditReqCallbacks.RE_ENTER_CRYPTO_AMOUNT
+            );
         } else {
             const decimalMaxLength = ctx.scene.session.state.collateralCurrency?.decimals;
             if (!decimalMaxLength) throw new Error("Could not find collateral currency decimals");
@@ -523,35 +527,5 @@ export class NewCreditRequestWizard {
         } else {
             throw new Error("Incorrect sign application option");
         }
-    }
-
-    private async retryOrBackHandler(
-        ctx: NewCreditRequestContext,
-        errorMsg: string,
-        retryCallbackValue: string
-    ) {
-        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-        await ctx.telegram.editMessageText(
-            ctx.chat?.id,
-            editMsgId,
-            undefined,
-            escapeSpecialCharacters(errorMsg),
-            { parse_mode: "MarkdownV2" }
-        );
-        await ctx.telegram.editMessageReplyMarkup(
-            ctx.chat?.id,
-            editMsgId,
-            undefined,
-            Markup.inlineKeyboard(
-                [
-                    {
-                        text: "🔁 Try again",
-                        callback_data: `${retryCallbackValue}`,
-                    },
-                    this.botCommon.goBackButton(),
-                ],
-                { columns: 2 }
-            ).reply_markup
-        );
     }
 }

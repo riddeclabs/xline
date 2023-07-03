@@ -48,7 +48,7 @@ import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
 import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
-import { truncateDecimal } from "src/common/text-formatter";
+import { truncateDecimalsToStr } from "src/common/text-formatter";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -125,15 +125,35 @@ export class BackOfficeController {
         const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
-        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
 
+        const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
-            totalDebt,
-            debtCurrencyInitial,
-            totalFeeAccumulatedUsd: feeAccumulatedUsd?.feeAccumulatedUsd,
+            totalDebt: truncateDecimalsToStr(
+                formatUnits(BigInt(totalDebt), debtCurrencyInitial[0]?.decimals),
+                2,
+                false
+            ),
+            debtCurrencyInitial: debtCurrencyInitial.map(item => {
+                return {
+                    ...item,
+                    amount: truncateDecimalsToStr(
+                        formatUnits(BigInt(item.amount || 0n), debtCurrencyInitial[0]?.decimals),
+                        2,
+                        false
+                    ),
+                };
+            }),
+            totalFeeAccumulatedUsd: truncateDecimalsToStr(
+                formatUnits(
+                    BigInt(feeAccumulatedUsd?.feeAccumulatedUsd || 0n),
+                    debtCurrencyInitial[0]?.decimals
+                ),
+                2,
+                false
+            ),
             currenciesAllSymbol,
             debtAllSymbol,
         };
@@ -182,8 +202,6 @@ export class BackOfficeController {
             sort,
             chatIdFilter
         );
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
@@ -282,17 +300,17 @@ export class BackOfficeController {
                 generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
                     ?.bankName,
             iban: generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]?.iban,
-            collateralFactor: truncateDecimal(
+            collateralFactor: truncateDecimalsToStr(
                 formatUnits(economicalParams.collateralFactor * 100n),
                 2,
                 false
             ),
-            liquidationFactor: truncateDecimal(
+            liquidationFactor: truncateDecimalsToStr(
                 formatUnits(economicalParams.liquidationFactor * 100n),
                 2,
                 false
             ),
-            beforeCollateralAmount: truncateDecimal(
+            beforeCollateralAmount: truncateDecimalsToStr(
                 formatUnits(
                     (lineDetails.fiatCollateralAmount * economicalParams.collateralFactor) / EXP_SCALE,
                     lineDetails.debtCurrency.decimals
@@ -300,20 +318,20 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            beforeSupplyAmount: truncateDecimal(
+            beforeSupplyAmount: truncateDecimalsToStr(
                 formatUnits(lineDetails.fiatCollateralAmount, lineDetails.debtCurrency.decimals),
                 2,
                 false
             ),
             symbol: generalUserByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
-            beforeBorrowAmount: truncateDecimal(
+            beforeBorrowAmount: truncateDecimalsToStr(
                 formatUnits(
                     generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount || 0n
                 ),
                 2,
                 false
             ),
-            utitlizationFactor: truncateDecimal(
+            utitlizationFactor: truncateDecimalsToStr(
                 formatUnits(lineDetails.utilizationRate * 100n),
                 2,
                 false
@@ -321,6 +339,29 @@ export class BackOfficeController {
             status,
         };
         return { resultPageData };
+    }
+    @Get("repay-request/:id")
+    @Render("backoffice/repay-request-item")
+    async repayItem(@Req() req: Request, @Param("id") id: string) {
+        const repayRequestById = await this.backofficeService.getRepayRequestById(id);
+        const resultRepayRequestById = {
+            refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
+            iban: repayRequestById?.businessPaymentRequisite.iban,
+            debtAmountUSD: truncateDecimalsToStr(
+                formatUnits(repayRequestById?.creditLine.debtAmount || 0n),
+                2,
+                false
+            ),
+        };
+        return resultRepayRequestById;
+    }
+
+    @Roles(Role.ADMIN, Role.OPERATOR)
+    @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("borrow-request/:id")
+    @Render("backoffice/unresolved-request-borrow")
+    async borrowRequest(@Req() req: Request, @Param("id") id: string) {
+        return { id };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
@@ -481,7 +522,7 @@ export class BackOfficeController {
                                 lineDetails.rawCollateralAmount,
                                 lineDetails.collateralCurrency.decimals
                             ), // raw collateral amount, use collateral decimals to convert to float
-                            usdSupplyAmount: truncateDecimal(
+                            usdSupplyAmount: truncateDecimalsToStr(
                                 formatUnits(
                                     lineDetails.fiatCollateralAmount,
                                     lineDetails.debtCurrency.decimals
@@ -489,7 +530,7 @@ export class BackOfficeController {
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
-                            usdCollateralAmount: truncateDecimal(
+                            usdCollateralAmount: truncateDecimalsToStr(
                                 formatUnits(
                                     (lineDetails.fiatCollateralAmount *
                                         economicalParams.collateralFactor) /
@@ -499,7 +540,7 @@ export class BackOfficeController {
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
-                            debtAmount: truncateDecimal(
+                            debtAmount: truncateDecimalsToStr(
                                 formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals),
                                 2,
                                 false
@@ -508,22 +549,22 @@ export class BackOfficeController {
                             usdAvailableLiquidity: 1, // Usd value, has 18 decimals accuracy
                         },
                         currentState: {
-                            utilizationFactor: truncateDecimal(
+                            utilizationFactor: truncateDecimalsToStr(
                                 formatUnits(lineDetails.utilizationRate * 100n),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
-                            healthyFactor: truncateDecimal(
+                            healthyFactor: truncateDecimalsToStr(
                                 formatUnits(lineDetails.healthyFactor),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
-                            collateralFactor: truncateDecimal(
+                            collateralFactor: truncateDecimalsToStr(
                                 formatUnits(economicalParams.collateralFactor * 100n)
                             ), // All rates have 18 decimals accuracy
-                            liquidationFactor: truncateDecimal(
+                            liquidationFactor: truncateDecimalsToStr(
                                 formatUnits(economicalParams.liquidationFactor * 100n)
                             ), // All rates have 18 decimals accuracy
                         },
