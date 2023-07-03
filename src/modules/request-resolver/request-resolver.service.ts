@@ -493,7 +493,7 @@ export class RequestResolverService {
             | WithdrawRequest
             | BorrowRequest
             | RepayRequest;
-        const creditLine = await this.creditLineService.getCreditLinesByIdCurrencyExtended(
+        const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
             request.creditLineId
         );
 
