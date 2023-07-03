@@ -82,3 +82,19 @@ export function createUserGatewayId(chatId: number, currencyId: number) {
 export function xor(a: any, b: any): boolean {
     return !!a !== !!b;
 }
+
+export type BigintPropertiesToString<T> = {
+    [Property in keyof T]: T[Property] extends bigint ? string : T[Property];
+};
+
+export function parseBigintProperties<T extends object>(obj: T): BigintPropertiesToString<T> {
+    const result: any = {};
+    Object.entries(obj).forEach(([key, value]) => {
+        if (typeof value === "bigint") {
+            result[key] = value.toString();
+        } else {
+            result[key] = value;
+        }
+    });
+    return result;
+}
