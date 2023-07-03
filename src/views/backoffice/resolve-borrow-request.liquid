@@ -1,5 +1,7 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
+  <div class="success-mess" id="success">Successfully!</div>
+  <div class="error-mess" id="error">Something went wrong!</div>
   <h1 class='pb-3 text-white fs-1'>Borrow request resolve page.</h1>
   {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
     <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
@@ -16,10 +18,13 @@
         <p class='fs-6'>Liquidation factor: {{ resultPageData.liquidationFactor }} %</p>
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
-        <p class='fs-6 mt-5'>
+        <p class='fs-6 mt-1'>
           If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
         </p>
-        <button class="reject-button" style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
       </div>
     </div>
   {% elsif resultPageData.status == 'VERIFICATION_PENDING' %}
@@ -69,16 +74,28 @@
       <div class='card bg-dark shadow-sm wrapper-count'>
         <h1 class='pb-2 fs-5'>Resolve request form:</h1>
         <p class='fs-6'>IBAN from:</p>
-        <input type="text" class="input-resolve">
+        <input
+          id="iban"
+          type="text"
+          class="input-resolve">
         <p class='fs-6 mt-2'>Transfer amount:</p>
-        <input type="text" class="input-resolve">
-        <button class="accept-button mt-3" style="padding: 6px 20px;">Resolve</button>
+        <input
+          id="transferAmount"
+          type="text"
+          class="input-resolve">
+        <button
+          id="accept-btn"
+          class="accept-button mt-3"
+          style="padding: 6px 20px;">Resolve</button>
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
         <p class='fs-6 mt-5'>
           If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
         </p>
-        <button class="reject-button" style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
       </div>
     </div>
   {% else %}
@@ -107,9 +124,115 @@
 
       </div>
       <div class="wrapper-buttons">
-        <button class="accept-button" style="padding: 5px 40px; margin-right: 10px">Confirm</button>
-        <button class="reject-button" style="padding: 5px 42px; margin-left: 10px;">Reject</button>
+        <button
+          id="finelize-btn"
+          class="accept-button"
+          style="padding: 5px 40px; margin-right: 10px">Confirm</button>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 5px 42px; margin-left: 10px;">Reject</button>
       </div>
     </div>
   {% endif %}
+  <script>
+    const rejectBtn = document.getElementById('reject');
+    const success = document.getElementById('success');
+    const error = document.getElementById('error');
+    const transferInput = document.getElementById('transferAmount');
+    const ibanInput = document.getElementById('iban');
+    const baseUrl = document.location.origin;
+    const acceptBtn = document.getElementById('accept-btn');
+    const finelizeBtn = document.getElementById('finelize-btn');
+    const borrowId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-1)[0];
+
+    rejectBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {requestId: Number(borrowId)}
+        )
+      };
+      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-reject`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href = `${baseUrl}/backoffice/borrow-request`
+          }, 2000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    })
+    acceptBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {
+            requestId: + borrowId,
+            ibanFrom: ibanInput.value,
+            rawTransferAmount: transferInput.value
+          }
+        )
+      };
+      fetch(`${baseUrl}/request-resolver/resolve-request/borrow`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href = `${baseUrl}/backoffice/borrow-request`
+          }, 3000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    })
+
+    finelizeBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {requestId: Number(borrowId)}
+        )
+      };
+      console.log("1")
+      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href = `${baseUrl}/backoffice/borrow-request`
+          }, 2000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    })
+  </script>
 {% endblock %}

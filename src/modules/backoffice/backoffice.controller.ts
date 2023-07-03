@@ -207,7 +207,16 @@ export class BackOfficeController {
                 ...item,
                 createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                 updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
-                borrowFiatAmount: item.borrowFiatAmount ?? 0,
+                borrowFiatAmount: item.borrowFiatAmount,
+                //TODO truncateDecimalsToStr return 0
+                // borrowFiatAmount: truncateDecimalsToStr(
+                //     formatUnits(
+                //         BigInt(item.borrowFiatAmount || 0n),
+                //         item.creditLine.debtCurrency.decimals
+                //     ),
+                //     2,
+                //     false
+                // ),
             };
         });
         const totalCount = await this.backofficeService.getBorrowCount();
@@ -284,15 +293,20 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("borrow-request/:status/:id")
+    @Get("borrow-request/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
-    async borrowRequestResolve(@Param("id") id: string, @Param("status") status: string) {
+    async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
         const generalUserByBorrowId = await this.backofficeService.getGeneralUserInformationByBorrowId(
             id
         );
 
+        console.log(
+            "generalUserByBorrowId",
+            generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus
+        );
+
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            generalUserByBorrowId?.creditLines[0]?.id || 0
+            Number(creditLineId)
         );
 
         const resultPageData = {
@@ -336,7 +350,7 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            status,
+            status: generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
         };
         return { resultPageData };
     }
