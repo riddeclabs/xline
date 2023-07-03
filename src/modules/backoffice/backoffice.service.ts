@@ -314,6 +314,7 @@ export class BackOfficeService {
             .where("borrowRequests.id = :id", { id })
             .getOne();
     }
+
     async getCreditLineStateBeforeAndAfterBorrowResolved(
         creditLineId: number,
         borrowRequestId: number
