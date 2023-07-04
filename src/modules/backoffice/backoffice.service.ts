@@ -277,6 +277,23 @@ export class BackOfficeService {
             .getMany();
     }
 
+    getRepayRequestExtendBusinessPaymentReq(requestId: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .where("repay.id = :id", { id: requestId })
+            .getOne();
+    }
+
+    getBorrowRequestExtendCreditLineAndUserPaymentReq(requestId: string) {
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("borrow.id = :id", { id: requestId })
+            .getOne();
+    }
+
     getDepositRequestDetails(
         page: number,
         id: string,
@@ -306,6 +323,7 @@ export class BackOfficeService {
             .orderBy(`crypto.${sortField}`, sortDirection)
             .getMany();
     }
+
     getRepayRequestById(id: string) {
         return this.repayRepo
             .createQueryBuilder("repay")
@@ -363,14 +381,6 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getBorrowStatus(id: string) {
-        return this.borrowRepo
-            .createQueryBuilder("borrow")
-            .where("borrow.id = :id", { id })
-            .select(["borrow.borrowRequestStatus", "borrow.id"])
-            .getOne();
-    }
-
     getDepositStatus(id: string) {
         return this.depositRepo
             .createQueryBuilder("deposit")
@@ -387,11 +397,10 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getWithdrawStatus(id: string) {
+    getWithdrawRequestById(id: string) {
         return this.withdrawRepo
             .createQueryBuilder("withdraw")
             .where("withdraw.id = :id", { id })
-            .select(["withdraw.withdrawRequestStatus", "withdraw.id", "withdraw.walletToWithdraw"])
             .getOne();
     }
     async getCreditLineStateBeforeAndAfterBorrowResolved(

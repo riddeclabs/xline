@@ -32,10 +32,10 @@
     <h1 class='pb-2 text-white fs-4'>Associated XLine Requisites:</h1>
     <ul>
       <li>
-        <div>Name: {{ resultPageInfo.rowTable[0].nameTo }}</div>
+        <div>Name: {{ resultPageInfo.mainInfo.associatedXLineInfo.bankName }}</div>
       </li>
       <li>
-        <div>IBAN: {{ resultPageInfo.rowTable[0].ibanTo }}</div>
+        <div>IBAN: {{ resultPageInfo.mainInfo.associatedXLineInfo.iban }}</div>
       </li>
     </ul>
     {% elsif resultPageInfo.mainInfo.type == "Borrow" %}
@@ -43,14 +43,17 @@
       <li>
         <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
       </li>
+      {% if resultPageInfo.mainInfo.checkBorrowFiatAmount %}
       <li>
-        <div>Requested Borrow Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
+        <div>Requested Borrow Amount: {{ resultPageInfo.mainInfo.borrowFiatAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
       </li>
+      {% else %}
       <li>
         <div>Initial Risk Strategy: {{ resultPageInfo.mainInfo.initialRistStrategy }}</div>
       </li>
+      {% endif %}
       <li>
-        <div>IBAN: {{ resultPageInfo.rowTable[0].ibanTo }}</div>
+        <div>IBAN: {{ resultPageInfo.mainInfo.borrowIban }}</div>
       </li>
     </ul>
 
@@ -73,7 +76,7 @@
             <div>Address to Withdraw: {{ resultPageInfo.mainInfo.wallet }}</div>
           </li>
           <li>
-            <div>Raw Withdraw Amount: {{ resultPageInfo.rowTable[0].rawTransferAmount }} {{ resultPageInfo.mainInfo.collateral }}</div>
+            <div>Raw Withdraw Amount: {{ resultPageInfo.mainInfo.withdrawAmount }} {{ resultPageInfo.mainInfo.collateral }}</div>
           </li>
         </ul>
     {% endif %}

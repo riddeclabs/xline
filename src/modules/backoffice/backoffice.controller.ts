@@ -378,8 +378,13 @@ export class BackOfficeController {
         );
         let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
-        const borrow = await this.backofficeService.getBorrowRequest(id);
         let status = { id: 0, status: "", wallet: "" };
+        let associatedXLineInfo = { bankName: "", iban: "" };
+        let borrowIban = "";
+        let checkBorrowFiatAmount = false;
+        let borrowFiatAmount = "";
+        let withdrawAmount = "";
+
         switch (type) {
             case "Borrow":
                 resultTable = await this.backofficeService.getBorrowRequestDetails(
@@ -388,17 +393,30 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
+                const borrowRequestExtendCreditLineAndUserPaymentReq =
+                    await this.backofficeService.getBorrowRequestExtendCreditLineAndUserPaymentReq(id);
+                borrowIban =
+                    borrowRequestExtendCreditLineAndUserPaymentReq?.creditLine.userPaymentRequisite
+                        .iban || "";
+                checkBorrowFiatAmount =
+                    !!borrowRequestExtendCreditLineAndUserPaymentReq?.borrowFiatAmount;
                 initialRistStrategy = truncateDecimalsToStr(
-                    formatUnits(borrow?.initialRiskStrategy ?? 0n),
+                    formatUnits(
+                        borrowRequestExtendCreditLineAndUserPaymentReq?.initialRiskStrategy ?? 0n
+                    ),
                     2,
                     false
                 );
-                const borrowStatus = await this.backofficeService.getBorrowStatus(id);
                 status = {
-                    status: borrowStatus?.borrowRequestStatus || "",
-                    id: borrowStatus?.id || 0,
+                    status: borrowRequestExtendCreditLineAndUserPaymentReq?.borrowRequestStatus || "",
+                    id: borrowRequestExtendCreditLineAndUserPaymentReq?.id || 0,
                     wallet: "",
                 };
+                borrowFiatAmount = truncateDecimalsToStr(
+                    formatUnits(borrowRequestExtendCreditLineAndUserPaymentReq?.borrowFiatAmount ?? 0n),
+                    2,
+                    false
+                );
                 break;
             case "Deposit":
                 resultTable = await this.backofficeService.getDepositRequestDetails(
@@ -421,12 +439,17 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
-                const withdrawStatus = await this.backofficeService.getWithdrawStatus(id);
+                const withdrawRequest = await this.backofficeService.getWithdrawRequestById(id);
                 status = {
-                    status: withdrawStatus?.withdrawRequestStatus || "",
-                    id: withdrawStatus?.id || 0,
-                    wallet: withdrawStatus?.walletToWithdraw || "",
+                    status: withdrawRequest?.withdrawRequestStatus || "",
+                    id: withdrawRequest?.id || 0,
+                    wallet: withdrawRequest?.walletToWithdraw || "",
                 };
+                withdrawAmount = truncateDecimalsToStr(
+                    formatUnits(withdrawRequest?.withdrawAmount ?? 0n),
+                    2,
+                    false
+                );
                 break;
             case "Repay":
                 resultTable = await this.backofficeService.getRepayRequestDetails(
@@ -440,6 +463,15 @@ export class BackOfficeController {
                     status: repayStatus?.repayRequestStatus || "",
                     id: repayStatus?.id || 0,
                     wallet: "",
+                };
+                const repayRequestExtendBusinessPaymentRequisite =
+                    await this.backofficeService.getRepayRequestExtendBusinessPaymentReq(id);
+                associatedXLineInfo = {
+                    bankName:
+                        repayRequestExtendBusinessPaymentRequisite?.businessPaymentRequisite.bankName ||
+                        "",
+                    iban:
+                        repayRequestExtendBusinessPaymentRequisite?.businessPaymentRequisite.iban || "",
                 };
                 break;
         }
@@ -483,6 +515,11 @@ export class BackOfficeController {
                 status: checkStatus(type, status.status),
                 id: status.id,
                 wallet: status.wallet,
+                associatedXLineInfo,
+                borrowIban,
+                checkBorrowFiatAmount,
+                borrowFiatAmount,
+                withdrawAmount,
             },
             rowTable: resultTable.map(item => {
                 return {
