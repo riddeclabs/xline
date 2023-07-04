@@ -262,7 +262,7 @@ export class BackOfficeService {
         return this.borrowRepo.createQueryBuilder("borrow").where("borrow.id = :id", { id }).getOne();
     }
 
-    getRepayRequestDetailsByRequestId(
+    getRepayReqDetailsByReqId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -277,7 +277,7 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getRepayRequestExtendBusinessPaymentReq(requestId: string) {
+    getRepayReqExtBusinessPaymentReq(requestId: string) {
         return this.repayRepo
             .createQueryBuilder("repay")
             .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
@@ -294,7 +294,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getDepositRequestDetailsByRequestId(
+    getDepositReqDetailsByReqId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -309,7 +309,7 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getWithdrawRequestDetailsByRequestId(
+    getWithdrawReqDetailsByReqId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -371,7 +371,7 @@ export class BackOfficeService {
         return this.connection.manager.query(query);
     }
 
-    getCreditLineByIdExtendUserInfoAndDebtAndCollateralCurrency(id: string) {
+    getCreditLineByIdExtUserInfoAndDebtCollCurrency(id: string) {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.user", "user")
@@ -381,7 +381,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getDepositRequestStatusById(id: string) {
+    getDepositReqStatusById(id: string) {
         return this.depositRepo
             .createQueryBuilder("deposit")
             .where("deposit.id = :id", { id })
@@ -397,7 +397,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getWithdrawRequestById(id: string) {
+    getWithdrawReqById(id: string) {
         return this.withdrawRepo
             .createQueryBuilder("withdraw")
             .where("withdraw.id = :id", { id })
