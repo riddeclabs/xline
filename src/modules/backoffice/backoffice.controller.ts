@@ -373,9 +373,10 @@ export class BackOfficeController {
         @CreditLineDetails() query: CreditLineDetailsDto
     ) {
         const { page, sortField, sortDirection } = query;
-        const generalUserInfo = await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(
-            creditLineId
-        );
+        const generalUserInfoByCreditLineId =
+            await this.backofficeService.getCreditLineByIdExtendUserInfoAndDebtAndCollateralCurrency(
+                creditLineId
+            );
         let initialRistStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         let status = { id: 0, status: "", wallet: "" };
@@ -419,13 +420,13 @@ export class BackOfficeController {
                 );
                 break;
             case "Deposit":
-                resultTable = await this.backofficeService.getDepositRequestDetails(
+                resultTable = await this.backofficeService.getDepositRequestDetailsByRequestId(
                     page - 1,
                     id,
                     sortField,
                     sortDirection
                 );
-                const depositStatus = await this.backofficeService.getDepositStatus(id);
+                const depositStatus = await this.backofficeService.getDepositRequestStatusById(id);
                 status = {
                     status: depositStatus?.depositRequestStatus || "",
                     id: depositStatus?.id || 0,
@@ -433,7 +434,7 @@ export class BackOfficeController {
                 };
                 break;
             case "Withdraw":
-                resultTable = await this.backofficeService.getWithdrawRequestDetails(
+                resultTable = await this.backofficeService.getWithdrawRequestDetailsByRequestId(
                     page - 1,
                     id,
                     sortField,
@@ -452,13 +453,13 @@ export class BackOfficeController {
                 );
                 break;
             case "Repay":
-                resultTable = await this.backofficeService.getRepayRequestDetails(
+                resultTable = await this.backofficeService.getRepayRequestDetailsByRequestId(
                     page - 1,
                     id,
                     sortField,
                     sortDirection
                 );
-                const repayStatus = await this.backofficeService.getRepayStatus(id);
+                const repayStatus = await this.backofficeService.getRepayStatusById(id);
                 status = {
                     status: repayStatus?.repayRequestStatus || "",
                     id: repayStatus?.id || 0,
@@ -501,15 +502,18 @@ export class BackOfficeController {
 
         const resultPageInfo = {
             mainInfo: {
-                name: generalUserInfo?.user.name,
-                chatId: generalUserInfo?.user.chatId,
-                debt: generalUserInfo?.debtCurrency.symbol,
-                collateral: generalUserInfo?.collateralCurrency.symbol,
+                name: generalUserInfoByCreditLineId?.user.name,
+                chatId: generalUserInfoByCreditLineId?.user.chatId,
+                debt: generalUserInfoByCreditLineId?.debtCurrency.symbol,
+                collateral: generalUserInfoByCreditLineId?.collateralCurrency.symbol,
                 type,
-                refNumber: createRepayRequestRefNumber(generalUserInfo?.refNumber || "", Number(id)),
+                refNumber: createRepayRequestRefNumber(
+                    generalUserInfoByCreditLineId?.refNumber || "",
+                    Number(id)
+                ),
                 address: await this.botManager.getUserWallet(
-                    String(generalUserInfo?.user.chatId),
-                    String(generalUserInfo?.collateralCurrency.symbol)
+                    String(generalUserInfoByCreditLineId?.user.chatId),
+                    String(generalUserInfoByCreditLineId?.collateralCurrency.symbol)
                 ),
                 initialRistStrategy,
                 status: checkStatus(type, status.status),
@@ -595,7 +599,9 @@ export class BackOfficeController {
         const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
         const totalCount = countTransaction[0]?.count;
         const generalUserInfoAndCurrencySymbol =
-            await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(creditLineId);
+            await this.backofficeService.getCreditLineByIdExtendUserInfoAndDebtAndCollateralCurrency(
+                creditLineId
+            );
 
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,

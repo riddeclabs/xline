@@ -262,7 +262,7 @@ export class BackOfficeService {
         return this.borrowRepo.createQueryBuilder("borrow").where("borrow.id = :id", { id }).getOne();
     }
 
-    getRepayRequestDetails(
+    getRepayRequestDetailsByRequestId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -294,7 +294,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getDepositRequestDetails(
+    getDepositRequestDetailsByRequestId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -309,7 +309,7 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getWithdrawRequestDetails(
+    getWithdrawRequestDetailsByRequestId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -371,7 +371,7 @@ export class BackOfficeService {
         return this.connection.manager.query(query);
     }
 
-    getGeneralUserInfoAndCurrencySymbol(id: string) {
+    getCreditLineByIdExtendUserInfoAndDebtAndCollateralCurrency(id: string) {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.user", "user")
@@ -381,7 +381,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getDepositStatus(id: string) {
+    getDepositRequestStatusById(id: string) {
         return this.depositRepo
             .createQueryBuilder("deposit")
             .where("deposit.id = :id", { id })
@@ -389,7 +389,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getRepayStatus(id: string) {
+    getRepayStatusById(id: string) {
         return this.repayRepo
             .createQueryBuilder("repay")
             .where("repay.id = :id", { id })
