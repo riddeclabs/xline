@@ -2,19 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { CreateCreditLineDto } from "./dto/create-credit-line.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CreditLine } from "../../database/entities";
-import { Repository } from "typeorm";
+import { Repository, UpdateResult } from "typeorm";
 import { CreditLineCurrencyExtended } from "./credit-line.types";
 
 @Injectable()
 export class CreditLineService {
     constructor(@InjectRepository(CreditLine) private creditLineRepo: Repository<CreditLine>) {}
-
     async getCreditLineById(creditLineId: number) {
         return this.creditLineRepo.findOneByOrFail({ id: creditLineId });
-    }
-
-    async getAllCreditLines() {
-        return this.creditLineRepo.find();
     }
 
     async saveNewCreditLine(newCreditLineDto: CreateCreditLineDto) {
@@ -37,7 +32,7 @@ export class CreditLineService {
         creditLineId: number,
         newDebtAmount: bigint,
         newFeeAccumulatedAmount: bigint
-    ) {
+    ): Promise<UpdateResult> {
         return this.creditLineRepo
             .createQueryBuilder()
             .update()
@@ -65,28 +60,6 @@ export class CreditLineService {
             .createQueryBuilder()
             .update(CreditLine)
             .set({ debtAmount: () => `debtAmount - ${subAmount}` })
-            .where("id = :id", { id: creditLineId })
-            .execute();
-
-        return this.getCreditLineById(creditLineId);
-    }
-
-    async increaseSupplyAmountById(creditLineId: number, addAmount: bigint) {
-        await this.creditLineRepo
-            .createQueryBuilder()
-            .update(CreditLine)
-            .set({ rawCollateralAmount: () => `rawCollateralAmount + ${addAmount}` })
-            .where("id = :id", { id: creditLineId })
-            .execute();
-
-        return this.getCreditLineById(creditLineId);
-    }
-
-    async decreaseSupplyAmountById(creditLineId: number, subAmount: bigint) {
-        await this.creditLineRepo
-            .createQueryBuilder()
-            .update(CreditLine)
-            .set({ rawCollateralAmount: () => `rawCollateralAmount - ${subAmount}` })
             .where("id = :id", { id: creditLineId })
             .execute();
 
@@ -124,15 +97,6 @@ export class CreditLineService {
             .leftJoin("creditLine.user", "user")
             .where("user.chatId = :chatId", { chatId })
             .getMany();
-    }
-
-    async getCreditLinesByIdCurrencyExtended(creditLineId: number): Promise<CreditLineCurrencyExtended> {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
-            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-            .where("creditLine.id = :creditLineId", { creditLineId })
-            .getOneOrFail();
     }
 
     async getCreditLinesByIdAllSettingsExtended(
