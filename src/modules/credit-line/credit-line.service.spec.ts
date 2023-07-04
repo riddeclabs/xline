@@ -100,7 +100,8 @@ describe("ReviewService", () => {
         });
 
         it("should fail if creditLine not found", async () => {
-            await expect(creditLineService.getCreditLineById(100)).rejects.toThrow();
+            // Use ID = 0 due to such id will never be reached
+            await expect(creditLineService.getCreditLineById(0)).rejects.toThrow();
         });
     });
 
