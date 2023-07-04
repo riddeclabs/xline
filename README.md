@@ -34,6 +34,12 @@ $ yarn install
 
 ## Running the app
 
+1. Run docker containers with docker compose  (this docker-compose file opens and listens on the following ports: 5432 - pgsql )
+
+```bash
+$ docker compose up -d
+```
+2. Run the application
 ```bash
 # development
 $ yarn run start
@@ -43,4 +49,19 @@ $ yarn run start:dev
 
 # production mode
 $ yarn run start:prod
+```
+
+#### P.S: In the development mode you need to make an initial seeding of the database
+
+Run the following script to seed the database:
+```bash
+$ yarn database:seed
+```
+
+Script creates: one operator, collateral and debt currencies, economical parameters, business payment requisite, payment-processing operator, etc
+
+## Running tests
+
+```bash
+$ yarn test
 ```
