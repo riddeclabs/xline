@@ -10,6 +10,7 @@ import {
     User,
     DebtCurrency,
     CollateralCurrency,
+    FiatTransaction,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -30,6 +31,7 @@ import { RequestHandlerModule } from "../request-handler/request-handler.module"
             CreditLine,
             CollateralCurrency,
             DebtCurrency,
+            FiatTransaction,
         ]),
         BotModule,
         PriceOracleModule,

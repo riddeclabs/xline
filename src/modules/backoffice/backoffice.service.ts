@@ -8,6 +8,7 @@ import {
     CollateralCurrency,
     RepayRequest,
     User,
+    FiatTransaction,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -64,6 +65,8 @@ export class BackOfficeService {
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
+        @InjectRepository(FiatTransaction)
+        private fiatRepo: Repository<FiatTransaction>,
         private connection: Connection,
         private readonly botManagerService: BotManagerService,
         private readonly riskEngineService: RiskEngineService,
@@ -122,22 +125,36 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+    getAllBorrowReqExtCreditLineAndDebtCollCurrency(
+        page: number,
+        sort?: "ASC" | "DESC",
+        chatId?: string
+    ) {
         const sortDate = sort ?? "DESC";
 
-        return this.borrowRepo
-            .createQueryBuilder("borrow")
-            .leftJoinAndSelect("borrow.creditLine", "creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
-            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
-            .leftJoinAndSelect("creditLine.user", "user")
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-            .skip(page * PAGE_LIMIT_REQUEST)
-            .take(PAGE_LIMIT_REQUEST)
-            .orderBy("borrow.createdAt", sortDate)
-            .addOrderBy("borrow.updatedAt", sortDate)
-            .getMany();
+        return (
+            this.borrowRepo
+                .createQueryBuilder("borrow")
+                //TODO implement sorting by status, multi value
+                // .where("borrow.borrowRequestStatus = :status", {
+                //     status: [
+                //         BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+                //         BorrowRequestStatus.VERIFICATION_PENDING,
+                //         BorrowRequestStatus.MONEY_SENT,
+                //     ],
+                // })
+                .leftJoinAndSelect("borrow.creditLine", "creditLine")
+                .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+                .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+                .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+                .leftJoinAndSelect("creditLine.user", "user")
+                .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+                .skip(page * PAGE_LIMIT_REQUEST)
+                .take(PAGE_LIMIT_REQUEST)
+                .orderBy("borrow.createdAt", sortDate)
+                .addOrderBy("borrow.updatedAt", sortDate)
+                .getMany()
+        );
     }
 
     getBorrowCount() {
@@ -304,7 +321,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getGeneralUserInformationByBorrowId(id: string) {
+    getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id: string) {
         return this.userRepo
             .createQueryBuilder("user")
             .leftJoinAndSelect("user.creditLines", "creditLine")
@@ -312,6 +329,13 @@ export class BackOfficeService {
             .leftJoinAndSelect("debtCurrency.businessPaymentRequisites", "businessPaymentRequisite")
             .leftJoinAndSelect("creditLine.borrowRequests", "borrowRequests")
             .where("borrowRequests.id = :id", { id })
+            .getOne();
+    }
+
+    getFiatTransactionsByRequestId(id: string) {
+        return this.fiatRepo
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
             .getOne();
     }
 

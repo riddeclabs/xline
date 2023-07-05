@@ -197,26 +197,18 @@ export class BackOfficeController {
         const { page, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
 
-        const getAllBorrow = await this.backofficeService.getAllBorrowRequest(
-            page - 1,
-            sort,
-            chatIdFilter
-        );
+        const getAllBorrow =
+            await this.backofficeService.getAllBorrowReqExtCreditLineAndDebtCollCurrency(
+                page - 1,
+                sort,
+                chatIdFilter
+            );
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
                 createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                 updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
                 borrowFiatAmount: item.borrowFiatAmount,
-                //TODO truncateDecimalsToStr return 0
-                // borrowFiatAmount: truncateDecimalsToStr(
-                //     formatUnits(
-                //         BigInt(item.borrowFiatAmount || 0n),
-                //         item.creditLine.debtCurrency.decimals
-                //     ),
-                //     2,
-                //     false
-                // ),
             };
         });
         const totalCount = await this.backofficeService.getBorrowCount();
@@ -296,10 +288,10 @@ export class BackOfficeController {
     @Get("borrow-request/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
     async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
-        const generalUserByBorrowId = await this.backofficeService.getGeneralUserInformationByBorrowId(
-            id
-        );
+        const generalUserInfoByBorrowId =
+            await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
 
+        const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
         const { stateAfter, stateBefore } =
             await this.backofficeService.getCreditLineStateBeforeAndAfterBorrowResolved(
                 Number(creditLineId),
@@ -310,11 +302,22 @@ export class BackOfficeController {
             Number(creditLineId)
         );
 
+        const fiatTransactions = {
+            ...initialFiatTransactions,
+            rawTransferAmount: truncateDecimalsToStr(
+                formatUnits(initialFiatTransactions?.rawTransferAmount ?? 0n),
+                2,
+                false
+            ),
+            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol,
+        };
+
         const resultPageData = {
             accountName:
-                generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
+                generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
                     ?.bankName,
-            iban: generalUserByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]?.iban,
+            iban: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
+                ?.iban,
             collateralFactor: truncateDecimalsToStr(
                 formatUnits(economicalParams.collateralFactor * 100n),
                 2,
@@ -335,7 +338,7 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            symbol: generalUserByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
+            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
             beforeBorrowAmount: truncateDecimalsToStr(formatUnits(stateBefore.debtAmount), 2, false),
             beforeUtitlizationFactor: truncateDecimalsToStr(
                 formatUnits(stateAfter.utilizationRate * 100n),
@@ -358,7 +361,8 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            status: generalUserByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
+            status: generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
+            fiatTransactions,
         };
         return { resultPageData };
     }
