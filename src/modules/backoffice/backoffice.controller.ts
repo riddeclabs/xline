@@ -208,7 +208,14 @@ export class BackOfficeController {
                 ...item,
                 createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                 updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
-                borrowFiatAmount: item.borrowFiatAmount,
+                borrowFiatAmount: truncateDecimalsToStr(
+                    formatUnits(
+                        item.borrowFiatAmount ?? 0n,
+                        item.creditLine.collateralCurrency.decimals
+                    ),
+                    2,
+                    false
+                ),
             };
         });
         const totalCount = await this.backofficeService.getBorrowCount();
@@ -297,10 +304,24 @@ export class BackOfficeController {
                 Number(creditLineId),
                 Number(id)
             );
-
+        console.log("generalUserInfoByBorrowId", generalUserInfoByBorrowId);
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(creditLineId)
         );
+
+        const borrowAmountAndStatus = {
+            amount: truncateDecimalsToStr(
+                formatUnits(
+                    generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount ?? 0n
+                ),
+                6,
+                false
+            ),
+            status: BorrowRequestStatus[
+                generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]
+                    ?.borrowRequestStatus as BorrowRequestStatus
+            ],
+        };
 
         const fiatTransactions = {
             ...initialFiatTransactions,
@@ -363,6 +384,7 @@ export class BackOfficeController {
             ),
             status: generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
             fiatTransactions,
+            borrowAmountAndStatus,
         };
         return { resultPageData };
     }

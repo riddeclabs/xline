@@ -32,8 +32,8 @@
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
     <div class="req-bor-wrapper text-white mt-4">
       <div class='card bg-dark shadow-sm wrapper-count'>
-        <p class='fs-6'>Requested amount: {{ requestAmount }} ??</p>
-        <p class='fs-6 mt-2'>Request validation: {{ requestValidation }}</p>
+        <p class='fs-6'>Requested amount: {{ resultPageData.borrowAmountAndStatus.amount }}</p>
+        <p class='fs-6 mt-2'>Request validation: {{ resultPageData.borrowAmountAndStatus.status }}</p>
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
         <h1 class='pb-2 fs-5'>User requisites</h1>
