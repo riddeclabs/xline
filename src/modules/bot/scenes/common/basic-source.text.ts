@@ -125,7 +125,7 @@ export abstract class BasicSourceText {
     }
 
     static getRepayRequestMsgText(data: XLineRequestMsgData): string {
-        const msgHeader = "↪️*Repay request*\n\n";
+        const msgHeader = "↪️ *Repay request*\n\n";
 
         if (data.amountOrStrategy || typeof data.requisitesOrWallet !== "object") {
             throw new Error("Invalid repay request");

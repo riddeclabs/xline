@@ -12,7 +12,7 @@ import { BotManagerService } from "../../bot-manager.service";
 import { SceneRequestTypes } from "./view-request.types";
 import { getTxDataForRequest, getXLineRequestMsgData } from "../common/utils";
 import { escapeSpecialCharacters } from "src/common";
-import { XLineRequestsTypes } from "../common/types";
+import * as filters from "telegraf/filters";
 import { Message } from "telegraf/typings/core/types/typegram";
 
 enum ViewRequestSteps {
@@ -23,7 +23,7 @@ enum ViewRequestSteps {
 }
 enum ViewRequestCallbacks {
     REQUEST_TYPE = "chooseReqType",
-    COLLATERAL_TYPE = "choseCollateralType",
+    CREDIT_LINE_TYPE = "choseCreditLineType",
     VIEW_ALL = "viewAll",
     BACK_TO_MAIN_MENU = "back",
 }
@@ -31,6 +31,7 @@ type ViewRequestSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
         requestType?: SceneRequestTypes;
         collateralType?: SUPPORTED_TOKENS;
+        debtType?: SUPPORTED_TOKENS; // For future use
         creditLineId?: string;
     };
 };
@@ -50,38 +51,48 @@ export class ViewRequestWizard {
 
     @WizardStep(ViewRequestSteps.CHOSE_COLLATERAL_TYPE)
     async onChoseCollateralType(@Ctx() ctx: ViewRequestContext) {
-        const msg = (await ctx.editMessageText(`💰 Chose the collateral type\n\n`, {
+        let msgText = escapeSpecialCharacters("💰 Chose your credit line\n\n");
+
+        const usersCLs = await this.botManagerService.getUserCreditLinesCurrencyExtended(ctx.from!.id);
+
+        const buttons = [];
+        for (const cl of usersCLs) {
+            buttons.push({
+                text: `${cl.collateralCurrency.symbol} / ${cl.debtCurrency.symbol}`,
+                callback_data: `${ViewRequestCallbacks.CREDIT_LINE_TYPE}:${cl.collateralCurrency.symbol}_${cl.debtCurrency.symbol}`,
+            });
+        }
+
+        if (buttons.length === 0) {
+            msgText = escapeSpecialCharacters(
+                "🤷 You don't have any credit lines.\n" +
+                    "🆕 You can create a new one from the main menu interface\n\n"
+            );
+        }
+
+        buttons.push(this.botCommon.goBackButton());
+
+        await ctx.editMessageText(msgText, {
             parse_mode: "MarkdownV2",
-        })) as Message;
+        });
 
         await ctx.editMessageReplyMarkup(
-            Markup.inlineKeyboard(
-                [
-                    {
-                        text: "ETH",
-                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.ETH}`,
-                    },
-                    {
-                        text: "BTC",
-                        callback_data: `${ViewRequestCallbacks.COLLATERAL_TYPE}:${SUPPORTED_TOKENS.BTC}`,
-                    },
-                    this.botCommon.goBackButton(),
-                ],
-                {
-                    columns: 1,
-                }
-            ).reply_markup
+            Markup.inlineKeyboard(buttons, {
+                columns: 1,
+            }).reply_markup
         );
 
-        ctx.scene.session.state.sceneEditMsgId = msg.message_id;
         ctx.wizard.next();
     }
 
     @WizardStep(ViewRequestSteps.CHOSE_REQUEST_TYPE)
     async onChoseRequestType(@Ctx() ctx: ViewRequestContext) {
-        await ctx.editMessageText("📋 Choose the request type you want to see" + "\n" + "\n", {
-            parse_mode: "MarkdownV2",
-        });
+        await ctx.editMessageText(
+            escapeSpecialCharacters("📋 Choose the request type you want to see" + "\n" + "\n"),
+            {
+                parse_mode: "MarkdownV2",
+            }
+        );
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard(
@@ -127,11 +138,12 @@ export class ViewRequestWizard {
             );
         }
 
-        const request = await this.getLatestRequestByType(requestType, creditLine?.id);
+        const request = await this.botManagerService.getLatestRequestByType(requestType, creditLine?.id);
 
-        let msgText =
+        let msgText = escapeSpecialCharacters(
             `🤷 You don't have ${requestType} requests.\n\n` +
-            `🆕 You can create a new one from the main menu interface`;
+                `🆕 You can create a new one from the main menu interface`
+        );
         const buttons = [];
 
         if (request) {
@@ -145,20 +157,11 @@ export class ViewRequestWizard {
             });
         }
 
-        await ctx.editMessageText(
-            escapeSpecialCharacters(
-                `📒 Here you go.\n` + `This is your last ${requestType} request data`
-            ),
-            { parse_mode: "MarkdownV2" }
-        );
+        await ctx.editMessageText(msgText, { parse_mode: "MarkdownV2" });
 
         buttons.push(this.botCommon.goBackButton());
 
-        const mainMsg = await ctx.replyWithMarkdownV2(
-            msgText,
-            Markup.inlineKeyboard(buttons, { columns: 1 })
-        );
-        this.botCommon.tryToSaveSceneMessage(ctx, [mainMsg]);
+        await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(buttons, { columns: 1 }).reply_markup);
         ctx.wizard.next();
     }
 
@@ -180,66 +183,17 @@ export class ViewRequestWizard {
 
         const clId = creditLine?.id;
 
-        let requests: XLineRequestsTypes[] | null;
+        const requests = await this.botManagerService.getAllFullyAssociatedReqByTypeAndCLId(
+            requestType,
+            clId
+        );
 
-        switch (requestType) {
-            case SceneRequestTypes.DEPOSIT:
-                const tempDReq = await this.botManagerService.getAllDepositRequestsByCreditLineId(clId);
-                requests = tempDReq
-                    ? await Promise.all(
-                          tempDReq[0].map(
-                              async req =>
-                                  await this.botManagerService.getFullyAssociatedDepositRequest(req.id)
-                          )
-                      )
-                    : null;
-                break;
-            case SceneRequestTypes.WITHDRAW:
-                const tempWReq = await this.botManagerService.getAllWithdrawRequestsByCreditLineId(clId);
-                requests = tempWReq
-                    ? await Promise.all(
-                          tempWReq[0].map(
-                              async req =>
-                                  await this.botManagerService.getFullyAssociatedWithdrawRequest(req.id)
-                          )
-                      )
-                    : null;
-                break;
-            case SceneRequestTypes.BORROW:
-                const tempBReq = await this.botManagerService.getAllBorrowRequestsByCreditLineId(clId);
-                requests = tempBReq
-                    ? await Promise.all(
-                          tempBReq[0].map(
-                              async req =>
-                                  await this.botManagerService.getFullyAssociatedBorrowRequest(req.id)
-                          )
-                      )
-                    : null;
-                break;
-            case SceneRequestTypes.REPAY:
-                const tempRReq = await this.botManagerService.getAllRepayRequestsByCreditLineId(clId);
-                requests = tempRReq
-                    ? await Promise.all(
-                          tempRReq[0].map(
-                              async req =>
-                                  await this.botManagerService.getFullyAssociatedRepayRequest(req.id)
-                          )
-                      )
-                    : null;
-                break;
-            default:
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _: never = requestType;
-                throw new Error(`Request type ${requestType} is not supported`);
-        }
-
-        if (!requests) {
+        if (!requests || requests.length === 0) {
             throw new Error(`Requests not found for credit line id: ${clId}`);
         }
 
-        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-
         const msgs = [];
+
         for (const req of requests) {
             const data = getXLineRequestMsgData(req);
             const associatedTxsData = getTxDataForRequest(req);
@@ -247,23 +201,38 @@ export class ViewRequestWizard {
             const msgText = ViewRequestText.getRequestMsgText(data, requestType, associatedTxsData);
 
             if (requests.indexOf(req) === 0) {
-                await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, msgText, {
+                const firstMsg = (await ctx.editMessageText(msgText, {
                     parse_mode: "MarkdownV2",
-                });
-            } else {
-                const msg = await ctx.replyWithMarkdownV2(msgText);
-                msgs.push(msg);
+                })) as Message;
+
+                if (requests.length === 1) {
+                    await ctx.editMessageReplyMarkup(
+                        Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 })
+                            .reply_markup
+                    );
+                    break;
+                }
+                msgs.push(firstMsg);
+                continue;
             }
+
+            let msg;
+            if (requests.indexOf(req) === requests.length - 1) {
+                msg = await ctx.replyWithMarkdownV2(msgText);
+
+                await ctx.telegram.editMessageReplyMarkup(
+                    ctx.chat?.id,
+                    msg.message_id,
+                    undefined,
+                    Markup.inlineKeyboard([this.botCommon.goBackButton()], { columns: 1 }).reply_markup
+                );
+            } else {
+                msg = await ctx.replyWithMarkdownV2(msgText);
+            }
+
+            msgs.push(msg);
         }
 
-        const introduceMsg = await ctx.replyWithMarkdownV2(
-            escapeSpecialCharacters(
-                `📒 Here you go.\n` + `\n` + `This are all your ${requestType} requests data`
-            ),
-            Markup.inlineKeyboard([this.botCommon.goBackButton()])
-        );
-
-        msgs.push(introduceMsg);
         this.botCommon.tryToSaveSceneMessage(ctx, msgs);
     }
 
@@ -282,11 +251,10 @@ export class ViewRequestWizard {
             case ViewRequestCallbacks.REQUEST_TYPE:
                 await this.requestTypeActionHandler(ctx, value);
                 break;
-            case ViewRequestCallbacks.COLLATERAL_TYPE:
-                await this.collateralTypeActionHandler(ctx, value);
+            case ViewRequestCallbacks.CREDIT_LINE_TYPE:
+                await this.creditLineTypeActionHandler(ctx, value);
                 break;
             case ViewRequestCallbacks.VIEW_ALL:
-                await this.botCommon.tryToDeleteMessages(ctx);
                 await this.botCommon.executeCurrentStep(ctx);
                 break;
             case ViewRequestCallbacks.BACK_TO_MAIN_MENU:
@@ -300,56 +268,44 @@ export class ViewRequestWizard {
 
     @Hears(/.*/)
     async onMessageHandler(@Ctx() ctx: ViewRequestContext) {
-        this.botCommon.tryToSaveSceneMessage(ctx, ctx.message);
-        await this.botCommon.tryToDeleteMessages(ctx);
-        throw new Error("Unexpected user message received");
+        // Catch user input to remove it with step message
+        if (!ctx.has(filters.message("text"))) return;
+        // This scene does not provide for user input, just delete the message
+        try {
+            await ctx.deleteMessage(ctx.message.message_id);
+        } catch {}
+        // Redirect to main scene if user input is "/start"
+        if (ctx.message.text === "/start") {
+            await this.botCommon.tryToDeleteMessages(ctx, true);
+            await ctx.scene.enter(MainScene.ID);
+        }
     }
 
-    private async collateralTypeActionHandler(ctx: ViewRequestContext, callbackValue?: string) {
-        if (
-            !callbackValue &&
-            !Object.values(SceneRequestTypes).includes(callbackValue as SceneRequestTypes)
-        ) {
-            throw new Error("Unexpected collateral type value");
+    private async creditLineTypeActionHandler(ctx: ViewRequestContext, callbackValue?: string) {
+        if (!callbackValue) {
+            throw new Error("Unexpected callback value");
         }
-        ctx.scene.session.state.collateralType = callbackValue as SUPPORTED_TOKENS;
+
+        const [collateralType, debtType] = callbackValue.split("_");
+
+        if (!collateralType || !debtType || collateralType === debtType) {
+            throw new Error("Unexpected collateral and debt type values provided");
+        }
+
+        ctx.scene.session.state.collateralType = collateralType as SUPPORTED_TOKENS;
+        ctx.scene.session.state.debtType = debtType as SUPPORTED_TOKENS;
+
         await this.botCommon.executeCurrentStep(ctx);
     }
 
     private async requestTypeActionHandler(ctx: ViewRequestContext, callbackValue?: string) {
         if (
-            !callbackValue &&
+            !callbackValue ||
             !Object.values(SceneRequestTypes).includes(callbackValue as SceneRequestTypes)
         ) {
             throw new Error("Unexpected request type value");
         }
         ctx.scene.session.state.requestType = callbackValue as SceneRequestTypes;
         await this.botCommon.executeCurrentStep(ctx);
-    }
-
-    private async getLatestRequestByType(
-        requestType: SceneRequestTypes,
-        creditLineId: number
-    ): Promise<XLineRequestsTypes | null> {
-        let request: XLineRequestsTypes | null = null;
-        switch (requestType) {
-            case SceneRequestTypes.DEPOSIT:
-                request = await this.botManagerService.getLatestFullyAssociatedDepositReq(creditLineId);
-                break;
-            case SceneRequestTypes.WITHDRAW:
-                request = await this.botManagerService.getLatestFullyAssociatedWithdrawReq(creditLineId);
-                break;
-            case SceneRequestTypes.BORROW:
-                request = await this.botManagerService.getLatestFullyAssociatedBorrowReq(creditLineId);
-                break;
-            case SceneRequestTypes.REPAY:
-                request = await this.botManagerService.getLatestFullyAssociatedRepayReq(creditLineId);
-                break;
-            default:
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const _: never = requestType;
-                throw new Error(`Request type ${requestType} is not supported`);
-        }
-        return request;
     }
 }

@@ -25,6 +25,8 @@ import {
 } from "src/database/entities";
 import { EXP_SCALE, maxUint256 } from "../../common/constants";
 import { CreditLineDetails } from "../credit-line/credit-line.types";
+import { SceneRequestTypes } from "./scenes/view-requests/view-request.types";
+import { XLineRequestsTypes } from "./scenes/common/types";
 
 export interface WithdrawRequestDetails {
     currentState: {
@@ -443,20 +445,58 @@ export class BotManagerService {
         return this.creditLineService.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
 
-    async getFullyAssociatedDepositRequest(depositRequestId: number): Promise<DepositRequest> {
-        return await this.requestHandlerService.getFullyAssociatedDepositRequest(depositRequestId);
+    async getAllFullyAssociatedReqByTypeAndCLId(
+        requestType: SceneRequestTypes,
+        creditLineId: number
+    ): Promise<XLineRequestsTypes[] | null> {
+        switch (requestType) {
+            case SceneRequestTypes.DEPOSIT:
+                return await this.requestHandlerService.getAllFullyAssociatedDepositReqByLineId(
+                    creditLineId
+                );
+            case SceneRequestTypes.WITHDRAW:
+                return await this.requestHandlerService.getAllFullyAssociatedWithdrawReqByLineId(
+                    creditLineId
+                );
+            case SceneRequestTypes.BORROW:
+                return await this.requestHandlerService.getAllFullyAssociatedBorrowReqByLineId(
+                    creditLineId
+                );
+            case SceneRequestTypes.REPAY:
+                return await this.requestHandlerService.getAllFullyAssociatedRepayReqByLineId(
+                    creditLineId
+                );
+            default:
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const _: never = requestType;
+                throw new Error(`Request type ${requestType} is not supported`);
+        }
     }
 
-    async getFullyAssociatedWithdrawRequest(withdrawRequestId: number): Promise<WithdrawRequest> {
-        return await this.requestHandlerService.getFullyAssociatedWithdrawRequest(withdrawRequestId);
-    }
-
-    async getFullyAssociatedBorrowRequest(borrowRequestId: number): Promise<BorrowRequest> {
-        return await this.requestHandlerService.getFullyAssociatedBorrowRequest(borrowRequestId);
-    }
-
-    async getFullyAssociatedRepayRequest(repayRequestId: number): Promise<RepayRequest> {
-        return await this.requestHandlerService.getFullyAssociatedRepayRequest(repayRequestId);
+    async getLatestRequestByType(
+        requestType: SceneRequestTypes,
+        creditLineId: number
+    ): Promise<XLineRequestsTypes | null> {
+        let request: XLineRequestsTypes | null = null;
+        switch (requestType) {
+            case SceneRequestTypes.DEPOSIT:
+                request = await this.getLatestFullyAssociatedDepositReq(creditLineId);
+                break;
+            case SceneRequestTypes.WITHDRAW:
+                request = await this.getLatestFullyAssociatedWithdrawReq(creditLineId);
+                break;
+            case SceneRequestTypes.BORROW:
+                request = await this.getLatestFullyAssociatedBorrowReq(creditLineId);
+                break;
+            case SceneRequestTypes.REPAY:
+                request = await this.getLatestFullyAssociatedRepayReq(creditLineId);
+                break;
+            default:
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const _: never = requestType;
+                throw new Error(`Request type ${requestType} is not supported`);
+        }
+        return request;
     }
 
     async getLatestFullyAssociatedDepositReq(creditLineId: number): Promise<DepositRequest | null> {

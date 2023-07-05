@@ -44,6 +44,20 @@ export class RequestHandlerService {
             .getManyAndCount();
     }
 
+    async getAllFullyAssociatedDepositReqByLineId(creditLineId: number): Promise<DepositRequest[]> {
+        return this.depositRequestRepo
+            .createQueryBuilder("dr")
+            .leftJoinAndSelect("dr.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("dr.cryptoTransactions", "ctx")
+            .where("dr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("dr.createdAt", "DESC")
+            .getMany();
+    }
+
     async getOldestPendingDepositReq(creditLineId: number) {
         return this.depositRequestRepo
             .createQueryBuilder("dr")
@@ -107,6 +121,22 @@ export class RequestHandlerService {
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .orderBy("wr.createdAt", "DESC")
             .getManyAndCount();
+    }
+
+    async getAllFullyAssociatedWithdrawReqByLineId(
+        creditLineId: number
+    ): Promise<WithdrawRequest[] | null> {
+        return this.withdrawRequestRepo
+            .createQueryBuilder("wr")
+            .leftJoinAndSelect("wr.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("wr.cryptoTransactions", "ctx")
+            .where("wr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("wr.createdAt", "DESC")
+            .getMany();
     }
 
     async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
@@ -184,6 +214,21 @@ export class RequestHandlerService {
             .where("br.creditLineId = :creditLineId", { creditLineId })
             .orderBy("br.createdAt", "DESC")
             .getManyAndCount();
+    }
+
+    async getAllFullyAssociatedBorrowReqByLineId(creditLineId: number): Promise<BorrowRequest[] | null> {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .leftJoinAndSelect("br.creditLine", "cl")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.economicalParameters", "ep")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("br.fiatTransactions", "ftx")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("br.createdAt", "DESC")
+            .getMany();
     }
 
     async getOldestPendingBorrowReq(creditLineId: number) {
@@ -264,6 +309,21 @@ export class RequestHandlerService {
             .where("rr.creditLineId = :creditLineId", { creditLineId })
             .orderBy("rr.createdAt", "DESC")
             .getManyAndCount();
+    }
+
+    async getAllFullyAssociatedRepayReqByLineId(creditLineId: number): Promise<RepayRequest[] | null> {
+        return this.repayRequestRepo
+            .createQueryBuilder("rr")
+            .leftJoinAndSelect("rr.creditLine", "cl")
+            .leftJoinAndSelect("rr.businessPaymentRequisite", "brp")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("rr.fiatTransactions", "ftx")
+            .where("rr.creditLineId = :creditLineId", { creditLineId })
+            .orderBy("rr.createdAt", "DESC")
+            .getMany();
     }
 
     async getOldestPendingRepayReq(creditLineId: number) {

@@ -71,7 +71,7 @@ export class BorrowTextSource extends BasicSourceText {
                 requisitesText +
                 "\n" +
                 "💡 You always can check all you request details.\n" +
-                `To do this go to "View my requests" tab from main menu.\n\n` +
+                `To do this go to "View my requests" tab from *'Manage my portfolio'* menu.\n\n` +
                 "⚠️ The processing time for transfer may vary.\n" +
                 "Factors influencing transfer speed include:\n" +
                 " - Banking provider\n" +
