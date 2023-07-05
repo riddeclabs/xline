@@ -375,7 +375,7 @@ export class BackOfficeController {
         const { page, sortField, sortDirection } = query;
         const generalUserInfoByCreditLineId =
             await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
-        let initialRistStrategy = "";
+        let initialRiskStrategy = "";
         let resultTable: (FiatTransaction & { usdTransferAmount?: bigint })[] | CryptoTransaction[] = [];
         let status = { id: 0, status: "", wallet: "" };
         let associatedXLineInfo = { bankName: "", iban: "" };
@@ -392,27 +392,22 @@ export class BackOfficeController {
                     sortField,
                     sortDirection
                 );
-                const borrowRequestExtendCreditLineAndUserPaymentReq =
+                const borrowRequest =
                     await this.backofficeService.getBorrowRequestExtendCreditLineAndUserPaymentReq(id);
-                borrowIban =
-                    borrowRequestExtendCreditLineAndUserPaymentReq?.creditLine.userPaymentRequisite
-                        .iban || "";
-                checkBorrowFiatAmount =
-                    !!borrowRequestExtendCreditLineAndUserPaymentReq?.borrowFiatAmount;
-                initialRistStrategy = truncateDecimalsToStr(
-                    formatUnits(
-                        borrowRequestExtendCreditLineAndUserPaymentReq?.initialRiskStrategy ?? 0n
-                    ),
+                borrowIban = borrowRequest?.creditLine.userPaymentRequisite.iban || "";
+                checkBorrowFiatAmount = !!borrowRequest?.borrowFiatAmount;
+                initialRiskStrategy = truncateDecimalsToStr(
+                    formatUnits(borrowRequest?.initialRiskStrategy ?? 0n),
                     2,
                     false
                 );
                 status = {
-                    status: borrowRequestExtendCreditLineAndUserPaymentReq?.borrowRequestStatus || "",
-                    id: borrowRequestExtendCreditLineAndUserPaymentReq?.id || 0,
+                    status: borrowRequest?.borrowRequestStatus || "",
+                    id: borrowRequest?.id || 0,
                     wallet: "",
                 };
                 borrowFiatAmount = truncateDecimalsToStr(
-                    formatUnits(borrowRequestExtendCreditLineAndUserPaymentReq?.borrowFiatAmount ?? 0n),
+                    formatUnits(borrowRequest?.borrowFiatAmount ?? 0n),
                     2,
                     false
                 );
@@ -513,7 +508,7 @@ export class BackOfficeController {
                     String(generalUserInfoByCreditLineId?.user.chatId),
                     String(generalUserInfoByCreditLineId?.collateralCurrency.symbol)
                 ),
-                initialRistStrategy,
+                initialRiskStrategy,
                 status: checkStatus(type, status.status),
                 id: status.id,
                 wallet: status.wallet,
