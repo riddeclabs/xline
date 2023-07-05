@@ -243,7 +243,7 @@ export class BackOfficeService {
             .getRawMany();
     }
 
-    getBorrowRequestDetails(
+    getFiatTxByBorrowId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -258,11 +258,7 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getBorrowRequest(id: string) {
-        return this.borrowRepo.createQueryBuilder("borrow").where("borrow.id = :id", { id }).getOne();
-    }
-
-    getRepayReqDetailsByReqId(
+    getFiatTxByRepayId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -294,7 +290,7 @@ export class BackOfficeService {
             .getOne();
     }
 
-    getDepositReqDetailsByReqId(
+    getCryptoTxByDepId(
         page: number,
         id: string,
         sortField = "created_at",
@@ -309,7 +305,7 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getWithdrawReqDetailsByReqId(
+    getCryptoTxByWithdrawId(
         page: number,
         id: string,
         sortField = "created_at",

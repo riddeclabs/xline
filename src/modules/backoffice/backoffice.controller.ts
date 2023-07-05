@@ -386,7 +386,7 @@ export class BackOfficeController {
 
         switch (type) {
             case "Borrow":
-                resultTable = await this.backofficeService.getBorrowRequestDetails(
+                resultTable = await this.backofficeService.getFiatTxByBorrowId(
                     page - 1,
                     id,
                     sortField,
@@ -418,7 +418,7 @@ export class BackOfficeController {
                 );
                 break;
             case "Deposit":
-                resultTable = await this.backofficeService.getDepositReqDetailsByReqId(
+                resultTable = await this.backofficeService.getCryptoTxByDepId(
                     page - 1,
                     id,
                     sortField,
@@ -432,7 +432,7 @@ export class BackOfficeController {
                 };
                 break;
             case "Withdraw":
-                resultTable = await this.backofficeService.getWithdrawReqDetailsByReqId(
+                resultTable = await this.backofficeService.getCryptoTxByWithdrawId(
                     page - 1,
                     id,
                     sortField,
@@ -451,7 +451,7 @@ export class BackOfficeController {
                 );
                 break;
             case "Repay":
-                resultTable = await this.backofficeService.getRepayReqDetailsByReqId(
+                resultTable = await this.backofficeService.getFiatTxByRepayId(
                     page - 1,
                     id,
                     sortField,
@@ -528,11 +528,7 @@ export class BackOfficeController {
                     ...item,
                     createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                     updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
-                    rawTransferAmount: truncateDecimalsToStr(
-                        formatUnits(item.rawTransferAmount),
-                        2,
-                        false
-                    ),
+                    rawTransferAmount: formatUnits(item.rawTransferAmount),
                     usdTransferAmount: truncateDecimalsToStr(
                         formatUnits(item.usdTransferAmount ?? 0n),
                         2,
