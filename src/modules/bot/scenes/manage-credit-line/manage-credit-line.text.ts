@@ -2,7 +2,7 @@ import { EconomicalParameters } from "../../../../database/entities";
 import { CreditLineDetails } from "../../../credit-line/credit-line.types";
 import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
 import { BasicSourceText } from "../common/basic-source.text";
-import { getCreditLineStateData as getCreditLineState } from "../common/utils";
+import { getCreditLineStateMsgData } from "../common/utils";
 import { CreditLineDetailsExt } from "../../bot-manager.service";
 
 export class ManageCreditLineText extends BasicSourceText {
@@ -23,7 +23,7 @@ export class ManageCreditLineText extends BasicSourceText {
         const collateralSymbol = creditLineDetailsExtended.lineDetails.collateralCurrency.symbol;
         const debtSymbol = creditLineDetailsExtended.lineDetails.debtCurrency.symbol;
 
-        const state = getCreditLineState(creditLineDetailsExtended);
+        const state = getCreditLineStateMsgData(creditLineDetailsExtended);
         const creditLineStateText = this.getCreditLineStateText(state, false);
 
         return escapeSpecialCharacters(

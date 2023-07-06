@@ -3,7 +3,7 @@ import { Action, Ctx, Hears, Scene, SceneEnter } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import { MAIN_MENU_OPTIONS } from "../constants";
-import { ViewRequestWizard } from "./view-request.scene";
+import { ViewRequestWizard } from "./view-requests/view-request.scene";
 import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
@@ -54,10 +54,6 @@ export class MainScene {
                     {
                         text: "💳 Manage my portfolio",
                         callback_data: `goto:${MAIN_MENU_OPTIONS.MANAGE_PORTFOLIO}`,
-                    },
-                    {
-                        text: "📔 View my requests",
-                        callback_data: `goto:${MAIN_MENU_OPTIONS.VIEW_REQUEST}`,
                     },
                     {
                         text: "👩‍💼 Contact support",

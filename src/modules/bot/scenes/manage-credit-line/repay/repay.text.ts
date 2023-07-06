@@ -18,7 +18,7 @@ export class RepayTextSource {
                 `📭 Please use your personal reference number: \`${refNumber}\` \n` +
                 "\n" +
                 "You always can check all you request details.\n" +
-                "To do this, go to *'View my requests'* tab from the *main menu*."
+                "To do this, go to *'View my requests'* tab from the *'Manage my portfolio'* menu."
         );
     }
     static getRepayInfoText(creditLineDetails: CreditLineDetails) {
@@ -51,7 +51,7 @@ export class RepayTextSource {
                 `📭 Please use your personal reference number: \`${refNumber}\` \n` +
                 "\n" +
                 "You always can check all you request details. \n" +
-                "To do this, go to *'View my requests'* tab from the *main menu*."
+                "To do this, go to *'View my requests'* tab from the *'Manage my portfolio'* menu."
         );
     }
 
