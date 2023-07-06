@@ -376,7 +376,7 @@ export class BackOfficeController {
         const generalUserInfoByCreditLineId =
             await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
         let initialRiskStrategy = "";
-        let resultTable: (FiatTransaction & { usdTransferAmount?: bigint })[] | CryptoTransaction[] = [];
+        let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         let status = { id: 0, status: "", wallet: "" };
         let associatedXLineInfo = { bankName: "", iban: "" };
         let borrowIban = "";
@@ -525,7 +525,7 @@ export class BackOfficeController {
                     updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
                     rawTransferAmount: formatUnits(item.rawTransferAmount),
                     usdTransferAmount: truncateDecimalsToStr(
-                        formatUnits(item.usdTransferAmount ?? 0n),
+                        formatUnits((item as CryptoTransaction).usdTransferAmount ?? 0n),
                         2,
                         false
                     ),
