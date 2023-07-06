@@ -304,7 +304,6 @@ export class BackOfficeController {
                 Number(creditLineId),
                 Number(id)
             );
-        console.log("generalUserInfoByBorrowId", generalUserInfoByBorrowId);
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(creditLineId)
         );
