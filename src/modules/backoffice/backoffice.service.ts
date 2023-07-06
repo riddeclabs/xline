@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, RepayRequestStatus, Role } from "../../common";
+import { BorrowRequestStatus, CreditLineStatus, RepayRequestStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -132,33 +132,31 @@ export class BackOfficeService {
     ) {
         const sortDate = sort ?? "DESC";
 
-        return (
-            this.borrowRepo
-                .createQueryBuilder("borrow")
-                //TODO implement sorting by status, multi value
-                // .where("borrow.borrowRequestStatus = :status", {
-                //     status: [
-                //         BorrowRequestStatus.WAITING_FOR_DEPOSIT,
-                //         BorrowRequestStatus.VERIFICATION_PENDING,
-                //         BorrowRequestStatus.MONEY_SENT,
-                //     ],
-                // })
-                .leftJoinAndSelect("borrow.creditLine", "creditLine")
-                .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
-                .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-                .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
-                .leftJoinAndSelect("creditLine.user", "user")
-                .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
-                .skip(page * PAGE_LIMIT_REQUEST)
-                .take(PAGE_LIMIT_REQUEST)
-                .orderBy("borrow.createdAt", sortDate)
-                .addOrderBy("borrow.updatedAt", sortDate)
-                .getMany()
-        );
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy("borrow.createdAt", sortDate)
+            .addOrderBy("borrow.updatedAt", sortDate)
+            .getMany();
     }
 
     getBorrowCount() {
-        return this.borrowRepo.createQueryBuilder().getCount();
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
+            .getCount();
     }
 
     getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
