@@ -99,6 +99,12 @@ export class BackOfficeController {
         // some code here
     }
 
+    @Get("/404")
+    @Render("backoffice/404")
+    notFoumdPage() {
+        // some code here
+    }
+
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
