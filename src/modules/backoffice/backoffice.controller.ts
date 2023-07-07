@@ -302,10 +302,13 @@ export class BackOfficeController {
 
         const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
         const { stateAfter, stateBefore } =
-            await this.backofficeService.getCreditLineStateBeforeAndAfterBorrowResolved(
-                Number(creditLineId),
-                Number(id)
-            );
+            generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus ===
+            BorrowRequestStatus.VERIFICATION_PENDING
+                ? await this.backofficeService.getCreditLineStateBeforeAndAfterBorrowResolved(
+                      Number(creditLineId),
+                      Number(id)
+                  )
+                : { stateAfter: {}, stateBefore: {} };
         const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
             Number(creditLineId)
         );
@@ -346,35 +349,39 @@ export class BackOfficeController {
                 false
             ),
             beforeCollateralAmount: truncateDecimalsToStr(
-                formatUnits(stateBefore.collateralAmountFiat, lineDetails.debtCurrency.decimals),
+                formatUnits(stateBefore.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
                 2,
                 false
             ),
             beforeSupplyAmount: truncateDecimalsToStr(
-                formatUnits(stateBefore.depositAmountFiat, lineDetails.debtCurrency.decimals),
+                formatUnits(stateBefore.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
                 2,
                 false
             ),
             symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
-            beforeBorrowAmount: truncateDecimalsToStr(formatUnits(stateBefore.debtAmount), 2, false),
-            beforeUtilizationFactor: truncateDecimalsToStr(
-                formatUnits(stateAfter.utilizationRate * 100n),
+            beforeBorrowAmount: truncateDecimalsToStr(
+                formatUnits(stateBefore.debtAmount ?? 0n),
                 2,
                 false
             ),
-            afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateAfter.debtAmount), 2, false),
+            beforeUtilizationFactor: truncateDecimalsToStr(
+                formatUnits((stateAfter.utilizationRate ?? 0n) * 100n),
+                2,
+                false
+            ),
+            afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateAfter.debtAmount ?? 0n), 2, false),
             afterUtilizationFactor: truncateDecimalsToStr(
-                formatUnits(stateAfter.utilizationRate * 100n),
+                formatUnits((stateAfter.utilizationRate ?? 0n) * 100n),
                 2,
                 false
             ),
             afterCollateralAmount: truncateDecimalsToStr(
-                formatUnits(stateAfter.collateralAmountFiat, lineDetails.debtCurrency.decimals),
+                formatUnits(stateAfter.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
                 2,
                 false
             ),
             afterSupplyAmount: truncateDecimalsToStr(
-                formatUnits(stateAfter.depositAmountFiat, lineDetails.debtCurrency.decimals),
+                formatUnits(stateAfter.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
                 2,
                 false
             ),
