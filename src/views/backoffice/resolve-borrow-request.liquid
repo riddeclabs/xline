@@ -2,7 +2,7 @@
 {% block content %}
   <div class="success-mess" id="success">Successfully!</div>
   <div class="error-mess" id="error">Something went wrong!</div>
-  <h1 class='pb-3 text-white fs-1'>Borrow request resolve page.</h1>
+  <div class="title-page">Borrow request resolve page.</div>
   {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
     <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
@@ -112,34 +112,34 @@
     <div class='content-wrapper-request mt-4'>
       <div class='pb-1 text-white fs-5'>Fiat transaction details:</div>
       <div class="req-bor-wrapper">
-        <div class="wrapper-count">
+        <div class="wrapper-count p-0 mt-4">
           <h1 class='text-white fs-5'>Xline requisites:</h1>
           <p>IBAN: {{ resultPageData.fiatTransactions.ibanFrom }}</p>
           <p>Bank account name: {{ resultPageData.fiatTransactions.nameFrom }}</p>
         </div>
 
-        <div class="wrapper-count">
+        <div class="wrapper-count p-0 mt-4">
           <h1 class='text-white fs-5'>Transfer information:</h1>
           <p>Currency: {{ resultPageData.fiatTransactions.symbol }}</p>
           <p>Amount: {{ resultPageData.fiatTransactions.rawTransferAmount }}</p>
         </div>
 
-        <div class="wrapper-count">
+        <div class="wrapper-count p-0 mt-4">
           <h1 class='text-white fs-5'>User requisites</h1>
           <p>IBAN: {{ resultPageData.fiatTransactions.ibanTo }}</p>
           <p>Bank account name: {{ resultPageData.fiatTransactions.nameTo }}</p>
         </div>
 
       </div>
-      <div class="wrapper-buttons">
+      <div class="wrapper-buttons mt-2">
         <button
           id="finelizeBtn"
           class="accept-button"
-          style="padding: 5px 40px; margin-right: 10px">Confirm</button>
+          style="padding: 7px 50px; margin-right: 10px">Confirm</button>
         <button
           id="reject"
           class="reject-button"
-          style="padding: 5px 42px; margin-left: 10px;">Reject</button>
+          style="padding: 7px 45px; margin-left: 10px;">Reject</button>
       </div>
     </div>
   {% endif %}

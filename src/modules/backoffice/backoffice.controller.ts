@@ -357,13 +357,13 @@ export class BackOfficeController {
             ),
             symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
             beforeBorrowAmount: truncateDecimalsToStr(formatUnits(stateBefore.debtAmount), 2, false),
-            beforeUtitlizationFactor: truncateDecimalsToStr(
+            beforeUtilizationFactor: truncateDecimalsToStr(
                 formatUnits(stateAfter.utilizationRate * 100n),
                 2,
                 false
             ),
-            afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateBefore.debtAmount), 2, false),
-            afterUtitlizationFactor: truncateDecimalsToStr(
+            afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateAfter.debtAmount), 2, false),
+            afterUtilizationFactor: truncateDecimalsToStr(
                 formatUnits(stateAfter.utilizationRate * 100n),
                 2,
                 false
