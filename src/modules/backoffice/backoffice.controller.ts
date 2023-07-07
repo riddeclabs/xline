@@ -333,11 +333,8 @@ export class BackOfficeController {
         };
 
         const resultPageData = {
-            accountName:
-                generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
-                    ?.bankName,
-            iban: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.businessPaymentRequisites[0]
-                ?.iban,
+            bankName: generalUserInfoByBorrowId?.name,
+            iban: generalUserInfoByBorrowId?.userPaymentRequisites[0]?.iban,
             collateralFactor: truncateDecimalsToStr(
                 formatUnits(economicalParams.collateralFactor * 100n),
                 2,

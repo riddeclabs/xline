@@ -323,8 +323,8 @@ export class BackOfficeService {
         return this.userRepo
             .createQueryBuilder("user")
             .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("user.userPaymentRequisites", "userPaymentRequisites")
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-            .leftJoinAndSelect("debtCurrency.businessPaymentRequisites", "businessPaymentRequisite")
             .leftJoinAndSelect("creditLine.borrowRequests", "borrowRequests")
             .where("borrowRequests.id = :id", { id })
             .getOne();
