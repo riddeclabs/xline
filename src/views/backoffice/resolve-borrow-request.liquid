@@ -1,0 +1,252 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <div class="success-mess" id="success">Successfully!</div>
+  <div class="error-mess" id="error">Something went wrong!</div>
+  <div class="title-page">Borrow request resolve page.</div>
+  {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
+    <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
+    <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
+    <div class="req-bor-wrapper text-white mt-4">
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>User requisites</h1>
+        <p class='fs-6'>Bank account name: {{ resultPageData.accountName }}</p>
+        <p class='fs-6'>IBAN: {{ resultPageData.iban }}</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>Credit line rates:</h1>
+        <p class='fs-6'>Collateral factor: {{ resultPageData.collateralFactor }} %</p>
+        <p class='fs-6'>Liquidation factor: {{ resultPageData.liquidationFactor }} %</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <p class='fs-6 mt-1'>
+          If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
+        </p>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
+      </div>
+    </div>
+  {% elsif resultPageData.status == 'VERIFICATION_PENDING' %}
+    <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
+    <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
+    <div class="req-bor-wrapper text-white mt-4">
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <p class='fs-6'>Requested amount: {{ resultPageData.borrowAmountAndStatus.amount }} {{ resultPageData.fiatTransactions.symbol }}</p>
+        <p class='fs-6 mt-2'>Request validation:
+          {% if resultPageData.borrowAmountAndStatus.status %}
+            <i class="bi bi-check-circle-fill" style="color: #5DB14F"></i>
+            ALLOWED
+          {% else %}
+            <i class="bi bi-x-circle-fill" style="color: #b81a1a"></i>
+            BLOCKED
+          {% endif %}
+        </p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>User requisites</h1>
+        <p class='fs-6'>Bank account name: {{ resultPageData.accountName }}</p>
+        <p class='fs-6'>IBAN: {{ resultPageData.iban }}</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>User state:</h1>
+        <div class="d-flex">
+          <div>
+            <br/>
+            <p class='fs-6'>Supply amount:</p>
+            <p class='fs-6'>Collateral amount:</p>
+            <p class='fs-6'>Borrow amount:</p>
+            <p class='fs-6'>Utilization rate:</p>
+          </div>
+          <div style="margin-left: 30px;">
+            <p class='fs-6'>Before</p>
+            <p class='fs-6'>{{ resultPageData.beforeSupplyAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.beforeCollateralAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.beforeBorrowAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.beforeUtilizationFactor }} %</p>
+          </div>
+          <div style="margin-left: 60px;">
+            <p class='fs-6'>After</p>
+            <p class='fs-6'>{{ resultPageData.afterSupplyAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.afterCollateralAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.afterBorrowAmount }} {{ resultPageData.symbol }}</p>
+            <p class='fs-6'>{{ resultPageData.afterUtilizationFactor }} %</p>
+          </div>
+        </div>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>Credit line rates:</h1>
+        <p class='fs-6'>Collateral factor: {{ resultPageData.collateralFactor }} %</p>
+        <p class='fs-6'>Liquidation factor: {{ resultPageData.liquidationFactor }} %</p>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <h1 class='pb-2 fs-5'>Resolve request form:</h1>
+        <p class='fs-6'>IBAN from:</p>
+        <input
+          id="iban"
+          type="text"
+          class="input-resolve">
+        <p class='fs-6 mt-2'>Transfer amount:</p>
+        <input
+          id="transferAmount"
+          type="text"
+          class="input-resolve">
+        <button
+          id="acceptBtn"
+          class="accept-button mt-3"
+          style="padding: 6px 20px;">Resolve</button>
+      </div>
+      <div class='card bg-dark shadow-sm wrapper-count'>
+        <p class='fs-6 mt-5'>
+          If user activity appears suspicious or any data seems incorrect, you have the option to reject the borrowing request.
+        </p>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 6px 55px; margin: 30px auto 0;">Reject</button>
+      </div>
+    </div>
+  {% else %}
+    <div class='pb-1 text-white fs-5'>Step 2: Confirm that the transaction completed successfully</div>
+    <div class='text-white fs-6'>Please make sure that the sent transaction was completed successfully and the funds were credited to the applicant's account.</div>
+    <div class='content-wrapper-request mt-4'>
+      <div class='pb-1 text-white fs-5'>Fiat transaction details:</div>
+      <div class="req-bor-wrapper">
+        <div class="wrapper-count p-0 mt-4">
+          <h1 class='text-white fs-5'>Xline requisites:</h1>
+          <p>IBAN: {{ resultPageData.fiatTransactions.ibanFrom }}</p>
+          <p>Bank account name: {{ resultPageData.fiatTransactions.nameFrom }}</p>
+        </div>
+
+        <div class="wrapper-count p-0 mt-4">
+          <h1 class='text-white fs-5'>Transfer information:</h1>
+          <p>Currency: {{ resultPageData.fiatTransactions.symbol }}</p>
+          <p>Amount: {{ resultPageData.fiatTransactions.rawTransferAmount }}</p>
+        </div>
+
+        <div class="wrapper-count p-0 mt-4">
+          <h1 class='text-white fs-5'>User requisites</h1>
+          <p>IBAN: {{ resultPageData.fiatTransactions.ibanTo }}</p>
+          <p>Bank account name: {{ resultPageData.fiatTransactions.nameTo }}</p>
+        </div>
+
+      </div>
+      <div class="wrapper-buttons mt-2">
+        <button
+          id="finelizeBtn"
+          class="accept-button"
+          style="padding: 7px 50px; margin-right: 10px">Confirm</button>
+        <button
+          id="reject"
+          class="reject-button"
+          style="padding: 7px 45px; margin-left: 10px;">Reject</button>
+      </div>
+    </div>
+  {% endif %}
+  <script>
+    const rejectBtn = document.getElementById('reject');
+    const success = document.getElementById('success');
+    const error = document.getElementById('error');
+    const transferInput = document.getElementById('transferAmount');
+    const ibanInput = document.getElementById('iban');
+    const baseUrl = document.location.origin;
+    const acceptBtn = document.getElementById('acceptBtn');
+    const finelizeBtn = document.getElementById('finelizeBtn');
+    const borrowId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-1)[0];
+    const creditLineId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-2)[0];
+    rejectBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {requestId: Number(borrowId)}
+        )
+      };
+      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-reject`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+          }, 2000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    });
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', () => {
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(
+            {
+              requestId: + borrowId,
+              ibanFrom: String(ibanInput.value),
+              rawTransferAmount: String(transferInput.value)
+            }
+          )
+        };
+        fetch(`${baseUrl}/request-resolver/resolve-request/borrow`, requestOptions).then(response => response.json()).then(resJSON => {
+          if (resJSON.success) {
+            success.style.right = "30px"
+            setTimeout(() => {
+              success.style.right = "-700px";
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+            }, 3000)
+          } else {
+            error.style.right = "30px"
+            error.innerText = resJSON.message
+            setTimeout(() => {
+              error.style.right = "-700px"
+            }, 3000)
+          }
+        });
+      });
+    }
+
+
+    finelizeBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {requestId: Number(borrowId)}
+        )
+      };
+      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+          }, 2000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    });
+  </script>
+{% endblock %}
