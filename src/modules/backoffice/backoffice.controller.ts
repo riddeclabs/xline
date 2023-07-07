@@ -365,7 +365,7 @@ export class BackOfficeController {
                 false
             ),
             beforeUtilizationFactor: truncateDecimalsToStr(
-                formatUnits((stateAfter.utilizationRate ?? 0n) * 100n),
+                formatUnits((stateBefore.utilizationRate ?? 0n) * 100n),
                 2,
                 false
             ),
