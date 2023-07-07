@@ -82,8 +82,6 @@ export class BackOfficeService {
         private readonly requestHandlerService: RequestHandlerService
     ) {}
 
-    //
-
     accountInfo() {
         return {
             name: "Account name",
