@@ -146,7 +146,7 @@ export class NewCreditRequestText {
                     msg1: `https://api.qrserver.com/v1/create-qr-code/?data=${wallet}&size=500x500&ecc=L&margin=10`,
                     msg2:
                         "🔰 You always can check all you request details`.` \n" +
-                        "To do this`,` go to *'View my requests'* tab from the *main menu*`.`",
+                        "To do this`,` go to *'View my requests'* tab from the *'Manage my portfolio'* menu.`",
                 };
             case SignApplicationOptions.DISAPPROVE:
                 return escapeSpecialCharacters(

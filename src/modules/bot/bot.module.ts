@@ -6,7 +6,7 @@ import { UserSession } from "../../common/middlewares/session.middleware";
 import { entities } from "../../database";
 import { NewCreditRequestWizard } from "./scenes/new-credit-request/new-credit-request.scene";
 import { MainScene } from "./scenes/main.scene";
-import { ViewRequestWizard } from "./scenes/view-request.scene";
+import { ViewRequestWizard } from "./scenes/view-requests/view-request.scene";
 import { BotCommonService } from "./bot-common.service";
 import { BotManagerService } from "./bot-manager.service";
 import { RiskEngineModule } from "../risk-engine/risk-engine.module";
@@ -63,6 +63,7 @@ import { WithdrawActionWizard } from "./scenes/manage-credit-line/withdraw/withd
         BotManagerService,
         MainScene,
         NewCreditRequestWizard,
+        WithdrawActionWizard,
         ViewRequestWizard,
         ManagePortfolioWizard,
         BotCommonService,
