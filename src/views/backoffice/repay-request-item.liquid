@@ -87,6 +87,11 @@
       .pathname
       .split("/")
       .slice(-1)[0];
+    const creditLineId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-2)[0];
     acceptBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -101,23 +106,23 @@
             rawTransferAmount: transferInput.value
           }
         )
-        };
-        fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
-          if (resJSON.success) {
-            success.style.right = "30px"
-            setTimeout(() => {
-              success.style.right = "-700px";
-              document.location.href=`${baseUrl}/backoffice/repay-request`
-            }, 3000)
-          } else {
-            error.style.right = "30px"
-            error.innerText = resJSON.message
-            setTimeout(() => {
-              error.style.right = "-700px"
-            }, 3000)
-          }
-        });
-      })
+      };
+      fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            document.location.href=`${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${borrowId}`
+          }, 3000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+          }, 3000)
+        }
+      });
+    })
     rejectBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -131,7 +136,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href=`${baseUrl}/backoffice/repay-request`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"

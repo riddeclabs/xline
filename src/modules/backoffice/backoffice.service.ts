@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, RepayRequestStatus, Role } from "../../common";
+import { BorrowRequestStatus, CreditLineStatus, RepayRequestStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -136,17 +136,24 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+    getAllBorrowReqExtCreditLineAndDebtCollCurrency(
+        page: number,
+        sort?: "ASC" | "DESC",
+        chatId?: string
+    ) {
         const sortDate = sort ?? "DESC";
 
         return this.borrowRepo
             .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
             .leftJoinAndSelect("borrow.creditLine", "creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("borrow.createdAt", sortDate)
@@ -155,7 +162,12 @@ export class BackOfficeService {
     }
 
     getBorrowCount() {
-        return this.borrowRepo.createQueryBuilder().getCount();
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
+            .getCount();
     }
 
     getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
@@ -181,7 +193,12 @@ export class BackOfficeService {
     }
 
     getRepayCount() {
-        return this.repayRepo.createQueryBuilder().getCount();
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .getCount();
     }
 
     getFullyAssociatedUserById(id: string) {
@@ -399,6 +416,24 @@ export class BackOfficeService {
             .where("withdraw.id = :id", { id })
             .getOne();
     }
+    getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("user.userPaymentRequisites", "userPaymentRequisites")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.borrowRequests", "borrowRequests")
+            .where("borrowRequests.id = :id", { id })
+            .getOne();
+    }
+
+    getFiatTransactionsByRequestId(id: string) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
+            .getOne();
+    }
+
     async getCreditLineStateBeforeAndAfterBorrowResolved(
         creditLineId: number,
         borrowRequestId: number

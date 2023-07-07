@@ -231,6 +231,7 @@ input::-webkit-inner-spin-button {
     padding: 6px 30px;
     text-align: center;
     transition: all 1s;
+    z-index: 1;
   }
 
   .error-mess {
@@ -243,6 +244,7 @@ input::-webkit-inner-spin-button {
     padding: 6px 30px;
     text-align: center;
     transition: all 1s;
+    z-index: 1;
   }
   .arrow-position {
     position: absolute;
@@ -255,6 +257,18 @@ input::-webkit-inner-spin-button {
     border-radius: 4px;
     margin-left: 4px;
     margin-top: -3px;
+  }
+  .input-resolve {
+    max-width: 350px;
+  }
+
+  .title-page {
+    margin: -32px 0 20px 0;
+    color: #fff;
+    font-size: 30px;
+    padding: 0 0 15px 0;
+    border-bottom: 1px solid #fff;
+    width: 100%;
   }
   
     </style>
@@ -286,7 +300,7 @@ input::-webkit-inner-spin-button {
             <li>
             <a
             href='/backoffice/borrow-request'
-            class='nav-link text-white {% if current_url == '/backoffice/borrow-request'%}active{% endif %}'
+            class='nav-link text-white {% if current_url contains 'borrow-request'%}active{% endif %}'
             aria-current='page'
             >
             Borrow requests
