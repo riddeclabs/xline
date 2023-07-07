@@ -32,8 +32,16 @@
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
     <div class="req-bor-wrapper text-white mt-4">
       <div class='card bg-dark shadow-sm wrapper-count'>
-        <p class='fs-6'>Requested amount: {{ resultPageData.borrowAmountAndStatus.amount }}</p>
-        <p class='fs-6 mt-2'>Request validation: {{ resultPageData.borrowAmountAndStatus.status }}</p>
+        <p class='fs-6'>Requested amount: {{ resultPageData.borrowAmountAndStatus.amount }} {{ resultPageData.fiatTransactions.symbol }}</p>
+        <p class='fs-6 mt-2'>Request validation:
+          {% if resultPageData.borrowAmountAndStatus.status %}
+            <i class="bi bi-check-circle-fill" style="color: #5DB14F"></i>
+            ALLOWED
+          {% else %}
+            <i class="bi bi-x-circle-fill" style="color: #b81a1a"></i>
+            BLOCKED
+          {% endif %}
+        </p>
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
         <h1 class='pb-2 fs-5'>User requisites</h1>

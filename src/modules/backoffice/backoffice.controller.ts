@@ -49,6 +49,7 @@ import { RepayRequestDto } from "./dto/repay-request.dto";
 import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
+import { RequestResolverService } from "../request-resolver/request-resolver.service";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -56,7 +57,8 @@ export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
         private priceOracleService: PriceOracleService,
-        private readonly botManager: BotManagerService
+        private readonly botManager: BotManagerService,
+        private requestResolverService: RequestResolverService
     ) {}
 
     @Get("/auth")
@@ -308,18 +310,13 @@ export class BackOfficeController {
             Number(creditLineId)
         );
 
+        const checkBorrowReq = await this.requestResolverService.verifyBorrowRequest(Number(id));
+
         const borrowAmountAndStatus = {
-            amount: truncateDecimalsToStr(
-                formatUnits(
-                    generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount ?? 0n
-                ),
-                6,
-                false
+            amount: formatUnits(
+                generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount ?? 0n
             ),
-            status: BorrowRequestStatus[
-                generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]
-                    ?.borrowRequestStatus as BorrowRequestStatus
-            ],
+            status: checkBorrowReq.isVerified,
         };
 
         const fiatTransactions = {
