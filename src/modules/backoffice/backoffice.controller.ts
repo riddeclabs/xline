@@ -103,6 +103,7 @@ export class BackOfficeController {
         // some code here
     }
 
+    @UseGuards(AuthenticatedGuard)
     @Get("/404")
     @Render("backoffice/404")
     notFoumdPage() {
@@ -308,9 +309,16 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
-    async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
+    async borrowRequestResolve(
+        @Res() res: Response,
+        @Param("id") id: string,
+        @Param("creditLineId") creditLineId: string
+    ) {
         const generalUserInfoByBorrowId =
             await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
+        if (!generalUserInfoByBorrowId) {
+            res.redirect("/backoffice/404");
+        }
 
         const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
         const { stateAfter, stateBefore } =
@@ -402,8 +410,11 @@ export class BackOfficeController {
     }
     @Get("repay-request/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Param("id") id: string) {
+    async repayItem(@Res() res: Response, @Param("id") id: string) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
+        if (!repayRequestById) {
+            res.redirect("/backoffice/404");
+        }
         const resultRepayRequestById = {
             refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
             iban: repayRequestById?.businessPaymentRequisite.iban,
@@ -414,14 +425,6 @@ export class BackOfficeController {
             ),
         };
         return resultRepayRequestById;
-    }
-
-    @Roles(Role.ADMIN, Role.OPERATOR)
-    @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("borrow-request/:id")
-    @Render("backoffice/unresolved-request-borrow")
-    async borrowRequest(@Req() req: Request, @Param("id") id: string) {
-        return { id };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
@@ -476,6 +479,7 @@ export class BackOfficeController {
     @Get("customers/credit-line-detail/:type/:creditLineId/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
+        @Res() res: Response,
         @Param("id") id: string,
         @Param("creditLineId") creditLineId: string,
         @Param("type") type: string,
@@ -484,6 +488,9 @@ export class BackOfficeController {
         const { page, sortField, sortDirection } = query;
         const generalUserInfoByCreditLineId =
             await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
+        if (!generalUserInfoByCreditLineId) {
+            res.redirect("/backoffice/404");
+        }
         let initialRiskStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         let status = { id: 0, status: "", wallet: "" };
@@ -601,6 +608,9 @@ export class BackOfficeController {
             sortField,
             sortDirection,
         };
+        if (!resultTable.length) {
+            res.redirect("/backoffice/404");
+        }
 
         const resultPageInfo = {
             mainInfo: {
@@ -654,6 +664,7 @@ export class BackOfficeController {
     @Get("customers/creditline-user-list/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
+        @Res() res: Response,
         @Param("creditLineId") creditLineId: string,
         @TransactionsQuery() query: TransactionsDto
     ) {
@@ -664,6 +675,9 @@ export class BackOfficeController {
             sortField,
             sortDirection
         );
+        if (!initialRequestByCreditLineId.length) {
+            res.redirect("/backoffice/404");
+        }
         const checkStatus = (type: string, status: string) => {
             switch (type) {
                 case "Deposit":
@@ -734,8 +748,11 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Param("userId") userId: string) {
+    async customerCreditLine(@Res() res: Response, @Param("userId") userId: string) {
         const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
+        if (!fullyAssociatedUser) {
+            res.redirect("/backoffice/404");
+        }
         //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
         //     collateralCurrency.symbol,
