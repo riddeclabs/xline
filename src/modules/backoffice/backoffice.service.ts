@@ -9,6 +9,9 @@ import {
     RepayRequest,
     User,
     FiatTransaction,
+    CryptoTransaction,
+    WithdrawRequest,
+    DepositRequest,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -66,7 +69,13 @@ export class BackOfficeService {
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
         @InjectRepository(FiatTransaction)
-        private fiatRepo: Repository<FiatTransaction>,
+        private fiatTransaction: Repository<FiatTransaction>,
+        @InjectRepository(CryptoTransaction)
+        private cryptoTransaction: Repository<CryptoTransaction>,
+        @InjectRepository(WithdrawRequest)
+        private withdrawRepo: Repository<WithdrawRequest>,
+        @InjectRepository(DepositRequest)
+        private depositRepo: Repository<DepositRequest>,
         private connection: Connection,
         private readonly botManagerService: BotManagerService,
         private readonly riskEngineService: RiskEngineService,
@@ -212,19 +221,6 @@ export class BackOfficeService {
             .getRawOne();
     }
 
-    getBorrow() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.debtCurrencyId", "borrowRequest")
-            .getMany();
-    }
-
-    getDeposit() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "deptCurrenty")
-            .getMany();
-    }
     getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
@@ -260,6 +256,83 @@ export class BackOfficeService {
             .createQueryBuilder("collateralCurrency")
             .select("collateralCurrency.symbol")
             .getRawMany();
+    }
+
+    getFiatTxByBorrowId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`fiat.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getFiatTxByRepayId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.repayRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`fiat.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getRepayReqExtBusinessPaymentReq(requestId: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .where("repay.id = :id", { id: requestId })
+            .getOne();
+    }
+
+    getBorrowRequestExtendCreditLineAndUserPaymentReq(requestId: string) {
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("borrow.id = :id", { id: requestId })
+            .getOne();
+    }
+
+    getCryptoTxByDepId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.depositRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getCryptoTxByWithdrawId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.withdrawRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
 
     getRepayRequestById(id: string) {
@@ -309,7 +382,7 @@ export class BackOfficeService {
         return this.connection.manager.query(query);
     }
 
-    getGeneralUserInfoAndCurrencySymbol(id: string) {
+    getCreditLineByIdExtUserInfoAndDebtCollCurrency(id: string) {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.user", "user")
@@ -319,6 +392,28 @@ export class BackOfficeService {
             .getOne();
     }
 
+    getDepositReqStatusById(id: string) {
+        return this.depositRepo
+            .createQueryBuilder("deposit")
+            .where("deposit.id = :id", { id })
+            .select(["deposit.depositRequestStatus", "deposit.id"])
+            .getOne();
+    }
+
+    getRepayStatusById(id: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .select(["repay.repayRequestStatus", "repay.id"])
+            .getOne();
+    }
+
+    getWithdrawReqById(id: string) {
+        return this.withdrawRepo
+            .createQueryBuilder("withdraw")
+            .where("withdraw.id = :id", { id })
+            .getOne();
+    }
     getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id: string) {
         return this.userRepo
             .createQueryBuilder("user")
@@ -331,7 +426,7 @@ export class BackOfficeService {
     }
 
     getFiatTransactionsByRequestId(id: string) {
-        return this.fiatRepo
+        return this.fiatTransaction
             .createQueryBuilder("fiat")
             .where("fiat.borrowRequestId = :id", { id })
             .getOne();

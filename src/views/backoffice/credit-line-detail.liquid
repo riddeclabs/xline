@@ -1,0 +1,278 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+<h1 class='pb-2 text-white fs-1'>{{ resultPageInfo.mainInfo.type }} request #{{ resultPageInfo.mainInfo.id }}</h1>
+<div class="d-flex">
+  <div style="color: #fff; margin-right: 80px;" class="pb-3">
+    <h1 class='pb-2 text-white fs-4'>General info:</h1>
+    <ul>
+      <li>
+        <div>Credit line: {{ resultPageInfo.mainInfo.collateral }} / {{ resultPageInfo.mainInfo.debt }}</div>
+      </li>
+      <li>
+        <div>User name: {{ resultPageInfo.mainInfo.name }}</div>
+      </li>
+      <li>
+        <div>Chat ID: {{ resultPageInfo.mainInfo.chatId }}</div>
+      </li>
+    </ul>
+  </div>
+
+  <div style="color: #fff; margin-right: 80px;" class="pb-3">
+    <h1 class='pb-2 text-white fs-4'>Request info:</h1>
+    {% if resultPageInfo.mainInfo.type == "Repay" %}
+    <ul>
+      <li>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
+      </li>
+      <li>
+        <div>User Reference Number: {{ resultPageInfo.mainInfo.refNumber }}</div>
+      </li>
+    </ul>
+
+    <h1 class='pb-2 text-white fs-4'>Associated XLine Requisites:</h1>
+    <ul>
+      <li>
+        <div>Name: {{ resultPageInfo.mainInfo.associatedXLineInfo.bankName }}</div>
+      </li>
+      <li>
+        <div>IBAN: {{ resultPageInfo.mainInfo.associatedXLineInfo.iban }}</div>
+      </li>
+    </ul>
+    {% elsif resultPageInfo.mainInfo.type == "Borrow" %}
+    <ul>
+      <li>
+        <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
+      </li>
+      {% if resultPageInfo.mainInfo.checkBorrowFiatAmount %}
+      <li>
+        <div>Requested Borrow Amount: {{ resultPageInfo.mainInfo.borrowFiatAmount }} {{ resultPageInfo.mainInfo.debt }}</div>
+      </li>
+      {% else %}
+      <li>
+        <div>Initial Risk Strategy: {{ resultPageInfo.mainInfo.initialRiskStrategy }}</div>
+      </li>
+      {% endif %}
+      <li>
+        <div>IBAN: {{ resultPageInfo.mainInfo.borrowIban }}</div>
+      </li>
+    </ul>
+
+    {% elsif resultPageInfo.mainInfo.type == "Deposit" %}
+      <ul>
+        <li>
+          <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
+        </li>
+        <li>
+          <div>Address to Deposit: {{ resultPageInfo.mainInfo.address }}</div>
+        </li>
+        
+      </ul>
+      {% else %}
+        <ul>
+          <li>
+            <div class="d-flex">Status: <div class="status-wrapper">{{ resultPageInfo.mainInfo.status }}</div></div>
+          </li>
+          <li>
+            <div>Address to Withdraw: {{ resultPageInfo.mainInfo.wallet }}</div>
+          </li>
+          <li>
+            <div>Raw Withdraw Amount: {{ resultPageInfo.mainInfo.withdrawAmount }} {{ resultPageInfo.mainInfo.collateral }}</div>
+          </li>
+        </ul>
+    {% endif %}
+  </div>
+</div>
+  
+  
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Transactions</h1>
+    {% if resultPageInfo.depTable %}
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col'>
+            Raw Transfer Amount
+          </th>
+          <th scope='col'>
+            USD Transfer Amount
+          </th>
+          <th scope='col'>
+            Transaction Hash
+          </th>
+          <th scope='col'>
+            Processing Transaction ID
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Created At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "updated_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "updated_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Updated At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At
+              </a>
+            {% endif %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless resultPageInfo.rowTable.size > 0 %}
+          <tr>
+            <td colspan="6">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for transaction in resultPageInfo.rowTable %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ transaction.rawTransferAmount }} {{ resultPageInfo.mainInfo.collateral }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.usdTransferAmount }} USD
+              </td>
+              <td class='align-middle' style="font-size: 10px;">
+                {{ transaction.txHash }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.paymentProcessingTxId }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.createdAt }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.updatedAt }}
+              </td>
+              
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {%  else %}
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col'>
+            IBAN from
+          </th>
+          <th scope='col'>
+            IBAN to
+          </th>
+          <th scope='col'>
+            Name from
+          </th>
+          <th scope='col'>
+            Name to
+          </th>
+          <th scope='col'>
+            Transfer amount
+          </th>
+          <th scope='col'>
+            Status
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Created At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Created At
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "updated_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "updated_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Updated At<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'updated_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Updated At
+              </a>
+            {% endif %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless resultPageInfo.rowTable.size > 0 %}
+          <tr>
+            <td colspan="8">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for transaction in resultPageInfo.rowTable %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ transaction.ibanFrom }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.ibanTo }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.nameFrom }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.nameTo }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.rawTransferAmount }} {{ resultPageInfo.mainInfo.debt }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.status }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.createdAt }}
+              </td>
+              <td class='align-middle'>
+                {{ transaction.updatedAt }}
+              </td>
+              
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% endif %}
+    
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+{% endblock %}

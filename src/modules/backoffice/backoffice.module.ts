@@ -9,8 +9,11 @@ import {
     RepayRequest,
     User,
     DebtCurrency,
-    CollateralCurrency,
     FiatTransaction,
+    CryptoTransaction,
+    CollateralCurrency,
+    DepositRequest,
+    WithdrawRequest,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -33,6 +36,9 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
             CollateralCurrency,
             DebtCurrency,
             FiatTransaction,
+            CryptoTransaction,
+            DepositRequest,
+            WithdrawRequest,
         ]),
         BotModule,
         PriceOracleModule,
