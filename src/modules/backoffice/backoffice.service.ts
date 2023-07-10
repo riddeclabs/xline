@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { CreditLineStatus, RepayRequestStatus, Role } from "../../common";
+import { BorrowRequestStatus, CreditLineStatus, RepayRequestStatus, Role } from "../../common";
 import {
     BorrowRequest,
     CreditLine,
@@ -8,6 +8,10 @@ import {
     CollateralCurrency,
     RepayRequest,
     User,
+    FiatTransaction,
+    CryptoTransaction,
+    WithdrawRequest,
+    DepositRequest,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -64,6 +68,14 @@ export class BackOfficeService {
         private collateralCurrency: Repository<CollateralCurrency>,
         @InjectRepository(DebtCurrency)
         private debtCurrency: Repository<DebtCurrency>,
+        @InjectRepository(FiatTransaction)
+        private fiatTransaction: Repository<FiatTransaction>,
+        @InjectRepository(CryptoTransaction)
+        private cryptoTransaction: Repository<CryptoTransaction>,
+        @InjectRepository(WithdrawRequest)
+        private withdrawRepo: Repository<WithdrawRequest>,
+        @InjectRepository(DepositRequest)
+        private depositRepo: Repository<DepositRequest>,
         private connection: Connection,
         private readonly botManagerService: BotManagerService,
         private readonly riskEngineService: RiskEngineService,
@@ -122,17 +134,24 @@ export class BackOfficeService {
             .getManyAndCount();
     }
 
-    getAllBorrowRequest(page: number, sort?: "ASC" | "DESC", chatId?: string) {
+    getAllBorrowReqExtCreditLineAndDebtCollCurrency(
+        page: number,
+        sort?: "ASC" | "DESC",
+        chatId?: string
+    ) {
         const sortDate = sort ?? "DESC";
 
         return this.borrowRepo
             .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
             .leftJoinAndSelect("borrow.creditLine", "creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .leftJoinAndSelect("creditLine.user", "user")
-            .where("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
             .orderBy("borrow.createdAt", sortDate)
@@ -141,7 +160,12 @@ export class BackOfficeService {
     }
 
     getBorrowCount() {
-        return this.borrowRepo.createQueryBuilder().getCount();
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
+                status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
+            })
+            .getCount();
     }
 
     getAllRepayRequest(page: number, sort?: "ASC" | "DESC", chatId?: string, refNumber?: string) {
@@ -167,7 +191,12 @@ export class BackOfficeService {
     }
 
     getRepayCount() {
-        return this.repayRepo.createQueryBuilder().getCount();
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.repayRequestStatus = :status", {
+                status: RepayRequestStatus.VERIFICATION_PENDING,
+            })
+            .getCount();
     }
 
     getFullyAssociatedUserById(id: string) {
@@ -192,19 +221,6 @@ export class BackOfficeService {
             .getRawOne();
     }
 
-    getBorrow() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.debtCurrencyId", "borrowRequest")
-            .getMany();
-    }
-
-    getDeposit() {
-        return this.creditLineRepo
-            .createQueryBuilder("creditLine")
-            .leftJoinAndSelect("creditLine.collateralCurrencyId", "deptCurrenty")
-            .getMany();
-    }
     getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
@@ -240,6 +256,83 @@ export class BackOfficeService {
             .createQueryBuilder("collateralCurrency")
             .select("collateralCurrency.symbol")
             .getRawMany();
+    }
+
+    getFiatTxByBorrowId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`fiat.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getFiatTxByRepayId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.repayRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`fiat.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getRepayReqExtBusinessPaymentReq(requestId: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .leftJoinAndSelect("repay.businessPaymentRequisite", "businessPaymentRequisite")
+            .where("repay.id = :id", { id: requestId })
+            .getOne();
+    }
+
+    getBorrowRequestExtendCreditLineAndUserPaymentReq(requestId: string) {
+        return this.borrowRepo
+            .createQueryBuilder("borrow")
+            .leftJoinAndSelect("borrow.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("borrow.id = :id", { id: requestId })
+            .getOne();
+    }
+
+    getCryptoTxByDepId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.depositRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getCryptoTxByWithdrawId(
+        page: number,
+        id: string,
+        sortField = "created_at",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.cryptoTransaction
+            .createQueryBuilder("crypto")
+            .where("crypto.withdrawRequestId = :id", { id })
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`crypto.${sortField}`, sortDirection)
+            .getMany();
     }
 
     getRepayRequestById(id: string) {
@@ -289,13 +382,53 @@ export class BackOfficeService {
         return this.connection.manager.query(query);
     }
 
-    getGeneralUserInfoAndCurrencySymbol(id: string) {
+    getCreditLineByIdExtUserInfoAndDebtCollCurrency(id: string) {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.user", "user")
             .where("creditLine.id = :id", { id })
             .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .getOne();
+    }
+
+    getDepositReqStatusById(id: string) {
+        return this.depositRepo
+            .createQueryBuilder("deposit")
+            .where("deposit.id = :id", { id })
+            .select(["deposit.depositRequestStatus", "deposit.id"])
+            .getOne();
+    }
+
+    getRepayStatusById(id: string) {
+        return this.repayRepo
+            .createQueryBuilder("repay")
+            .where("repay.id = :id", { id })
+            .select(["repay.repayRequestStatus", "repay.id"])
+            .getOne();
+    }
+
+    getWithdrawReqById(id: string) {
+        return this.withdrawRepo
+            .createQueryBuilder("withdraw")
+            .where("withdraw.id = :id", { id })
+            .getOne();
+    }
+    getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id: string) {
+        return this.userRepo
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.creditLines", "creditLine")
+            .leftJoinAndSelect("user.userPaymentRequisites", "userPaymentRequisites")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.borrowRequests", "borrowRequests")
+            .where("borrowRequests.id = :id", { id })
+            .getOne();
+    }
+
+    getFiatTransactionsByRequestId(id: string) {
+        return this.fiatTransaction
+            .createQueryBuilder("fiat")
+            .where("fiat.borrowRequestId = :id", { id })
             .getOne();
     }
 

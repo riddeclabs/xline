@@ -9,7 +9,11 @@ import {
     RepayRequest,
     User,
     DebtCurrency,
+    FiatTransaction,
+    CryptoTransaction,
     CollateralCurrency,
+    DepositRequest,
+    WithdrawRequest,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -18,6 +22,7 @@ import { PriceOracleModule } from "../price-oracle/price-oracle.module";
 import { BotModule } from "../bot/bot.module";
 import { RiskEngineModule } from "../risk-engine/risk-engine.module";
 import { RequestHandlerModule } from "../request-handler/request-handler.module";
+import { RequestResolverModule } from "../request-resolver/request-resolver.module";
 
 @Module({
     imports: [
@@ -30,11 +35,16 @@ import { RequestHandlerModule } from "../request-handler/request-handler.module"
             CreditLine,
             CollateralCurrency,
             DebtCurrency,
+            FiatTransaction,
+            CryptoTransaction,
+            DepositRequest,
+            WithdrawRequest,
         ]),
         BotModule,
         PriceOracleModule,
         RiskEngineModule,
         RequestHandlerModule,
+        RequestResolverModule,
     ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],

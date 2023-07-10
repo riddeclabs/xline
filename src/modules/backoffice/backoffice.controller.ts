@@ -12,7 +12,6 @@ import {
     ValidationPipe,
     UsePipes,
     Param,
-    Body,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -47,9 +46,13 @@ import { CreditLineDetailsType } from "./backoffice.types";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
 import { RepayRequestDto } from "./dto/repay-request.dto";
+import { CreditLineDetailsDto } from "./dto/credit-line-details.dto";
+import { CreditLineDetails } from "./decorators/credit-line-details.decorators";
+import { CryptoTransaction, FiatTransaction } from "src/database/entities";
 import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
+import { RequestResolverService } from "../request-resolver/request-resolver.service";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -57,7 +60,8 @@ export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
         private priceOracleService: PriceOracleService,
-        private readonly botManager: BotManagerService
+        private readonly botManager: BotManagerService,
+        private requestResolverService: RequestResolverService
     ) {}
 
     @Get("/auth")
@@ -109,7 +113,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("home")
     @Render("backoffice/home")
-    async home(@Req() req: Request) {
+    async home() {
         const allCustomersLength = await this.backofficeService.getAllCustomersCount();
         const feeAccumulatedUsd = await this.backofficeService.getFeeAccumulatedAmount();
         const collateralInitial = await this.backofficeService.getCollateralCurrency();
@@ -138,6 +142,7 @@ export class BackOfficeController {
             totalCustomers: allCustomersLength,
             totalSupply,
             collateralCurrencyAmount,
+            //TODO must be fixed when new debt currency will be added
             totalDebt: truncateDecimalsToStr(
                 formatUnits(BigInt(totalDebt), debtCurrencyInitial[0]?.decimals),
                 2,
@@ -146,6 +151,7 @@ export class BackOfficeController {
             debtCurrencyInitial: debtCurrencyInitial.map(item => {
                 return {
                     ...item,
+                    //TODO must be fixed when new debt currency will be added
                     amount: truncateDecimalsToStr(
                         formatUnits(BigInt(item.amount || 0n), debtCurrencyInitial[0]?.decimals),
                         2,
@@ -153,6 +159,7 @@ export class BackOfficeController {
                     ),
                 };
             }),
+            //TODO must be fixed when new debt currency will be added
             totalFeeAccumulatedUsd: truncateDecimalsToStr(
                 formatUnits(
                     BigInt(feeAccumulatedUsd?.feeAccumulatedUsd || 0n),
@@ -200,21 +207,29 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request")
     @Render("backoffice/borrow-request")
-    async borrowList(@Req() req: Request, @BorrowRequest() query: BorrowRequestDto) {
+    async borrowList(@BorrowRequest() query: BorrowRequestDto) {
         const { page, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
 
-        const getAllBorrow = await this.backofficeService.getAllBorrowRequest(
-            page - 1,
-            sort,
-            chatIdFilter
-        );
+        const getAllBorrow =
+            await this.backofficeService.getAllBorrowReqExtCreditLineAndDebtCollCurrency(
+                page - 1,
+                sort,
+                chatIdFilter
+            );
         const allBorrowResult = getAllBorrow.map(item => {
             return {
                 ...item,
                 createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                 updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
-                borrowFiatAmount: item.borrowFiatAmount ?? 0,
+                borrowFiatAmount: truncateDecimalsToStr(
+                    formatUnits(
+                        item.borrowFiatAmount ?? 0n,
+                        item.creditLine.collateralCurrency.decimals
+                    ),
+                    2,
+                    false
+                ),
             };
         });
         const totalCount = await this.backofficeService.getBorrowCount();
@@ -244,7 +259,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("repay-request")
     @Render("backoffice/repay-request")
-    async repayList(@Req() req: Request, @RepayListQuery() query: RepayRequestDto) {
+    async repayList(@RepayListQuery() query: RepayRequestDto) {
         const { page, sort, chatId, refNumber } = query;
         const chatIdFilter = chatId?.trim() ?? "";
         const refNumberFilter = refNumber?.trim() ?? "";
@@ -291,9 +306,103 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("borrow-request/:creditLineId/:id")
+    @Render("backoffice/resolve-borrow-request")
+    async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
+        const generalUserInfoByBorrowId =
+            await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
+
+        const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
+        const { stateAfter, stateBefore } =
+            generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus ===
+            BorrowRequestStatus.VERIFICATION_PENDING
+                ? await this.backofficeService.getCreditLineStateBeforeAndAfterBorrowResolved(
+                      Number(creditLineId),
+                      Number(id)
+                  )
+                : { stateAfter: {}, stateBefore: {} };
+        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+            Number(creditLineId)
+        );
+
+        const checkBorrowReq = await this.requestResolverService.verifyBorrowRequest(Number(id));
+
+        const borrowAmountAndStatus = {
+            amount: formatUnits(
+                generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount ?? 0n
+            ),
+            status: checkBorrowReq.isVerified,
+        };
+
+        const fiatTransactions = {
+            ...initialFiatTransactions,
+            rawTransferAmount: truncateDecimalsToStr(
+                formatUnits(initialFiatTransactions?.rawTransferAmount ?? 0n),
+                2,
+                false
+            ),
+            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol,
+        };
+
+        const resultPageData = {
+            accountName: generalUserInfoByBorrowId?.name,
+            iban: generalUserInfoByBorrowId?.userPaymentRequisites[0]?.iban,
+            collateralFactor: truncateDecimalsToStr(
+                formatUnits(economicalParams.collateralFactor * 100n),
+                2,
+                false
+            ),
+            liquidationFactor: truncateDecimalsToStr(
+                formatUnits(economicalParams.liquidationFactor * 100n),
+                2,
+                false
+            ),
+            beforeCollateralAmount: truncateDecimalsToStr(
+                formatUnits(stateBefore.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                2,
+                false
+            ),
+            beforeSupplyAmount: truncateDecimalsToStr(
+                formatUnits(stateBefore.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                2,
+                false
+            ),
+            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
+            beforeBorrowAmount: truncateDecimalsToStr(
+                formatUnits(stateBefore.debtAmount ?? 0n),
+                2,
+                false
+            ),
+            beforeUtilizationFactor: truncateDecimalsToStr(
+                formatUnits((stateBefore.utilizationRate ?? 0n) * 100n),
+                2,
+                false
+            ),
+            afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateAfter.debtAmount ?? 0n), 2, false),
+            afterUtilizationFactor: truncateDecimalsToStr(
+                formatUnits((stateAfter.utilizationRate ?? 0n) * 100n),
+                2,
+                false
+            ),
+            afterCollateralAmount: truncateDecimalsToStr(
+                formatUnits(stateAfter.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                2,
+                false
+            ),
+            afterSupplyAmount: truncateDecimalsToStr(
+                formatUnits(stateAfter.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                2,
+                false
+            ),
+            status: generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
+            fiatTransactions,
+            borrowAmountAndStatus,
+        };
+        return { resultPageData };
+    }
     @Get("repay-request/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Req() req: Request, @Param("id") id: string) {
+    async repayItem(@Param("id") id: string) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         const resultRepayRequestById = {
             refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
@@ -364,6 +473,184 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
+    @Get("customers/credit-line-detail/:type/:creditLineId/:id")
+    @Render("backoffice/credit-line-detail")
+    async creditLineDetails(
+        @Param("id") id: string,
+        @Param("creditLineId") creditLineId: string,
+        @Param("type") type: string,
+        @CreditLineDetails() query: CreditLineDetailsDto
+    ) {
+        const { page, sortField, sortDirection } = query;
+        const generalUserInfoByCreditLineId =
+            await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
+        let initialRiskStrategy = "";
+        let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
+        let status = { id: 0, status: "", wallet: "" };
+        let associatedXLineInfo = { bankName: "", iban: "" };
+        let borrowIban = "";
+        let checkBorrowFiatAmount = false;
+        let borrowFiatAmount = "";
+        let withdrawAmount = "";
+
+        switch (type) {
+            case "Borrow":
+                resultTable = await this.backofficeService.getFiatTxByBorrowId(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
+                const borrowRequest =
+                    await this.backofficeService.getBorrowRequestExtendCreditLineAndUserPaymentReq(id);
+                borrowIban = borrowRequest?.creditLine.userPaymentRequisite.iban || "";
+                checkBorrowFiatAmount = !!borrowRequest?.borrowFiatAmount;
+                initialRiskStrategy = truncateDecimalsToStr(
+                    formatUnits(borrowRequest?.initialRiskStrategy ?? 0n),
+                    2,
+                    false
+                );
+                status = {
+                    status: borrowRequest?.borrowRequestStatus || "",
+                    id: borrowRequest?.id || 0,
+                    wallet: "",
+                };
+                borrowFiatAmount = truncateDecimalsToStr(
+                    formatUnits(borrowRequest?.borrowFiatAmount ?? 0n),
+                    2,
+                    false
+                );
+                break;
+            case "Deposit":
+                resultTable = await this.backofficeService.getCryptoTxByDepId(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
+                const depositStatus = await this.backofficeService.getDepositReqStatusById(id);
+                status = {
+                    status: depositStatus?.depositRequestStatus || "",
+                    id: depositStatus?.id || 0,
+                    wallet: "",
+                };
+                break;
+            case "Withdraw":
+                resultTable = await this.backofficeService.getCryptoTxByWithdrawId(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
+                const withdrawRequest = await this.backofficeService.getWithdrawReqById(id);
+                status = {
+                    status: withdrawRequest?.withdrawRequestStatus || "",
+                    id: withdrawRequest?.id || 0,
+                    wallet: withdrawRequest?.walletToWithdraw || "",
+                };
+                withdrawAmount = truncateDecimalsToStr(
+                    formatUnits(withdrawRequest?.withdrawAmount ?? 0n),
+                    2,
+                    false
+                );
+                break;
+            case "Repay":
+                resultTable = await this.backofficeService.getFiatTxByRepayId(
+                    page - 1,
+                    id,
+                    sortField,
+                    sortDirection
+                );
+                const repayStatus = await this.backofficeService.getRepayStatusById(id);
+                status = {
+                    status: repayStatus?.repayRequestStatus || "",
+                    id: repayStatus?.id || 0,
+                    wallet: "",
+                };
+                const repayRequestExtendBusinessPaymentRequisite =
+                    await this.backofficeService.getRepayReqExtBusinessPaymentReq(id);
+                associatedXLineInfo = {
+                    bankName:
+                        repayRequestExtendBusinessPaymentRequisite?.businessPaymentRequisite.bankName ||
+                        "",
+                    iban:
+                        repayRequestExtendBusinessPaymentRequisite?.businessPaymentRequisite.iban || "",
+                };
+                break;
+        }
+        const checkStatus = (type: string, status: string) => {
+            switch (type) {
+                case "Deposit":
+                    return DepositRequestStatus[status as DepositRequestStatus];
+
+                case "Borrow":
+                    return BorrowRequestStatus[status as BorrowRequestStatus];
+
+                case "Withdraw":
+                    return WithdrawRequestStatus[status as WithdrawRequestStatus];
+
+                case "Repay":
+                    return RepayRequestStatus[status as RepayRequestStatus];
+
+                default:
+                    return "";
+            }
+        };
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+
+        const resultPageInfo = {
+            mainInfo: {
+                name: generalUserInfoByCreditLineId?.user.name,
+                chatId: generalUserInfoByCreditLineId?.user.chatId,
+                debt: generalUserInfoByCreditLineId?.debtCurrency.symbol,
+                collateral: generalUserInfoByCreditLineId?.collateralCurrency.symbol,
+                type,
+                refNumber: createRepayRequestRefNumber(
+                    generalUserInfoByCreditLineId?.refNumber || "",
+                    Number(id)
+                ),
+                address: await this.botManager.getUserWallet(
+                    String(generalUserInfoByCreditLineId?.user.chatId),
+                    String(generalUserInfoByCreditLineId?.collateralCurrency.symbol)
+                ),
+                initialRiskStrategy,
+                status: checkStatus(type, status.status),
+                id: status.id,
+                wallet: status.wallet,
+                associatedXLineInfo,
+                borrowIban,
+                checkBorrowFiatAmount,
+                borrowFiatAmount,
+                withdrawAmount,
+            },
+            rowTable: resultTable.map(item => {
+                return {
+                    ...item,
+                    createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
+                    updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                    rawTransferAmount: formatUnits(item.rawTransferAmount),
+                    usdTransferAmount: truncateDecimalsToStr(
+                        formatUnits((item as CryptoTransaction).usdTransferAmount ?? 0n),
+                        2,
+                        false
+                    ),
+                };
+            }),
+            depTable: type === "Withdraw" || type === "Deposit",
+        };
+
+        return {
+            resultPageInfo,
+            page: {
+                query: queryWithDefaults,
+            },
+        };
+    }
+
     @Get("customers/creditline-user-list/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
@@ -408,7 +695,7 @@ export class BackOfficeController {
         const countTransaction = await this.backofficeService.getCountRequestByCreditLine(creditLineId);
         const totalCount = countTransaction[0]?.count;
         const generalUserInfoAndCurrencySymbol =
-            await this.backofficeService.getGeneralUserInfoAndCurrencySymbol(creditLineId);
+            await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
 
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -426,9 +713,9 @@ export class BackOfficeController {
             rowTable: resultTransactions,
         };
         const totalPageCount = Math.ceil(Number(totalCount) / PAGE_LIMIT_REQUEST);
-
         return {
             resultTable,
+            creditLineId,
             page: {
                 current: page,
                 query: queryWithDefaults,
@@ -513,10 +800,14 @@ export class BackOfficeController {
                         },
                         appliedRates: {
                             collateralFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.collateralFactor * 100n)
+                                formatUnits(economicalParams.collateralFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                             liquidationFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.liquidationFactor * 100n)
+                                formatUnits(economicalParams.liquidationFactor * 100n),
+                                2,
+                                false
                             ), // All rates have 18 decimals accuracy
                         },
                         dates: {
@@ -540,13 +831,6 @@ export class BackOfficeController {
         };
 
         return resultTablesData;
-    }
-
-    @Roles(Role.ADMIN, Role.OPERATOR)
-    @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Post("/request-resolver/resolve-request/borrow")
-    async requestResolve(@Req() req: Request, @Body() preload: any) {
-        return;
     }
 
     @Roles(Role.ADMIN)

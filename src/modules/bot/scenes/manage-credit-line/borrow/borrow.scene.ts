@@ -12,8 +12,12 @@ import * as filters from "telegraf/filters";
 import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.type";
 import { BorrowTextSource } from "./borrow.text";
 import { BotManagerService } from "src/modules/bot/bot-manager.service";
-import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../common/types";
-import { getCreditLineStateData, getMaxAllowedBorrowAmount } from "../../common/utils";
+import { CreditLineStateMsgData, Requisites } from "../../common/types";
+import {
+    getCreditLineStateMsgData,
+    getXLineRequestMsgData,
+    getMaxAllowedBorrowAmount,
+} from "../../common/utils";
 import { validateAmountDecimals } from "src/common/input-validation";
 import { truncateDecimals } from "src/common/text-formatter";
 
@@ -39,26 +43,7 @@ export class BorrowActionWizard {
             return;
         }
 
-        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
-
-        const data: XLineRequestMsgData = {
-            status: pendingRequest.borrowRequestStatus as string,
-            currency: creditLine.debtCurrency.symbol,
-            created: pendingRequest.createdAt.toDateString(),
-            updated: pendingRequest.updatedAt.toDateString(),
-            requisitesOrWallet: {
-                iban: creditLine.userPaymentRequisite.iban,
-                accountName: creditLine.user.name,
-            },
-        };
-
-        if (pendingRequest.borrowFiatAmount) {
-            data.amountOrStrategy = formatUnitsNumber(pendingRequest.borrowFiatAmount);
-        } else if (pendingRequest.initialRiskStrategy) {
-            data.amountOrStrategy = BorrowTextSource.getRiskStrategyText(
-                pendingRequest.initialRiskStrategy
-            );
-        }
+        const data = getXLineRequestMsgData(pendingRequest);
 
         await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
             parse_mode: "MarkdownV2",
@@ -149,7 +134,7 @@ export class BorrowActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const state = getCreditLineStateData(cld);
+        const state = getCreditLineStateMsgData(cld);
 
         if (state.maxAllowedBorrowAmount <= 0) {
             await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
@@ -185,7 +170,7 @@ export class BorrowActionWizard {
 
         const borrowFiatAmount = parseUnits(amount);
 
-        const stateBefore = getCreditLineStateData(cdl);
+        const stateBefore = getCreditLineStateMsgData(cdl);
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
         //TODO: adapt for minimal fee value later
@@ -357,7 +342,7 @@ export class BorrowActionWizard {
     private async reqAmountHandler(ctx: BorrowContext, userInput: string) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const cld = await this.botManager.getCreditLineDetails(creditLineId);
-        const state = getCreditLineStateData(cld);
+        const state = getCreditLineStateMsgData(cld);
 
         const input = Number(userInput);
         if (!input || input <= 0) {
