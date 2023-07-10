@@ -35,19 +35,36 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_PENDING_REQUESTS)
     async onVerifyPendingRequests(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const pendingRequest = await this.botManager.getOldestUnfinalizedBorrowReq(creditLineId);
+        const borrowPendingRequest = await this.botManager.getOldestUnfinalizedBorrowReq(creditLineId);
+        const withdrawPendingRequest = await this.botManager.getOldestPendingWithdrawRequest(
+            creditLineId
+        );
 
-        if (!pendingRequest) {
+        if (!borrowPendingRequest && !withdrawPendingRequest) {
             ctx.wizard.next();
             await this.botCommon.executeCurrentStep(ctx);
             return;
         }
 
-        const data = getXLineRequestMsgData(pendingRequest);
+        if (borrowPendingRequest && withdrawPendingRequest) {
+            throw new Error("Both borrow and withdraw requests are pending");
+        }
 
-        await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
-            parse_mode: "MarkdownV2",
-        });
+        if (borrowPendingRequest) {
+            const data = getXLineRequestMsgData(borrowPendingRequest);
+
+            await ctx.editMessageText(BorrowTextSource.getExistingBorrowRequestErrorMsg(data), {
+                parse_mode: "MarkdownV2",
+            });
+        }
+
+        if (withdrawPendingRequest) {
+            const data = getXLineRequestMsgData(withdrawPendingRequest);
+
+            await ctx.editMessageText(BorrowTextSource.getExistingWithdrawRequestErrorMsg(data), {
+                parse_mode: "MarkdownV2",
+            });
+        }
 
         await ctx.editMessageReplyMarkup(
             Markup.inlineKeyboard([this.botCommon.goBackButton()], {
