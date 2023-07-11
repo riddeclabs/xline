@@ -12,6 +12,7 @@ import {
     CryptoTransaction,
     WithdrawRequest,
     DepositRequest,
+    BusinessPaymentRequisite,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -76,6 +77,8 @@ export class BackOfficeService {
         private withdrawRepo: Repository<WithdrawRequest>,
         @InjectRepository(DepositRequest)
         private depositRepo: Repository<DepositRequest>,
+        @InjectRepository(BusinessPaymentRequisite)
+        private businessRequisite: Repository<BusinessPaymentRequisite>,
         private connection: Connection,
         private readonly botManagerService: BotManagerService,
         private readonly riskEngineService: RiskEngineService,
@@ -476,5 +479,23 @@ export class BackOfficeService {
             stateBefore,
             stateAfter,
         };
+    }
+
+    getBusinesRaymentRequisitesAndDebt(
+        page: number,
+        sortField = "bankName",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.businessRequisite
+            .createQueryBuilder("biz")
+            .leftJoinAndSelect("biz.debtCurrency", "debtCurrency")
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(`biz.${sortField}`, sortDirection)
+            .getMany();
+    }
+
+    getBusinesRaymentRequisitesCount() {
+        return this.businessRequisite.createQueryBuilder("biz").getCount();
     }
 }

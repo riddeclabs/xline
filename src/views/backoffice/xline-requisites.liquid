@@ -1,0 +1,96 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <div class='title-page text-white'>Xline reuqisites</div>
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <h1 class='m-3 text-white fs-5'>Xline requisites list</h1>
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col'>
+            {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Currency<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "bankName" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Name<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "bankName" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Name<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Name
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "iban" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">IBAN<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "iban" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">IBAN<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">IBAN
+              </a>
+            {% endif %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless requisites.size > 0 %}
+          <tr>
+            <td colspan="3">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for requisit in requisites %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ requisit.currency }}
+              </td>
+              <td class='align-middle'>
+                {{ requisit.name }}
+              </td>
+              <td class='align-middle'>
+                {{ requisit.iban }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+{% endblock %}
