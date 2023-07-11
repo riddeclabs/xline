@@ -270,6 +270,20 @@ input::-webkit-inner-spin-button {
     border-bottom: 1px solid #fff;
     width: 100%;
   }
+
+  .tabs-content {
+    display: none;
+  }
+
+  .tabs-content li {
+    margin-left: 20px;
+    width: 90%;
+  }
+
+  .tabs-wrapper {
+    width: 100%;
+    cursor: pointer;
+  }
   
     </style>
   </head>
@@ -296,25 +310,35 @@ input::-webkit-inner-spin-button {
               >
               Home
             </a>
-            </li>
-            <li>
-            <a
-            href='/backoffice/borrow-request'
-            class='nav-link text-white {% if current_url contains 'borrow-request'%}active{% endif %}'
-            aria-current='page'
-            >
-            Borrow requests
-          </a>
           </li>
           <li>
-            <a
-            href='/backoffice/repay-request'
-            class='nav-link text-white {% if current_url contains 'repay-request'%}active{% endif %}'
-            aria-current='page'
-            >
-            Repay requests
-          </a>
+            <div class='tabs-wrapper nav-link text-white' id="wrapper-tabs">
+            Unresolved requests
+            </div>
+              <ul class="tabs-content nav-pills nav" id="content-tabs">
+                <li>
+                <a
+                  href='/backoffice/borrow-request'
+                  class='nav-link text-white {% if current_url contains 'borrow-request'%}active{% endif %}'
+                  aria-current='page'
+                >
+                Borrow requests
+                </a>
+              </li>
+              <li>
+                <a
+                href='/backoffice/repay-request'
+                class='nav-link text-white {% if current_url contains 'repay-request'%}active{% endif %}'
+                aria-current='page'
+                >
+                  Repay requests
+                </a>
+              </li>
+              </ul>
           </li>
+
+          
+          
           <li>
             <a
               href='/backoffice/customers'
@@ -392,5 +416,28 @@ input::-webkit-inner-spin-button {
       integrity='sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2XofN4zfuZxLkoj1gXtW8ANNCe9d5Y3eG5eD'
       crossorigin='anonymous'
     ></script>
+    <script>
+      const wrapperTabs = document.getElementById('wrapper-tabs');
+      const contentTabs = document.getElementById('content-tabs');
+      const checkUrl = document
+      .location
+      .pathname
+      console.log("checkUrl", checkUrl)
+      if (checkUrl.includes("repay-request") || checkUrl.includes("borrow-request") ) {
+        contentTabs.style = 'display: block;'
+      }
+  
+      wrapperTabs.addEventListener('click', () => {
+
+        if (contentTabs.style.display === "block") {
+          if(!checkUrl.includes("repay-request") && !checkUrl.includes("borrow-request")) {
+            contentTabs.style = 'display: none;'
+          }
+        } else {
+          contentTabs.style = 'display: block;'
+        }
+        
+      }, 500)
+    </script>
   </body>
 </html>
