@@ -1,37 +1,38 @@
-import {
-    bigintToFormattedPercent,
-    escapeSpecialCharacters,
-    formatUnits,
-    WithdrawRequestStatus,
-} from "../../../../../common";
+import { bigintToFormattedPercent, escapeSpecialCharacters, formatUnits } from "../../../../../common";
 import { floatToMd, truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { CollateralCurrency } from "../../../../../database/entities";
 import { SUPPORTED_TOKENS } from "../../../constants";
 import { WithdrawRequestDetails } from "../../../bot-manager.service";
 import { BasicSourceText } from "../../common/basic-source.text";
+import { XLineRequestMsgData } from "../../common/types";
 
 export class WithdrawTextSource extends BasicSourceText {
-    static getExistedPendingRequestText(
-        rawWithdrawAmount: bigint,
-        collateralSymbol: string,
-        collateralDecimals: number,
-        walletToWithdraw: string,
-        requestStatus: WithdrawRequestStatus
-    ) {
-        const withdrawAmount = truncateDecimalsToStr(
-            formatUnits(rawWithdrawAmount, collateralDecimals),
-            4
-        );
+    static getExistingWithdrawPendingRequestText(data: XLineRequestMsgData) {
+        const requestTxt = this.getWithdrawRequestMsgText(data);
+
         return escapeSpecialCharacters(
-            "‼ *You already have pending 'Withdraw' request.*\n" +
+            "❌ *You already have pending 'Withdraw' request.* ❌\n" +
                 "\n" +
                 "📧 Please wait for the money transfer\n\n" +
-                "📝 *Request details:*\n" +
-                `Status: *${requestStatus}*\n` +
-                `Requested withdraw amount: *${withdrawAmount} ${collateralSymbol}*\n` +
-                `Wallet to withdraw: \` ${walletToWithdraw} \` \n` +
+                "📝 *Request details:*\n\n" +
+                requestTxt +
                 "\n" +
                 "⚠️ The duration of money transfers may vary depending on the current network congestion."
+        );
+    }
+
+    static getExistingBorrowPendingRequestText(data: XLineRequestMsgData) {
+        const requestTxt = this.getBorrowRequestMsgText(data);
+
+        return escapeSpecialCharacters(
+            "❌ *You have unprocessed 'Borrow' request.* ❌\n" +
+                "'Withdraw' request could not be created until this 'Borrow' request is resolved.\n" +
+                "\n" +
+                "📧 Please wait for the money transfer\n\n" +
+                "📝 *Request details:*\n\n" +
+                requestTxt +
+                "\n" +
+                "💡 Please wait for the previous request to be resolved or contact our customer support team.\n\n"
         );
     }
 

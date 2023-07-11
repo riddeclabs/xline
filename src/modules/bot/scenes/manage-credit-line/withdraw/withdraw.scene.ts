@@ -21,6 +21,7 @@ import { DepositActionWizard } from "../deposit/deposit.scene";
 import { maxUint256 } from "../../../../../common/constants";
 import { WithdrawRequest } from "../../../../../database/entities";
 import { WithdrawCallbacks, WithdrawContext, WithdrawSteps } from "./withdraw.types";
+import { getXLineRequestMsgData } from "../../common/utils";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -38,7 +39,10 @@ export class WithdrawActionWizard {
         ctx.wizard.next();
 
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const pendingRequest = await this.botManager.getOldestPendingWithdrawRequest(creditLineId);
+        const pendingWithdrawRequest = await this.botManager.getOldestPendingWithdrawRequest(
+            creditLineId
+        );
+        const pendingBorrowRequest = await this.botManager.getOldestUnfinalizedBorrowReq(creditLineId);
 
         const updateMessage = async (messageText: string, isRedirect: boolean) => {
             const buttons: InlineKeyboardButton[] = [this.botCommon.goBackButton()];
@@ -57,7 +61,7 @@ export class WithdrawActionWizard {
             );
         };
 
-        if (!pendingRequest) {
+        if (!pendingWithdrawRequest && !pendingBorrowRequest) {
             const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
                 creditLineId
             );
@@ -77,19 +81,19 @@ export class WithdrawActionWizard {
 
             await this.botCommon.executeCurrentStep(ctx);
             return;
+        } else if (pendingWithdrawRequest && pendingBorrowRequest) {
+            throw new Error("Both withdraw and borrow requests are pending");
+        } else {
+            let mainMsgText = "";
+            if (pendingWithdrawRequest) {
+                const withdrawReqData = getXLineRequestMsgData(pendingWithdrawRequest);
+                mainMsgText = WithdrawTextSource.getExistingWithdrawPendingRequestText(withdrawReqData);
+            } else if (pendingBorrowRequest) {
+                const borrowReqData = getXLineRequestMsgData(pendingBorrowRequest);
+                mainMsgText = WithdrawTextSource.getExistingBorrowPendingRequestText(borrowReqData);
+            }
+            await updateMessage(mainMsgText, false);
         }
-
-        const collateralCurrency = this.botCommon.getCollateralCurrencyFromSceneDto(ctx);
-
-        const mainMsgText = WithdrawTextSource.getExistedPendingRequestText(
-            pendingRequest.withdrawAmount,
-            collateralCurrency.symbol,
-            collateralCurrency.decimals,
-            pendingRequest.walletToWithdraw,
-            pendingRequest.withdrawRequestStatus
-        );
-
-        await updateMessage(mainMsgText, false);
     }
 
     @WizardStep(WithdrawSteps.SIGN_WITHDRAW_TERMS)
