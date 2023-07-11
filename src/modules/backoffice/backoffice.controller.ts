@@ -408,9 +408,13 @@ export class BackOfficeController {
         };
         return { resultPageData };
     }
-    @Get("repay-request/:id")
+    @Get("repay-request/:creditLineId/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Res() res: Response, @Param("id") id: string) {
+    async repayItem(
+        @Res() res: Response,
+        @Param("creditLineId") creditLineId: string,
+        @Param("id") id: string
+    ) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         if (!repayRequestById) {
             res.redirect("/backoffice/404");
