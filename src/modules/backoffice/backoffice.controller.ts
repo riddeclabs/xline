@@ -321,7 +321,7 @@ export class BackOfficeController {
         const generalUserInfoByBorrowId =
             await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
         if (!generalUserInfoByBorrowId) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
 
         const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
@@ -421,7 +421,7 @@ export class BackOfficeController {
     ) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         if (!repayRequestById) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
         const resultRepayRequestById = {
             refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
@@ -497,7 +497,7 @@ export class BackOfficeController {
         const generalUserInfoByCreditLineId =
             await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
         if (!generalUserInfoByCreditLineId) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
         let initialRiskStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
@@ -617,7 +617,7 @@ export class BackOfficeController {
             sortDirection,
         };
         if (!resultTable.length) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
 
         const resultPageInfo = {
@@ -759,7 +759,7 @@ export class BackOfficeController {
     async customerCreditLine(@Res() res: Response, @Param("userId") userId: string) {
         const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
         if (!fullyAssociatedUser) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
         //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
