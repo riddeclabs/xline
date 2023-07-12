@@ -203,6 +203,7 @@ export class BackOfficeController {
                 sortField,
                 sortDirection
             );
+        const debtCurrency = await this.backofficeService.getDebtCurrency();
         const requisites = businessPaymentRequisites.map(requisit => {
             return {
                 currency: requisit.debtCurrency.symbol,
@@ -218,6 +219,7 @@ export class BackOfficeController {
         const totalPageCount = Math.ceil(businessPaymentRequisitesCount / PAGE_LIMIT_REQUEST);
         return {
             requisites,
+            debtCurrency,
             page: {
                 current: page,
                 query: queryWithDefaults,

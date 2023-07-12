@@ -100,9 +100,13 @@
   </div>
   <div class="popup__bg"> 
     <form class="popup">
-        <span class="bi bi-x close-popup"></span>
+        <span class="bi bi-x close-popup" style="color: #fff; font-size: 22px;"></span>
         <label>
-            <input type="text" name="currency", id="currency">
+            <select id="currency">
+              {% for debt in debtCurrency %}
+                <option value={{debt.id}} style="margin-top: 20px;">{{debt.symbol}}</option>
+              {% endfor %}
+            </select>
             <div class="label__text">
                 Currency
             </div>
@@ -136,12 +140,13 @@
   const error = document.getElementById('error');
 
   saveBtn.addEventListener('click', () => {
+    saveBtn.setAttribute("disabled", true);
       const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ debtCurrencyId: 1, bankName: name.value, iban: iban.value })
+        body: JSON.stringify({ debtCurrencyId: Number(cyrrency.value), bankName: name.value, iban: iban.value })
       };
       fetch(`${baseUrl}/payment-requisite/business`, requestOptions).then(response => response.json()).then(resJSON => {
         if (resJSON.success) {
@@ -157,7 +162,8 @@
           error.innerText = resJSON.message
           setTimeout(() => {
             error.style.right = "-700px"
-          }, 3000)
+            saveBtn.removeAttribute("disabled");
+          }, 2000)
         }
       });
     })
