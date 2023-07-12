@@ -195,9 +195,11 @@ export class BotManagerService {
         const lineEconomicalParams = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
+        let creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
             creditLineId
         );
+        // Accrue interest to get fresh state
+        creditLine = await this.riskEngineService.accrueInterest(creditLine);
 
         const scaledTokenPrice = await this.priceOracleService.getScaledTokenPriceBySymbol(
             creditLine.collateralCurrency.symbol

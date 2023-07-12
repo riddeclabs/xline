@@ -17,6 +17,22 @@ export class CreditLineService {
         return this.creditLineRepo.save(newLine);
     }
 
+    async accrueInterestById(
+        creditLineId: number,
+        interestAmount: bigint,
+        accruedAt: Date
+    ): Promise<CreditLine> {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => `debtAmount + ${interestAmount}` })
+            .set({ accruedAt: accruedAt })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return await this.getCreditLineById(creditLineId);
+    }
+
     async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
         await this.creditLineRepo
             .createQueryBuilder()

@@ -3,7 +3,7 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
-import { EXP_SCALE } from "../../common/constants";
+import { EXP_SCALE, HOURS_IN_YEAR } from "../../common/constants";
 import { OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common";
 
@@ -211,5 +211,24 @@ export class RiskEngineService {
     calculateUtilizationRate(depositFiatAmount: bigint, debtFiatAmount: bigint) {
         if (!depositFiatAmount) return 0n;
         return (debtFiatAmount * EXP_SCALE) / depositFiatAmount;
+    }
+
+    async accrueInterest(creditLine: CreditLine): Promise<CreditLine> {
+        const now = new Date();
+        const timeDelta = (now.getTime() - creditLine.accruedAt.getTime()) / (1000 * 3600);
+        const hoursSinceAccrual = Math.floor(timeDelta);
+
+        if (hoursSinceAccrual <= 0) {
+            return creditLine;
+        }
+
+        const interestAccrued = this.calculateInterestAccrued(creditLine, hoursSinceAccrual);
+        return await this.creditLineService.accrueInterestById(creditLine.id, interestAccrued, now);
+    }
+
+    calculateInterestAccrued(creditLine: CreditLine, hours: number): bigint {
+        const apr = creditLine.economicalParameters.apr;
+        const ratePerHour = apr / HOURS_IN_YEAR;
+        return (creditLine.debtAmount * ratePerHour * parseUnits(hours)) / EXP_SCALE / EXP_SCALE;
     }
 }
