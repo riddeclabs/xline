@@ -20,8 +20,11 @@ export class PaymentRequisiteController {
 
     @Post("business")
     @UsePipes(ValidationPipe)
-    saveBusinessRequisite(@Body() dto: CreateBusinessPaymentRequisiteDto) {
-        return this.paymentRequisiteService.saveNewBusinessRequisite(dto);
+    async saveBusinessRequisite(@Body() dto: CreateBusinessPaymentRequisiteDto) {
+        await this.paymentRequisiteService.saveNewBusinessRequisite(dto);
+        return {
+            success: true,
+        };
     }
 
     @Get("user/:userId")
