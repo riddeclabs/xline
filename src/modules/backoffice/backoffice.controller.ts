@@ -12,6 +12,8 @@ import {
     ValidationPipe,
     UsePipes,
     Param,
+    HttpException,
+    HttpStatus,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -53,8 +55,10 @@ import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
+import { GlobalHttpExceptionFilter } from "src/filters/global-http-exceptions.filter";
 
 @Controller("backoffice")
+@UseFilters(GlobalHttpExceptionFilter)
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
@@ -680,7 +684,7 @@ export class BackOfficeController {
             sortDirection
         );
         if (!initialRequestByCreditLineId.length) {
-            res.redirect("/backoffice/404");
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
         const checkStatus = (type: string, status: string) => {
             switch (type) {
