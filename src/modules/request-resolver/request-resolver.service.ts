@@ -126,6 +126,7 @@ export class RequestResolverService {
             nameFrom: bRequisites.bankName,
             nameTo: creditLine.user.name,
             rawTransferAmount: borrowRequest.borrowFiatAmount,
+            status: FiatTransactionStatus.PENDING,
         });
 
         await this.requestHandlerService.updateBorrowReqStatus(
@@ -375,6 +376,7 @@ export class RequestResolverService {
             borrowRequestId: null,
             repayRequestId: repayRequest.id,
             rawTransferAmount: transferAmount,
+            status: FiatTransactionStatus.COMPLETED,
         });
 
         return {

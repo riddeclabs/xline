@@ -119,6 +119,20 @@ export class BorrowTextSource extends BasicSourceText {
         );
     }
 
+    static getExistingWithdrawRequestErrorMsg(data: XLineRequestMsgData): string {
+        const requestTxt = this.getWithdrawRequestMsgText(data);
+
+        return escapeSpecialCharacters(
+            "❌ *You have unprocessed 'Withdraw' request.* ❌\n" +
+                "'Borrow' request could not be created until this 'Withdraw' request is resolved.\n" +
+                "\n" +
+                "📧 Please wait for the money transfer\n\n" +
+                "📝 *Request details:*\n\n" +
+                requestTxt +
+                "\n"
+        );
+    }
+
     static getExistingBorrowRequestErrorMsg(data: XLineRequestMsgData): string {
         const existingReqDetailsText = this.getBorrowRequestMsgText(data);
 
@@ -128,7 +142,7 @@ export class BorrowTextSource extends BasicSourceText {
                 "‼ XLine supports only one active request per credit line at a time.\n" +
                 "‼ You can create a new request after the previous one is resolved.\n" +
                 "💡 Please wait for the previous request to be resolved or contact our customer support team.\n\n" +
-                "📊 *Your previous request details:*\n\n" +
+                "📝 *Your previous request details:*\n\n" +
                 existingReqDetailsText
         );
     }

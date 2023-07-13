@@ -13,7 +13,7 @@ export class GlobalHttpExceptionFilter {
         const message = exception.message;
 
         this.logger.error(`HTTP Exception: ${status} - ${message}`);
-        if (status === 404 || status === 500) {
+        if (status === 404) {
             response.redirect("/backoffice/404");
         } else {
             response.status(status).json({
