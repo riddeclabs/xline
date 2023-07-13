@@ -142,10 +142,15 @@ export class RequestHandlerService {
     async getOldestPendingWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
         return this.withdrawRequestRepo
             .createQueryBuilder("wr")
+            .leftJoinAndSelect("wr.creditLine", "cl")
+            .leftJoinAndSelect("cl.userPaymentRequisite", "upr")
+            .leftJoinAndSelect("cl.user", "user")
+            .leftJoinAndSelect("cl.collateralCurrency", "cc")
+            .leftJoinAndSelect("cl.debtCurrency", "dc")
             .where("wr.creditLineId = :creditLineId", { creditLineId })
             .andWhere("wr.withdrawRequestStatus = :status", { status: WithdrawRequestStatus.PENDING })
             .orderBy("wr.createdAt", "ASC")
-            .getOneOrFail();
+            .getOne();
     }
 
     async getNewestWithdrawReq(creditLineId: number): Promise<WithdrawRequest | null> {
