@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-
 import {
     BorrowRequest,
     CreditLine,
@@ -15,14 +14,14 @@ import {
     DepositRequest,
     WithdrawRequest,
 } from "src/database/entities";
-
 import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
 import { PriceOracleModule } from "../price-oracle/price-oracle.module";
-import { BotModule } from "../bot/bot.module";
 import { RiskEngineModule } from "../risk-engine/risk-engine.module";
 import { RequestHandlerModule } from "../request-handler/request-handler.module";
 import { RequestResolverModule } from "../request-resolver/request-resolver.module";
+import { PaymentProcessingModule } from "../payment-processing/payment-processing.module";
+import { CreditLineModule } from "../credit-line/credit-line.module";
 
 @Module({
     imports: [
@@ -40,11 +39,12 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
             DepositRequest,
             WithdrawRequest,
         ]),
-        BotModule,
         PriceOracleModule,
         RiskEngineModule,
+        CreditLineModule,
         RequestHandlerModule,
         RequestResolverModule,
+        PaymentProcessingModule,
     ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],

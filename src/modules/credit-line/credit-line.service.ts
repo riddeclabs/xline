@@ -3,7 +3,6 @@ import { CreateCreditLineDto } from "./dto/create-credit-line.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CreditLine } from "../../database/entities";
 import { Repository, UpdateResult } from "typeorm";
-import { CreditLineCurrencyExtended } from "./credit-line.types";
 import { CreditLineStatus } from "src/common";
 
 @Injectable()
@@ -31,7 +30,7 @@ export class CreditLineService {
             .where("id = :id", { id: creditLineId })
             .execute();
 
-        return await this.getCreditLineById(creditLineId);
+        return await this.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
 
     async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
@@ -106,7 +105,7 @@ export class CreditLineService {
             .getOne();
     }
 
-    async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLineCurrencyExtended[]> {
+    async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLine[]> {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
@@ -116,9 +115,7 @@ export class CreditLineService {
             .getMany();
     }
 
-    async getCreditLinesByIdAllSettingsExtended(
-        creditLineId: number
-    ): Promise<CreditLineCurrencyExtended> {
+    async getCreditLinesByIdAllSettingsExtended(creditLineId: number): Promise<CreditLine> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")

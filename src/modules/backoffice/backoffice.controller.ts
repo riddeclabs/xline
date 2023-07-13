@@ -13,12 +13,10 @@ import {
     UsePipes,
     Param,
 } from "@nestjs/common";
-
 import { OperatorsListQuery } from "./decorators";
-
 import { Response, Request } from "express";
-
 import {
+    bigintToFormattedPercent,
     BorrowRequestStatus,
     createRepayRequestRefNumber,
     DepositRequestStatus,
@@ -41,7 +39,6 @@ import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
-import { BotManagerService } from "../bot/bot-manager.service";
 import { CreditLineDetailsType } from "./backoffice.types";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
@@ -53,15 +50,22 @@ import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
+import { CreditLineService } from "../credit-line/credit-line.service";
+import { RiskEngineService } from "../risk-engine/risk-engine.service";
+import { PaymentProcessingService } from "../payment-processing/payment-processing.service";
+import { RequestHandlerService } from "../request-handler/request-handler.service";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
-        private backofficeService: BackOfficeService,
-        private priceOracleService: PriceOracleService,
-        private readonly botManager: BotManagerService,
-        private requestResolverService: RequestResolverService
+        private readonly backofficeService: BackOfficeService,
+        private readonly priceOracleService: PriceOracleService,
+        private readonly riskEngineService: RiskEngineService,
+        private readonly creditLineService: CreditLineService,
+        private readonly requestResolverService: RequestResolverService,
+        private readonly paymentProcessingService: PaymentProcessingService,
+        private readonly requestHandler: RequestHandlerService
     ) {}
 
     @Get("/auth")
@@ -302,98 +306,81 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
-    async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
-        const generalUserInfoByBorrowId =
-            await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
+    async borrowRequestResolve(@Param("id") id: string) {
+        const borrowRequest = await this.requestHandler.getFullyAssociatedBorrowRequest(+id);
 
-        const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
+        // Accrue interest to get fresh debt value
+        const creditLine = await this.riskEngineService.accrueInterest(borrowRequest.creditLine);
+
         const { stateAfter, stateBefore } =
-            generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus ===
-            BorrowRequestStatus.VERIFICATION_PENDING
+            borrowRequest.borrowRequestStatus === BorrowRequestStatus.VERIFICATION_PENDING
                 ? await this.backofficeService.getCreditLineStateBeforeAndAfterBorrowResolved(
-                      Number(creditLineId),
+                      creditLine.id,
                       Number(id)
                   )
                 : { stateAfter: {}, stateBefore: {} };
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            Number(creditLineId)
-        );
 
         const checkBorrowReq = await this.requestResolverService.verifyBorrowRequest(Number(id));
 
         const borrowAmountAndStatus = {
-            amount: formatUnits(
-                generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowFiatAmount ?? 0n
-            ),
+            amount: formatUnits(borrowRequest.borrowFiatAmount ?? 0n),
             status: checkBorrowReq.isVerified,
         };
 
+        const initialFiatTransaction = borrowRequest.fiatTransactions[0] ?? null;
         const fiatTransactions = {
-            ...initialFiatTransactions,
+            ...initialFiatTransaction,
             rawTransferAmount: truncateDecimalsToStr(
-                formatUnits(initialFiatTransactions?.rawTransferAmount ?? 0n),
+                formatUnits(initialFiatTransaction?.rawTransferAmount ?? 0n),
                 2,
                 false
             ),
-            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol,
+            symbol: creditLine.debtCurrency.symbol,
         };
 
         const resultPageData = {
-            accountName: generalUserInfoByBorrowId?.name,
-            iban: generalUserInfoByBorrowId?.userPaymentRequisites[0]?.iban,
-            collateralFactor: truncateDecimalsToStr(
-                formatUnits(economicalParams.collateralFactor * 100n),
-                2,
-                false
-            ),
-            liquidationFactor: truncateDecimalsToStr(
-                formatUnits(economicalParams.liquidationFactor * 100n),
-                2,
-                false
+            accountName: creditLine.user.name,
+            iban: creditLine.userPaymentRequisite.iban,
+            collateralFactor: bigintToFormattedPercent(creditLine.economicalParameters.collateralFactor),
+            liquidationFactor: bigintToFormattedPercent(
+                creditLine.economicalParameters.liquidationFactor
             ),
             beforeCollateralAmount: truncateDecimalsToStr(
-                formatUnits(stateBefore.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                formatUnits(stateBefore.collateralAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
             ),
             beforeSupplyAmount: truncateDecimalsToStr(
-                formatUnits(stateBefore.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                formatUnits(stateBefore.depositAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
             ),
-            symbol: generalUserInfoByBorrowId?.creditLines[0]?.debtCurrency.symbol.toLowerCase(),
+            symbol: creditLine.debtCurrency.symbol.toLowerCase(),
             beforeBorrowAmount: truncateDecimalsToStr(
                 formatUnits(stateBefore.debtAmount ?? 0n),
                 2,
                 false
             ),
-            beforeUtilizationFactor: truncateDecimalsToStr(
-                formatUnits((stateBefore.utilizationRate ?? 0n) * 100n),
-                2,
-                false
-            ),
+            beforeUtilizationFactor: bigintToFormattedPercent(stateBefore.utilizationRate ?? 0n),
             afterBorrowAmount: truncateDecimalsToStr(formatUnits(stateAfter.debtAmount ?? 0n), 2, false),
-            afterUtilizationFactor: truncateDecimalsToStr(
-                formatUnits((stateAfter.utilizationRate ?? 0n) * 100n),
-                2,
-                false
-            ),
+            afterUtilizationFactor: bigintToFormattedPercent(stateAfter.utilizationRate ?? 0n),
             afterCollateralAmount: truncateDecimalsToStr(
-                formatUnits(stateAfter.collateralAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                formatUnits(stateAfter.collateralAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
             ),
             afterSupplyAmount: truncateDecimalsToStr(
-                formatUnits(stateAfter.depositAmountFiat ?? 0n, lineDetails.debtCurrency.decimals),
+                formatUnits(stateAfter.depositAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
             ),
-            status: generalUserInfoByBorrowId?.creditLines[0]?.borrowRequests[0]?.borrowRequestStatus,
+            status: borrowRequest.borrowRequestStatus,
             fiatTransactions,
             borrowAmountAndStatus,
         };
         return { resultPageData };
     }
+
     @Get("repay-request/:id")
     @Render("backoffice/repay-request-item")
     async repayItem(@Param("id") id: string) {
@@ -607,7 +594,7 @@ export class BackOfficeController {
                     generalUserInfoByCreditLineId?.refNumber || "",
                     Number(id)
                 ),
-                address: await this.botManager.getUserWallet(
+                address: await this.paymentProcessingService.getUserWallet(
                     String(generalUserInfoByCreditLineId?.user.chatId),
                     String(generalUserInfoByCreditLineId?.collateralCurrency.symbol)
                 ),
@@ -741,9 +728,18 @@ export class BackOfficeController {
         if (fullyAssociatedUser?.creditLines.length) {
             allCreditLine = await Promise.all(
                 fullyAssociatedUser?.creditLines.map(async (item, idx) => {
-                    const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-                        item.id
+                    const creditLine =
+                        await this.creditLineService.getCreditLinesByIdAllSettingsExtended(+item.id);
+                    const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+                        creditLine.collateralCurrency.symbol,
+                        creditLine.collateralCurrency.decimals,
+                        creditLine.rawCollateralAmount
                     );
+                    const utilizationRate = this.riskEngineService.calculateUtilizationRate(
+                        fiatSupplyAmount,
+                        creditLine.debtAmount
+                    );
+
                     return {
                         serialNumber: idx + 1,
                         creditLineId: item.id,
@@ -751,29 +747,26 @@ export class BackOfficeController {
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
                             rawSupplyAmount: formatUnits(
-                                lineDetails.rawCollateralAmount,
-                                lineDetails.collateralCurrency.decimals
+                                creditLine.rawCollateralAmount,
+                                creditLine.collateralCurrency.decimals
                             ), // raw collateral amount, use collateral decimals to convert to float
                             usdSupplyAmount: truncateDecimalsToStr(
-                                formatUnits(
-                                    lineDetails.fiatCollateralAmount,
-                                    lineDetails.debtCurrency.decimals
-                                ),
+                                formatUnits(fiatSupplyAmount, creditLine.debtCurrency.decimals),
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             usdCollateralAmount: truncateDecimalsToStr(
                                 formatUnits(
-                                    (lineDetails.fiatCollateralAmount *
-                                        economicalParams.collateralFactor) /
+                                    (fiatSupplyAmount *
+                                        creditLine.economicalParameters.collateralFactor) /
                                         EXP_SCALE,
-                                    lineDetails.debtCurrency.decimals
+                                    creditLine.debtCurrency.decimals
                                 ),
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             debtAmount: truncateDecimalsToStr(
-                                formatUnits(lineDetails.debtAmount, lineDetails.debtCurrency.decimals),
+                                formatUnits(creditLine.debtAmount, creditLine.debtCurrency.decimals),
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
@@ -782,24 +775,24 @@ export class BackOfficeController {
                         },
                         currentState: {
                             utilizationFactor: truncateDecimalsToStr(
-                                formatUnits(lineDetails.utilizationRate * 100n),
+                                formatUnits(utilizationRate * 100n),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
                             healthyFactor: truncateDecimalsToStr(
-                                formatUnits(lineDetails.healthyFactor),
+                                formatUnits(creditLine.healthyFactor),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
                         },
                         appliedRates: {
                             collateralFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.collateralFactor * 100n),
+                                formatUnits(creditLine.economicalParameters.collateralFactor * 100n),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy
                             liquidationFactor: truncateDecimalsToStr(
-                                formatUnits(economicalParams.liquidationFactor * 100n),
+                                formatUnits(creditLine.economicalParameters.liquidationFactor * 100n),
                                 2,
                                 false
                             ), // All rates have 18 decimals accuracy

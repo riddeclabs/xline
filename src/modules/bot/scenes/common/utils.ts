@@ -1,5 +1,5 @@
 import { bigintToFormattedPercent, formatUnitsNumber } from "src/common";
-import { CreditLineDetailsExt } from "../../bot-manager.service";
+import { CreditLineWithExtras } from "../../bot-manager.service";
 import {
     CreditLineStateMsgData,
     CryptoTxMsgData,
@@ -11,7 +11,6 @@ import {
     isRepayRequest,
     isWithdrawRequest,
 } from "./types";
-import { EXP_SCALE } from "src/common/constants";
 import { BasicSourceText } from "./basic-source.text";
 import {
     CollateralCurrency,
@@ -130,33 +129,22 @@ export function getTxDataForRequest(request: XLineRequestsTypes): FiatTxMsgData[
     return associatedTxsData;
 }
 
-export function getCreditLineStateMsgData(cld: CreditLineDetailsExt): CreditLineStateMsgData {
-    const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
-
+export function getCreditLineStateMsgData(clwe: CreditLineWithExtras): CreditLineStateMsgData {
     return {
         supplyAmountCrypto: formatUnitsNumber(
-            cld.lineDetails.rawCollateralAmount,
-            cld.lineDetails.collateralCurrency.decimals
+            clwe.rawCollateralAmount,
+            clwe.collateralCurrency.decimals
         ),
-        supplyAmountFiat: truncateDecimals(formatUnitsNumber(cld.lineDetails.fiatCollateralAmount), 2),
-        cryptoCurrency: cld.lineDetails.collateralCurrency.symbol,
-        debtCurrency: cld.lineDetails.debtCurrency.symbol,
-        debtAmount: truncateDecimals(formatUnitsNumber(cld.lineDetails.debtAmount), 2),
-        utilizationRatePercent: bigintToFormattedPercent(cld.lineDetails.utilizationRate),
-        maxAllowedBorrowAmount: truncateDecimals(formatUnitsNumber(maxAllowedBorrowAmount), 2),
+        supplyAmountFiat: truncateDecimals(formatUnitsNumber(clwe.fiatSupplyAmount), 2),
+        cryptoCurrency: clwe.collateralCurrency.symbol,
+        debtCurrency: clwe.debtCurrency.symbol,
+        debtAmount: truncateDecimals(formatUnitsNumber(clwe.debtAmount), 2),
+        utilizationRatePercent: bigintToFormattedPercent(clwe.utilizationRate),
+        maxAllowedBorrowAmount: truncateDecimals(formatUnitsNumber(clwe.maxAllowedBorrowAmount), 2),
         liquidationRisk: BasicSourceText.getCurrentLiquidationRisk(
-            cld.lineDetails.utilizationRate,
-            cld.economicalParams.collateralFactor
+            clwe.utilizationRate,
+            clwe.economicalParameters.collateralFactor
         ),
-        hasBeenLiquidated: cld.lineDetails.isLiquidated ? "Yes" : "No",
+        hasBeenLiquidated: clwe.isLiquidated ? "Yes" : "No",
     };
-}
-
-//FIXME: Use risk-engine to calculate max allowed borrow amount in future
-export function getMaxAllowedBorrowAmount(cld: CreditLineDetailsExt): bigint {
-    const fiatCollateralAmount =
-        (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) / EXP_SCALE;
-    const freeLiquidityFiatAmount = fiatCollateralAmount - cld.lineDetails.debtAmount;
-    const processingFee = (freeLiquidityFiatAmount * cld.economicalParams.fiatProcessingFee) / EXP_SCALE;
-    return freeLiquidityFiatAmount - processingFee;
 }

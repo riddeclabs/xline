@@ -91,11 +91,19 @@ export class RiskEngineService {
     }
 
     //TODO: Add minimum processing fee support
-    async calculateFiatProcessingFeeAmount(creditLineId: number, borrowAmount: bigint): Promise<bigint> {
+    async calculateFiatProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
         const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        return (borrowAmount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+        return (amount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+    }
+
+    //TODO: Add minimum processing fee support
+    async calculateCryptoProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
+        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
+            creditLineId
+        );
+        return (amount * economicalParameters.cryptoProcessingFee) / EXP_SCALE;
     }
 
     async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {
@@ -245,5 +253,27 @@ export class RiskEngineService {
         const apr = creditLine.economicalParameters.apr;
         const ratePerHour = apr / HOURS_IN_YEAR;
         return (creditLine.debtAmount * ratePerHour * parseUnits(hours)) / EXP_SCALE / EXP_SCALE;
+    }
+
+    async getMaxAllowedBorrowAmount(
+        creditLine: CreditLine,
+        externalScaledPrice?: bigint
+    ): Promise<bigint> {
+        const fiatSupplyAmount = await this.priceOracleService.convertUsdToCrypto(
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            creditLine.rawCollateralAmount,
+            externalScaledPrice
+        );
+
+        const fiatCollateralAmount =
+            (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
+        const freeLiquidityFiatAmount = fiatCollateralAmount - creditLine.debtAmount;
+        const processingFee = await this.calculateFiatProcessingFeeAmount(
+            creditLine.id,
+            freeLiquidityFiatAmount
+        );
+
+        return freeLiquidityFiatAmount - processingFee;
     }
 }

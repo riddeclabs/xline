@@ -63,16 +63,20 @@ export class ManageCreditLineWizard {
 
     @WizardStep(ManagePortfolioSteps.VIEW_LINE_DETAILS)
     async onViewCreditLine(@Ctx() ctx: ManageCreditLineContext) {
-        const creditLineDetailsExt = await this.botManager.getCreditLineDetails(
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(
             Number(ctx.scene.session.state.creditLineId)
         );
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
         this.botCommon.updateSceneCreditLineDto(ctx, {
-            collateralCurrency: creditLineDetailsExt.lineDetails.collateralCurrency,
-            debtCurrency: creditLineDetailsExt.lineDetails.debtCurrency,
+            collateralCurrency: creditLine.collateralCurrency,
+            debtCurrency: creditLine.debtCurrency,
         });
 
-        const msgText = ManageCreditLineText.getViewLineDetailsText(creditLineDetailsExt);
+        const msgText = ManageCreditLineText.getViewLineDetailsText({
+            ...creditLine,
+            ...creditLineExtras,
+        });
 
         const buttons = [
             {

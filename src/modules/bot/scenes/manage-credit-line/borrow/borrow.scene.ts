@@ -13,11 +13,7 @@ import { BorrowActionSteps, BorrowContext, BorrowReqCallbacks } from "./borrow.t
 import { BorrowTextSource } from "./borrow.text";
 import { BotManagerService } from "src/modules/bot/bot-manager.service";
 import { CreditLineStateMsgData, Requisites } from "../../common/types";
-import {
-    getCreditLineStateMsgData,
-    getXLineRequestMsgData,
-    getMaxAllowedBorrowAmount,
-} from "../../common/utils";
+import { getCreditLineStateMsgData, getXLineRequestMsgData } from "../../common/utils";
 import { validateAmountDecimals } from "src/common/input-validation";
 import { truncateDecimals } from "src/common/text-formatter";
 
@@ -77,9 +73,9 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.VERIFY_IS_BORROW_POSSIBLE)
     async onVerifyIsBorrowPossible(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const cld = await this.botManager.getCreditLineDetails(creditLineId);
+        const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
-        if (cld.lineDetails.rawCollateralAmount <= 0n) {
+        if (creditLine.rawCollateralAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -92,8 +88,7 @@ export class BorrowActionWizard {
             return;
         }
 
-        const maxAllowedBorrowAmount = getMaxAllowedBorrowAmount(cld);
-
+        const maxAllowedBorrowAmount = await this.botManager.getMaxAllowedBorrowAmount(creditLine);
         if (maxAllowedBorrowAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
                 parse_mode: "MarkdownV2",
@@ -149,11 +144,11 @@ export class BorrowActionWizard {
     @WizardStep(BorrowActionSteps.AMOUNT_REQUEST)
     async onAmountRequest(@Ctx() ctx: BorrowContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const cld = await this.botManager.getCreditLineDetails(creditLineId);
 
-        const state = getCreditLineStateMsgData(cld);
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
-        if (state.maxAllowedBorrowAmount <= 0) {
+        if (creditLineExtras.maxAllowedBorrowAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroAllowedText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -165,6 +160,8 @@ export class BorrowActionWizard {
             ctx.wizard.next();
             return;
         }
+
+        const state = getCreditLineStateMsgData({ ...creditLine, ...creditLineExtras });
 
         const text = await BorrowTextSource.getAmountInputText(state);
 
@@ -179,7 +176,9 @@ export class BorrowActionWizard {
         // FIXME: Optimize database and oracle usage
         const amount = Number(ctx.scene.session.state.borrowAmount);
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const cdl = await this.botManager.getCreditLineDetails(creditLineId);
+
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
         if (!amount) {
             throw new Error("No borrow amount provided");
@@ -187,19 +186,16 @@ export class BorrowActionWizard {
 
         const borrowFiatAmount = parseUnits(amount);
 
-        const stateBefore = getCreditLineStateMsgData(cdl);
+        const stateBefore = getCreditLineStateMsgData({ ...creditLine, ...creditLineExtras });
         const stateAfter: CreditLineStateMsgData = { ...stateBefore };
 
-        //TODO: adapt for minimal fee value later
-        const processingFee = formatUnitsNumber(cdl.economicalParams.fiatProcessingFee);
-
-        const borroWithFee = await this.botManager.calculateBorrowAmountWithFee(
+        const [borrowWithFee, processingFee] = await this.botManager.calculateBorrowAmountWithFeeAndFee(
             creditLineId,
             borrowFiatAmount
         );
 
         stateAfter.debtAmount = truncateDecimals(
-            stateBefore.debtAmount + formatUnitsNumber(borroWithFee),
+            stateBefore.debtAmount + formatUnitsNumber(borrowWithFee),
             2
         );
         stateAfter.utilizationRatePercent = bigintToFormattedPercent(
@@ -207,8 +203,8 @@ export class BorrowActionWizard {
         );
 
         const requisites: Requisites = {
-            iban: cdl.lineDetails.userPaymentRequisite.iban,
-            accountName: cdl.lineDetails.user.name,
+            iban: creditLine.userPaymentRequisite.iban,
+            accountName: creditLine.user.name,
         };
 
         const editMsgId = ctx.scene.session.state.sceneEditMsgId;
@@ -220,7 +216,7 @@ export class BorrowActionWizard {
                 stateBefore,
                 stateAfter,
                 amount,
-                processingFee,
+                formatUnitsNumber(processingFee),
                 requisites
             ),
             {
@@ -358,8 +354,11 @@ export class BorrowActionWizard {
 
     private async reqAmountHandler(ctx: BorrowContext, userInput: string) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const cld = await this.botManager.getCreditLineDetails(creditLineId);
-        const state = getCreditLineStateMsgData(cld);
+
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
+
+        const state = getCreditLineStateMsgData({ ...creditLine, ...creditLineExtras });
 
         const input = Number(userInput);
         if (!input || input <= 0) {
