@@ -6,6 +6,7 @@ import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { EXP_SCALE, HOURS_IN_YEAR } from "../../common/constants";
 import { OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common";
+import { Cron } from "@nestjs/schedule";
 
 @Injectable()
 export class RiskEngineService {
@@ -211,6 +212,20 @@ export class RiskEngineService {
     calculateUtilizationRate(depositFiatAmount: bigint, debtFiatAmount: bigint) {
         if (!depositFiatAmount) return 0n;
         return (debtFiatAmount * EXP_SCALE) / depositFiatAmount;
+    }
+
+    // Every day at 1 AM
+    @Cron("0 1 * * *")
+    async accrueInterestCron() {
+        const allCreditLines = await this.creditLineService.getAllActiveCreditLinesAllSettingsExtended();
+
+        if (!allCreditLines) {
+            return;
+        }
+
+        for (const creditLine of allCreditLines) {
+            await this.accrueInterest(creditLine);
+        }
     }
 
     async accrueInterest(creditLine: CreditLine): Promise<CreditLine> {

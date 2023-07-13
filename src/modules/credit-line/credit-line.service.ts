@@ -4,6 +4,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { CreditLine } from "../../database/entities";
 import { Repository, UpdateResult } from "typeorm";
 import { CreditLineCurrencyExtended } from "./credit-line.types";
+import { CreditLineStatus } from "src/common";
 
 @Injectable()
 export class CreditLineService {
@@ -127,5 +128,19 @@ export class CreditLineService {
             .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
+    }
+
+    async getAllActiveCreditLinesAllSettingsExtended(): Promise<CreditLine[] | null> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .innerJoinAndSelect("creditLine.user", "user")
+            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("creditLine.creditLineStatus != :creditLineStatus", {
+                creditLineStatus: CreditLineStatus.CLOSED,
+            })
+            .getMany();
     }
 }
