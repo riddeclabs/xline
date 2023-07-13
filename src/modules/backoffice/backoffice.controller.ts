@@ -31,7 +31,6 @@ import {
     WithdrawRequestStatus,
 } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
-import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
 import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
@@ -55,11 +54,8 @@ import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
-import { GlobalHttpExceptionFilter } from "src/filters/global-http-exceptions.filter";
 
 @Controller("backoffice")
-@UseFilters(GlobalHttpExceptionFilter)
-@UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
