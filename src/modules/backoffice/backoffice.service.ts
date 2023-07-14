@@ -491,7 +491,10 @@ export class BackOfficeService {
             .leftJoinAndSelect("biz.debtCurrency", "debtCurrency")
             .skip(page * PAGE_LIMIT_REQUEST)
             .take(PAGE_LIMIT_REQUEST)
-            .orderBy(`biz.${sortField}`, sortDirection)
+            .orderBy(
+                sortField === "symbol" ? `debtCurrency.${sortField}` : `biz.${sortField}`,
+                sortDirection
+            )
             .getMany();
     }
 

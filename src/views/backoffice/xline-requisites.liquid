@@ -5,25 +5,24 @@
   <div class='title-page text-white'>Xline reuqisites</div>
   <div class='card bg-dark shadow-sm wrapper-table'>
     <div class="d-flex" style="justify-content: space-between">
-      <h1 class='m-3 text-white fs-5'>Xline requisites list</h1>
-      <button class="accept-button open-popup" style="padding: 0 20px; height: 44px; margin: 10px 18px 0">Add requisites +</button>
+      <button class="accept-button open-popup" style="padding: 0 20px; height: 44px; margin: 18px 11px 0 auto;}">Add requisites +</button>
     </div>
     <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
       <thead>
         <tr>
-          <th scope='col'>
-            {% if page.query.sortField == "created_at" and page.query.sortDirection == "ASC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency<i class='bi-arrow-up arrow-position'></i>
+          <th scope='col' style="width: 10%;">
+            {% if page.query.sortField == "symbol" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency<i class='bi-arrow-up arrow-position'></i>
               </a>
-            {% elsif page.query.sortField == "created_at" and page.query.sortDirection == "DESC" %}
-              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Currency<i class='bi-arrow-down arrow-position'></i>
+            {% elsif page.query.sortField == "symbol" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Currency<i class='bi-arrow-down arrow-position'></i>
               </a>
             {% else %}
-              <a href='?{{ query | mut-query: 'sortField', 'created_at' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency
               </a>
             {% endif %}
           </th>
-          <th scope='col'>
+          <th scope='col' style="width: 30%;">
             {% if page.query.sortField == "bankName" and page.query.sortDirection == "ASC" %}
               <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Name<i class='bi-arrow-up arrow-position'></i>
               </a>
