@@ -8,7 +8,6 @@ import {
     Res,
     Req,
     Logger,
-    UseFilters,
     ValidationPipe,
     UsePipes,
     Param,
