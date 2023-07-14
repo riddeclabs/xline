@@ -246,6 +246,7 @@ export class RiskEngineService {
         }
 
         const interestAccrued = this.calculateInterestAccrued(creditLine, hoursSinceAccrual);
+        console.log("!!! ACCRUE HAPPENS. ACCRUED AMOUNT: " + interestAccrued.toString() + " !!!");
         return await this.creditLineService.accrueInterestById(creditLine.id, interestAccrued, now);
     }
 
