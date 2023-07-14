@@ -53,6 +53,9 @@ import { TransactionsQuery } from "./decorators/transactions.decorators";
 import { TransactionsDto } from "./dto/transactions.dto";
 import { truncateDecimalsToStr } from "src/common/text-formatter";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
+import { EconomicalParametersService } from "../economical-parameters/economical-parameters.service";
+import { EconomicalParametersDto } from "./dto/economical.dto";
+import { EconomicalParametersDecorator } from "./decorators/economical.decorators";
 
 @Controller("backoffice")
 @UseFilters(AuthExceptionFilter)
@@ -61,7 +64,8 @@ export class BackOfficeController {
         private backofficeService: BackOfficeService,
         private priceOracleService: PriceOracleService,
         private readonly botManager: BotManagerService,
-        private requestResolverService: RequestResolverService
+        private requestResolverService: RequestResolverService,
+        private readonly economicalParamsService: EconomicalParametersService
     ) {}
 
     @Get("/auth")
@@ -181,9 +185,57 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("economical")
     @Render("backoffice/economical")
-    economical(@Req() req: Request) {
+    async economical(@EconomicalParametersDecorator() query: EconomicalParametersDto) {
+        const { debt, collateral } = query;
+        const debtCurrency = await this.backofficeService.getDebtCurrency();
+        const collateralCyrrency = await this.backofficeService.getCollateralCurrency();
+        const debtCurrencyById = await this.backofficeService.getDebtCurrencyById(debt || "1");
+        const collateralCyrrencyById = await this.backofficeService.getCollateralCurrencyById(
+            collateral || "1"
+        );
+        const freshEconomicalParams = await this.economicalParamsService.getFreshEconomicalParams(
+            Number(collateral) || 1,
+            Number(debt) || 1
+        );
+
+        const freshEcoFields = {
+            apr: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.apr, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            collateralFactor: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.collateralFactor, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            liquidationFactor: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.liquidationFactor, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            fiatProcessingFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.fiatProcessingFee, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            cryptoProcessingFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.cryptoProcessingFee, collateralCyrrencyById?.decimals),
+                4,
+                false
+            ),
+            liquidationFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.liquidationFee, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+        };
+
         return {
-            account: req.user,
+            debtCurrency,
+            collateralCyrrency,
+            checkCurrency: !!debt || !!collateral,
+            freshEcoFields,
         };
     }
 
