@@ -5,8 +5,8 @@ export class BusinesRequisitesDto {
     page = 1;
 
     @IsString()
-    sortField: "bankName" | "iban" = "bankName";
+    sortField: "bankName" | "iban" | "createdAt" = "createdAt";
 
     @IsString()
-    sortDirection: "ASC" | "DESC" = "ASC";
+    sortDirection: "ASC" | "DESC" = "DESC";
 }

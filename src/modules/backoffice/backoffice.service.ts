@@ -483,7 +483,7 @@ export class BackOfficeService {
 
     getBusinesRaymentRequisitesAndDebt(
         page: number,
-        sortField = "bankName",
+        sortField = "createdAt",
         sortDirection: "ASC" | "DESC"
     ) {
         return this.businessRequisite
