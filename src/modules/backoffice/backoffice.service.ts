@@ -264,12 +264,6 @@ export class BackOfficeService {
             .select("collateralCurrency.symbol")
             .getRawMany();
     }
-    getCollateralCurrencyById(id: string) {
-        return this.collateralCurrency
-            .createQueryBuilder("collateralCurrency")
-            .where("collateralCurrency.id = :id", { id })
-            .getOne();
-    }
 
     getFiatTxByBorrowId(
         page: number,

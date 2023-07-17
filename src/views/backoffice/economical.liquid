@@ -105,15 +105,15 @@
     <div class='pb-1 text-white fs-5'>Step 1: Select currency pair.</div>
     <div class='card bg-dark shadow-sm wrapper-table economical-wrapper p-3 mt-2'>
       <div class="select-wrapper d-flex">
-        <select style="margin-left: 0px" id="debt">
-          {% for debt in debtCurrency %}
-            <option value={{debt.id}} style="margin-top: 20px;">{{ debt.symbol }}</option>
+        <select  style="margin-left: 0px" id="collateral">
+          {% for collateral in collateralCyrrency %}
+            <option value={{collateral.id}} style="margin-top: 20px;">{{ collateral.symbol }}</option>
           {% endfor %}
         </select>
         /
-        <select id="collateral">
-          {% for collateral in collateralCyrrency %}
-            <option value={{collateral.id}} style="margin-top: 20px;">{{ collateral.symbol }}</option>
+        <select id="debt">
+          {% for debt in debtCurrency %}
+            <option value={{debt.id}} style="margin-top: 20px;">{{ debt.symbol }}</option>
           {% endfor %}
         </select>
       </div>

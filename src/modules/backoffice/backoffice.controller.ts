@@ -196,9 +196,6 @@ export class BackOfficeController {
         const debtCurrency = await this.backofficeService.getDebtCurrency();
         const collateralCyrrency = await this.backofficeService.getCollateralCurrency();
         const debtCurrencyById = await this.backofficeService.getDebtCurrencyById(debt || "1");
-        const collateralCyrrencyById = await this.backofficeService.getCollateralCurrencyById(
-            collateral || "1"
-        );
         const freshEconomicalParams = await this.economicalParamsService.getFreshEconomicalParams(
             Number(collateral) || 1,
             Number(debt) || 1
@@ -226,7 +223,7 @@ export class BackOfficeController {
                 false
             ),
             cryptoProcessingFee: truncateDecimalsToStr(
-                formatUnits(freshEconomicalParams.cryptoProcessingFee, collateralCyrrencyById?.decimals),
+                formatUnits(freshEconomicalParams.cryptoProcessingFee, debtCurrencyById?.decimals),
                 4,
                 false
             ),
