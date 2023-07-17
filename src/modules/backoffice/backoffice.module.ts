@@ -14,6 +14,7 @@ import {
     CollateralCurrency,
     DepositRequest,
     WithdrawRequest,
+    BusinessPaymentRequisite,
 } from "src/database/entities";
 
 import { BackOfficeController } from "./backoffice.controller";
@@ -39,6 +40,7 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
             CryptoTransaction,
             DepositRequest,
             WithdrawRequest,
+            BusinessPaymentRequisite,
         ]),
         BotModule,
         PriceOracleModule,
