@@ -87,9 +87,9 @@ export class NewCreditRequestText {
         return escapeSpecialCharacters(
             `🔸 *The amounts you see have been calculated based on an estimated deposit of ${dtd.supplyAmountRaw} ${sceneData.colToken.symbol}* \n` +
                 "\n" +
-                `Supply Amount: ${dtd.supplyAmountUsd} ${sceneData.debtToken.symbol} \n` +
-                `Collateral Amount: ${dtd.collateralAmountUsd} ${sceneData.debtToken.symbol} \n` +
-                `Debt Amount: ${dtd.debtAmountUsd} ${sceneData.debtToken.symbol} \n` +
+                `Supply Amount:           ${dtd.supplyAmountUsd} ${sceneData.debtToken.symbol} \n` +
+                `Collateral Amount:      ${dtd.collateralAmountUsd} ${sceneData.debtToken.symbol} \n` +
+                `Debt Amount:              ${dtd.debtAmountUsd} ${sceneData.debtToken.symbol} \n` +
                 "\n" +
                 `Risk level: ${dtd.riskLevel} \n` +
                 `Utilization rate: ${dtd.utilPercent} % \n` +
@@ -99,8 +99,8 @@ export class NewCreditRequestText {
                 `Borrow: ${dtd.borrowProcFeePercent} % / ${dtd.borrowProcFeeUsd} ${sceneData.debtToken.symbol} \n` +
                 `Total fee: ${dtd.totalProcFeeUsd} ${sceneData.debtToken.symbol} \n` +
                 "\n" +
-                `Fiat Amount to Receive: ${dtd.fiatToReceive} ${sceneData.debtToken.symbol} \n` +
-                `Actual debt amount: ${dtd.actualDebtAmountUsd} ${sceneData.debtToken.symbol}` +
+                `Fiat Amount to Receive:    ${dtd.fiatToReceive} ${sceneData.debtToken.symbol} \n` +
+                `Actual debt amount:          ${dtd.actualDebtAmountUsd} ${sceneData.debtToken.symbol}` +
                 "\n\n" +
                 `Current ${sceneData.colToken.symbol} Price: ${dtd.currentPrice} ${sceneData.debtToken.symbol} \n` +
                 `You will be liquidated when ${sceneData.colToken.symbol} price drops below ${dtd.limitPrice} ${sceneData.debtToken.symbol} (🔻 - ${dtd.mdDropPricePercent} %) \n\n\n`

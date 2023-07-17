@@ -35,7 +35,11 @@ export class RiskEngineService {
         );
         const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(collateralTokenSymbol);
 
-        const collateralLimitPrice = (userPortfolio.borrowUsd * EXP_SCALE) / scaledRawSupplyAmount;
+        const additionalDecimals = 18 - collateralTokenDecimals;
+
+        const collateralLimitPrice =
+            (userPortfolio.borrowUsd * EXP_SCALE) /
+            (scaledRawSupplyAmount * 10n ** BigInt(additionalDecimals));
 
         const supplyProcFeeUsd = (userPortfolio.supplyUsd * supplyProcFee) / EXP_SCALE;
         const borrowProcFeeUsd = (userPortfolio.borrowUsd * borrowProcFee) / EXP_SCALE;
@@ -43,7 +47,7 @@ export class RiskEngineService {
         return {
             expSupplyAmountUsd: userPortfolio.supplyUsd,
             expBorrowAmountUsd: userPortfolio.borrowUsd,
-            expCollateralAmountUsd: userPortfolio.borrowUsd,
+            expCollateralAmountUsd: userPortfolio.collateralAmount,
             collateralLimitPrice,
             currentPrice: parseUnits(currentPrice),
             supplyProcFeeUsd,
