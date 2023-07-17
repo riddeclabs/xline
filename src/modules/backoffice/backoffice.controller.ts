@@ -8,10 +8,11 @@ import {
     Res,
     Req,
     Logger,
-    UseFilters,
     ValidationPipe,
     UsePipes,
     Param,
+    HttpException,
+    HttpStatus,
 } from "@nestjs/common";
 
 import { OperatorsListQuery } from "./decorators";
@@ -29,7 +30,6 @@ import {
     WithdrawRequestStatus,
 } from "src/common";
 import { Roles } from "src/decorators/roles.decorator";
-import { AuthExceptionFilter } from "src/filters/auth-exceptions.filter";
 import { AuthenticatedGuard } from "src/guards/authenticated.guard";
 import { LoginGuard } from "src/guards/login.guard";
 import { RoleGuard } from "src/guards/role.guard";
@@ -55,7 +55,6 @@ import { truncateDecimalsToStr } from "src/common/text-formatter";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
 
 @Controller("backoffice")
-@UseFilters(AuthExceptionFilter)
 export class BackOfficeController {
     constructor(
         private backofficeService: BackOfficeService,
@@ -100,6 +99,13 @@ export class BackOfficeController {
     @Get("/")
     @Redirect("backoffice/home")
     root() {
+        // some code here
+    }
+
+    @UseGuards(AuthenticatedGuard)
+    @Get("/404")
+    @Render("backoffice/404")
+    notFoumdPage() {
         // some code here
     }
 
@@ -302,9 +308,16 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("borrow-request/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
-    async borrowRequestResolve(@Param("id") id: string, @Param("creditLineId") creditLineId: string) {
+    async borrowRequestResolve(
+        @Res() res: Response,
+        @Param("id") id: string,
+        @Param("creditLineId") creditLineId: string
+    ) {
         const generalUserInfoByBorrowId =
             await this.backofficeService.getUserInfoByBorrowIdExtCreditLineAndDebtCurrency(id);
+        if (!generalUserInfoByBorrowId) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
 
         const initialFiatTransactions = await this.backofficeService.getFiatTransactionsByRequestId(id);
         const { stateAfter, stateBefore } =
@@ -394,10 +407,17 @@ export class BackOfficeController {
         };
         return { resultPageData };
     }
-    @Get("repay-request/:id")
+    @Get("repay-request/:creditLineId/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Param("id") id: string) {
+    async repayItem(
+        @Res() res: Response,
+        @Param("creditLineId") creditLineId: string,
+        @Param("id") id: string
+    ) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
+        if (!repayRequestById) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
         const resultRepayRequestById = {
             refNumber: createRepayRequestRefNumber(repayRequestById?.creditLine.refNumber || "", +id),
             iban: repayRequestById?.businessPaymentRequisite.iban,
@@ -408,14 +428,6 @@ export class BackOfficeController {
             ),
         };
         return resultRepayRequestById;
-    }
-
-    @Roles(Role.ADMIN, Role.OPERATOR)
-    @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("borrow-request/:id")
-    @Render("backoffice/unresolved-request-borrow")
-    async borrowRequest(@Req() req: Request, @Param("id") id: string) {
-        return { id };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
@@ -470,6 +482,7 @@ export class BackOfficeController {
     @Get("customers/credit-line-detail/:type/:creditLineId/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
+        @Res() res: Response,
         @Param("id") id: string,
         @Param("creditLineId") creditLineId: string,
         @Param("type") type: string,
@@ -478,6 +491,9 @@ export class BackOfficeController {
         const { page, sortField, sortDirection } = query;
         const generalUserInfoByCreditLineId =
             await this.backofficeService.getCreditLineByIdExtUserInfoAndDebtCollCurrency(creditLineId);
+        if (!generalUserInfoByCreditLineId) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
         let initialRiskStrategy = "";
         let resultTable: FiatTransaction[] | CryptoTransaction[] = [];
         let status = { id: 0, status: "", wallet: "" };
@@ -595,6 +611,9 @@ export class BackOfficeController {
             sortField,
             sortDirection,
         };
+        if (!resultTable.length) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
 
         const resultPageInfo = {
             mainInfo: {
@@ -648,6 +667,7 @@ export class BackOfficeController {
     @Get("customers/creditline-user-list/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
+        @Res() res: Response,
         @Param("creditLineId") creditLineId: string,
         @TransactionsQuery() query: TransactionsDto
     ) {
@@ -658,6 +678,9 @@ export class BackOfficeController {
             sortField,
             sortDirection
         );
+        if (!initialRequestByCreditLineId.length) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
         const checkStatus = (type: string, status: string) => {
             switch (type) {
                 case "Deposit":
@@ -728,8 +751,11 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers-credit-line/:userId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Param("userId") userId: string) {
+    async customerCreditLine(@Res() res: Response, @Param("userId") userId: string) {
         const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
+        if (!fullyAssociatedUser) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
         //TODO: fix after PR will be merged
         // const usdAvailableLiquidity = this.priceOracleService.convertCryptoToUsd(
         //     collateralCurrency.symbol,
