@@ -246,14 +246,10 @@ export class RiskEngineService {
         const hoursSinceAccrual = Math.floor(timeDelta);
 
         if (hoursSinceAccrual <= 0) {
-            console.log(
-                "!!! ACCRUE SKIPPED. HOURS SINCE ACCRUAL: " + hoursSinceAccrual.toString() + " !!!"
-            );
             return creditLine;
         }
 
         const interestAccrued = this.calculateInterestAccrued(creditLine, hoursSinceAccrual);
-        console.log("!!! ACCRUE HAPPENS. ACCRUED AMOUNT: " + interestAccrued.toString() + " !!!");
         return await this.creditLineService.accrueInterestById(creditLine.id, interestAccrued, now);
     }
 

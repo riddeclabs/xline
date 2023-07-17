@@ -221,10 +221,7 @@ export class BackOfficeController {
                 createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                 updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
                 borrowFiatAmount: truncateDecimalsToStr(
-                    formatUnits(
-                        item.borrowFiatAmount ?? 0n,
-                        item.creditLine.collateralCurrency.decimals
-                    ),
+                    formatUnits(item.borrowFiatAmount ?? 0n, item.creditLine.debtCurrency.decimals),
                     2,
                     false
                 ),
