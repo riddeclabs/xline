@@ -56,6 +56,8 @@ import { RequestResolverService } from "../request-resolver/request-resolver.ser
 import { EconomicalParametersService } from "../economical-parameters/economical-parameters.service";
 import { EconomicalParametersDto } from "./dto/economical.dto";
 import { EconomicalParametersDecorator } from "./decorators/economical.decorators";
+import { BusinesRequisitesDto } from "./dto/business-requisites.dto";
+import { BusinessRequisites } from "./decorators/business-requisites.decorators";
 
 @Controller("backoffice")
 export class BackOfficeController {
@@ -244,11 +246,46 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("xline-request")
-    @Render("backoffice/xline-request")
-    xlineRequest(@Req() req: Request) {
+    @Get("xline-requisites")
+    @Render("backoffice/xline-requisites")
+    async xlineRequisites(@BusinessRequisites() query: BusinesRequisitesDto) {
+        const { page, sortField, sortDirection } = query;
+        const businessPaymentRequisitesCount =
+            await this.backofficeService.getBusinesRaymentRequisitesCount();
+        const businessPaymentRequisites =
+            await this.backofficeService.getBusinesRaymentRequisitesAndDebt(
+                page - 1,
+                sortField,
+                sortDirection
+            );
+        const debtCurrency = await this.backofficeService.getDebtCurrency();
+        const requisites = businessPaymentRequisites.map(requisit => {
+            return {
+                currency: requisit.debtCurrency.symbol,
+                name: requisit.bankName,
+                iban: requisit.iban,
+            };
+        });
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+        const totalPageCount = Math.ceil(businessPaymentRequisitesCount / PAGE_LIMIT_REQUEST);
         return {
-            account: req.user,
+            requisites,
+            debtCurrency,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: businessPaymentRequisitesCount > PAGE_LIMIT_REQUEST,
+            },
         };
     }
 
