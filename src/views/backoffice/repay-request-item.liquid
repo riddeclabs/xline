@@ -2,7 +2,7 @@
 {% block content %}
   <div class="success-mess" id="success">Successfully!</div>
   <div class="error-mess" id="error">Something went wrong!</div>
-  <h1 class='pb-3 text-white fs-1'>Repay request resolve page.</h1>
+  <div class="title-page">Repay request resolve page</div>
   <div class='pb-1 text-white fs-5'>Step 1: Confirm the payment</div>
   <ul>
     <li>
@@ -76,75 +76,75 @@
   <script type="text/javascript">
     const ibanInput = document.getElementById('iban');
     const nameInput = document.getElementById('name');
-    const baseUrl = document.location.origin;
-    const transferInput = document.getElementById('transferAmount');
-    const acceptBtn = document.getElementById('accept-btn');
-    const success = document.getElementById('success');
-    const error = document.getElementById('error');
-    const rejectBtn = document.getElementById('reject-btn');
-    const repayId = document
-      .location
-      .pathname
-      .split("/")
-      .slice(-1)[0];
-    const creditLineId = document
-      .location
-      .pathname
-      .split("/")
-      .slice(-2)[0];
-    acceptBtn.addEventListener('click', () => {
-      const requestOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(
-          {
-            requestId: +repayId,
-            ibanFrom: ibanInput.value,
-            nameFrom: nameInput.value,
-            rawTransferAmount: transferInput.value
-          }
-        )
-      };
-      fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
-        if (resJSON.success) {
-          success.style.right = "30px"
-          setTimeout(() => {
-            success.style.right = "-700px";
-            document.location.href=`${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${borrowId}`
-          }, 3000)
-        } else {
-          error.style.right = "30px"
-          error.innerText = resJSON.message
-          setTimeout(() => {
-            error.style.right = "-700px"
-          }, 3000)
-        }
-      });
-    })
-    rejectBtn.addEventListener('click', () => {
-      const requestOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ repayId: Number(repayId) })
-      };
-      fetch(`${baseUrl}/request-resolver/reject-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
-        if (resJSON.success) {
-          success.style.right = "30px"
-          setTimeout(() => {
-            success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${borrowId}`
-          }, 2000)
-        } else {
-          error.style.right = "30px"
-          error.innerText = resJSON.message
-          setTimeout(() => {
-            error.style.right = "-700px"
-          }, 3000)
-        }
-      });
-    })</script>
+                const baseUrl = document.location.origin;
+                const transferInput = document.getElementById('transferAmount');
+                const acceptBtn = document.getElementById('accept-btn');
+                const success = document.getElementById('success');
+                const error = document.getElementById('error');
+                const rejectBtn = document.getElementById('reject-btn');
+                const repayId = document
+                  .location
+                  .pathname
+                  .split("/")
+                  .slice(-1)[0];
+                const creditLineId = document
+                  .location
+                  .pathname
+                  .split("/")
+                  .slice(-2)[0];
+                acceptBtn.addEventListener('click', () => {
+                  const requestOptions = {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(
+                      {
+                        requestId: +repayId,
+                        ibanFrom: ibanInput.value,
+                        nameFrom: nameInput.value,
+                        rawTransferAmount: transferInput.value
+                      }
+                    )
+                  };
+                  fetch(`${baseUrl}/request-resolver/resolve-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
+                    if (resJSON.success) {
+                      success.style.right = "30px"
+                      setTimeout(() => {
+                        success.style.right = "-700px";
+                        document.location.href=`${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${repayId}`
+                      }, 3000)
+                    } else {
+                      error.style.right = "30px"
+                      error.innerText = resJSON.message
+                      setTimeout(() => {
+                        error.style.right = "-700px"
+                      }, 3000)
+                    }
+                  });
+                })
+                rejectBtn.addEventListener('click', () => {
+                  const requestOptions = {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ repayId: Number(repayId) })
+                  };
+                  fetch(`${baseUrl}/request-resolver/reject-request/repay`, requestOptions).then(response => response.json()).then(resJSON => {
+                    if (resJSON.success) {
+                      success.style.right = "30px"
+                      setTimeout(() => {
+                        success.style.right = "-700px";
+                        document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Repay/${creditLineId}/${borrowId}`
+                      }, 2000)
+                    } else {
+                      error.style.right = "30px"
+                      error.innerText = resJSON.message
+                      setTimeout(() => {
+                        error.style.right = "-700px"
+                      }, 3000)
+                    }
+                  });
+                })</script>
 {% endblock %}
