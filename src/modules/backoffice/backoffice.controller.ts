@@ -8,7 +8,6 @@ import {
     Res,
     Req,
     Logger,
-    UseFilters,
     ValidationPipe,
     UsePipes,
     Param,
@@ -40,7 +39,6 @@ import { CustomersListQuery } from "./decorators/customers.decorators";
 import * as moment from "moment";
 import { BorrowRequestDto } from "./dto/borrow-request.dto";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
-import { BotManagerService } from "../bot/bot-manager.service";
 import { CreditLineDetailsType } from "./backoffice.types";
 import { RepayListQuery } from "./decorators/repay-request.decorators";
 import { BorrowRequest } from "./decorators/borrow-request.decorators";
