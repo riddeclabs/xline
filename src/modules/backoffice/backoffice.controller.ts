@@ -620,6 +620,7 @@ export class BackOfficeController {
                 checkBorrowFiatAmount,
                 borrowFiatAmount,
                 withdrawAmount,
+                creditLineId,
             },
             rowTable: resultTable.map(item => {
                 return {

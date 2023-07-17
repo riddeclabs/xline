@@ -3,6 +3,10 @@
   <div class="success-mess" id="success">Successfully!</div>
   <div class="error-mess" id="error">Something went wrong!</div>
   <div class="title-page">Borrow request resolve page.</div>
+  <div class="breadcrumbs">
+    <a href="/backoffice/borrow-request">borrow requests</a>
+    / ...
+  </div>
   {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
     <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>

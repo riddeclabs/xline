@@ -1,6 +1,10 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
   <h1 class='pb-3 text-white fs-1'>Customer credit lines</h1>
+  <div class="breadcrumbs">
+    <a href="/backoffice/customers">customers</a>
+    / ...
+  </div>
   <h1 class='pb-1 text-white fs-5'>User name: {{ mainInfo.name }}</h1>
   <h1 class='pb-1 text-white fs-5'>Chat ID: {{ mainInfo.chatId }}</h1>
   {% for customer in allCreditLine %}
