@@ -23,6 +23,7 @@ export class HashGuard implements CanActivate {
             dc.currency,
             secretKey
         );
+        console.log("expectedHash", expectedHash);
         return dc.hash === expectedHash;
     }
 

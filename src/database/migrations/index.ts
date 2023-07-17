@@ -6,6 +6,7 @@ import { AddForeignKeysToEntity1686652486758 } from "./1686652486758-AddForeignK
 import { BorrowRequestStatus1686833303368 } from "./1686833303368-BorrowRequestStatus";
 import { AddNewStatusForWithdrawRequest1688135557277 } from "./1688135557277-AddNewStatusForWithdrawRequest";
 import { AddAccruedAt1689165378233 } from "./1689165378233-AddAccruedAt";
+import { UniqueBusinessReqIban1689590506724 } from "./1689590506724-UniqueBusinessReqIban";
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 const migrations: MixedList<string | Function> = [
@@ -16,6 +17,7 @@ const migrations: MixedList<string | Function> = [
     BorrowRequestStatus1686833303368,
     AddNewStatusForWithdrawRequest1688135557277,
     AddAccruedAt1689165378233,
+    UniqueBusinessReqIban1689590506724,
 ];
 
 export default migrations;

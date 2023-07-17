@@ -242,6 +242,9 @@ export class RiskEngineService {
         const hoursSinceAccrual = Math.floor(timeDelta);
 
         if (hoursSinceAccrual <= 0) {
+            console.log(
+                "!!! ACCRUE SKIPPED. HOURS SINCE ACCRUAL: " + hoursSinceAccrual.toString() + " !!!"
+            );
             return creditLine;
         }
 
@@ -260,7 +263,7 @@ export class RiskEngineService {
         creditLine: CreditLine,
         externalScaledPrice?: bigint
     ): Promise<bigint> {
-        const fiatSupplyAmount = await this.priceOracleService.convertUsdToCrypto(
+        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
             creditLine.rawCollateralAmount,
