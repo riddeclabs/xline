@@ -14,11 +14,18 @@ export class GlobalHttpExceptionFilter {
 
         this.logger.error(`HTTP Exception: ${status} - ${message}`);
 
-        response.status(status).json({
-            statusCode: status,
-            timestamp: new Date().toISOString(),
-            path: request.url,
-            message: message,
-        });
+        if (status === 404) {
+            response.redirect("/backoffice/404");
+        } else if (status === 403 || status === 401) {
+            request.flash("loginError", "Authorization failed! Try again.");
+            response.redirect("/backoffice/auth");
+        } else {
+            response.status(status).json({
+                statusCode: status,
+                timestamp: new Date().toISOString(),
+                path: request.url,
+                message: message,
+            });
+        }
     }
 }
