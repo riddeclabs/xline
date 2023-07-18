@@ -196,7 +196,7 @@ export class BackOfficeController {
     async economical(@EconomicalParametersDecorator() query: EconomicalParametersDto) {
         const { debt, collateral } = query;
         const debtCurrency = await this.backofficeService.getDebtCurrency();
-        const collateralCyrrency = await this.backofficeService.getCollateralCurrency();
+        const collateralCurrency = await this.backofficeService.getCollateralCurrency();
         const debtCurrencyById = await this.backofficeService.getDebtCurrencyById(debt || "1");
         const freshEconomicalParams = await this.economicalParamsService.getFreshEconomicalParams(
             Number(collateral) || 1,
@@ -238,7 +238,7 @@ export class BackOfficeController {
 
         return {
             debtCurrency,
-            collateralCyrrency,
+            collateralCurrency,
             checkCurrency: !!debt || !!collateral,
             freshEcoFields,
         };

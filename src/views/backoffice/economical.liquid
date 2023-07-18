@@ -106,7 +106,7 @@
     <div class='card bg-dark shadow-sm wrapper-table economical-wrapper p-3 mt-2'>
       <div class="select-wrapper d-flex">
         <select  style="margin-left: 0px" id="collateral">
-          {% for collateral in collateralCyrrency %}
+          {% for collateral in collateralCurrency %}
             <option value={{collateral.id}} style="margin-top: 20px;">{{ collateral.symbol }}</option>
           {% endfor %}
         </select>
