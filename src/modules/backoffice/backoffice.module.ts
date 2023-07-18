@@ -13,6 +13,7 @@ import {
     CollateralCurrency,
     DepositRequest,
     WithdrawRequest,
+    BusinessPaymentRequisite,
 } from "src/database/entities";
 import { BackOfficeController } from "./backoffice.controller";
 import { BackOfficeService } from "./backoffice.service";
@@ -22,6 +23,7 @@ import { RequestHandlerModule } from "../request-handler/request-handler.module"
 import { RequestResolverModule } from "../request-resolver/request-resolver.module";
 import { PaymentProcessingModule } from "../payment-processing/payment-processing.module";
 import { CreditLineModule } from "../credit-line/credit-line.module";
+import { EconomicalParametersModule } from "../economical-parameters/economical-parameters.module";
 
 @Module({
     imports: [
@@ -38,6 +40,7 @@ import { CreditLineModule } from "../credit-line/credit-line.module";
             CryptoTransaction,
             DepositRequest,
             WithdrawRequest,
+            BusinessPaymentRequisite,
         ]),
         PriceOracleModule,
         RiskEngineModule,
@@ -45,6 +48,7 @@ import { CreditLineModule } from "../credit-line/credit-line.module";
         RequestHandlerModule,
         RequestResolverModule,
         PaymentProcessingModule,
+        EconomicalParametersModule,
     ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],

@@ -25,7 +25,8 @@ export class EconomicalParametersController {
     @UsePipes(ValidationPipe)
     async createEconomicalParams(@Body() createParamsDto: CreateEconomicalParameterDto) {
         const entity = await this.economicalParametersService.createEconomicalParams(createParamsDto);
-        return this.serializeEntity(entity);
+        this.serializeEntity(entity);
+        return { success: true };
     }
 
     @Get("credit-line-id/:creditLineId")

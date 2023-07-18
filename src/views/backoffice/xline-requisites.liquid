@@ -1,0 +1,189 @@
+{% layout 'backoffice/default-layout' %}
+{% block content %}
+  <div class="success-mess" id="success">Successfully!</div>
+  <div class="error-mess" id="error">Something went wrong!</div>
+  <div class='title-page text-white'>Xline reuqisites</div>
+  <div class='card bg-dark shadow-sm wrapper-table'>
+    <div class="d-flex" style="justify-content: space-between">
+      <button class="accept-button open-popup" style="padding: 0 20px; height: 44px; margin: 18px 11px 0 auto;}">Add requisites +</button>
+    </div>
+    <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+      <thead>
+        <tr>
+          <th scope='col' style="width: 10%;">
+            {% if page.query.sortField == "symbol" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "symbol" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Currency<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'symbol' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Currency
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col' style="width: 30%;">
+            {% if page.query.sortField == "bankName" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Name<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "bankName" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">Name<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'bankName' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">Name
+              </a>
+            {% endif %}
+          </th>
+          <th scope='col'>
+            {% if page.query.sortField == "iban" and page.query.sortDirection == "ASC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">IBAN<i class='bi-arrow-up arrow-position'></i>
+              </a>
+            {% elsif page.query.sortField == "iban" and page.query.sortDirection == "DESC" %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'ASC' }}' class="sortingTitle">IBAN<i class='bi-arrow-down arrow-position'></i>
+              </a>
+            {% else %}
+              <a href='?{{ query | mut-query: 'sortField', 'iban' }}&{{ query | mut-query: 'sortDirection', 'DESC' }}' class="sortingTitle">IBAN
+              </a>
+            {% endif %}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% unless requisites.size > 0 %}
+          <tr>
+            <td colspan="3">Unfortunately, we did not find any client.</td>
+          </tr>
+        {% endunless %}
+          {% for requisit in requisites %}
+            <tr style='height:50px' class="table-column">
+              <td class='align-middle'>
+                {{ requisit.currency }}
+              </td>
+              <td class='align-middle'>
+                {{ requisit.name }}
+              </td>
+              <td class='align-middle'>
+                {{ requisit.iban }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </tbody>
+    </table>
+    {% if page.disabled %}
+      <nav aria-label='Page navigation example' class='mt-3'>
+        {% assign prev_page = page.current | minus: 1 %}
+        {% assign next_page = page.current | plus: 1 %}
+
+        <ul class='pagination justify-content-center'>
+          <li class='page-item {% if page.current == 1 %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', prev_page }}'>
+              <i class='bi-arrow-left'></i>
+            </a>
+          </li>
+          {% for p in page.pages %}
+            <li class='page-item'>
+              <a class='page-link {% if page.current == p %}active{%endif%}' href='{% if page.current == p or p == '...' %}?{{ query | mut-query }}{%else%}?{{ query | mut-query: 'page', p }}{%endif%}'>
+                {{ p }}
+              </a>
+            </li>
+          {% endfor %}
+          <li class='page-item {% if page.current == page.totalPageCount %}disabled{% endif %}'>
+            <a class='page-link' href='?{{ query | mut-query: 'page', next_page }}'>
+              <i class='bi-arrow-right'></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+        {% endif %}
+  </div>
+  <div class="popup__bg"> 
+    <form class="popup">
+        <span class="bi bi-x close-popup" style="color: #fff; font-size: 22px;"></span>
+        <label>
+            <select id="currency">
+              {% for debt in debtCurrency %}
+                <option value={{debt.id}} style="margin-top: 20px;">{{debt.symbol}}</option>
+              {% endfor %}
+            </select>
+            <div class="label__text">
+                Currency
+            </div>
+        </label>
+        <label>
+            <input type="text" name="name" id="name">
+            <div class="label__text">
+                Name
+            </div>
+        </label>
+        <label>
+            <input type="text" name="iban" id="iban">
+            <div class="label__text">
+               IBAN
+            </div>
+        </label>
+        <button type="button" id="save-btn">Save</button>
+    </form>
+</div>  
+<script>
+  const popupBg = document.querySelector('.popup__bg');
+  const popup = document.querySelector('.popup');
+  const openPopupButton = document.querySelector('.open-popup');
+  const closePopupButton = document.querySelector('.close-popup');
+  const saveBtn = document.getElementById('save-btn')
+  const baseUrl = document.location.origin;
+  const cyrrency = document.getElementById('currency');
+  const name = document.getElementById('name');
+  const iban = document.getElementById('iban');
+  const success = document.getElementById('success');
+  const error = document.getElementById('error');
+
+  saveBtn.addEventListener('click', () => {
+    saveBtn.setAttribute("disabled", true);
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ debtCurrencyId: Number(cyrrency.value), bankName: name.value, iban: iban.value })
+      };
+      fetch(`${baseUrl}/payment-requisite/business`, requestOptions).then(response => response.json()).then(resJSON => {
+        if (resJSON.success) {
+          success.style.right = "30px"
+          setTimeout(() => {
+            success.style.right = "-700px";
+            popupBg.classList.remove('active');
+            popup.classList.remove('active');
+            document.location.reload()
+          }, 1000)
+        } else {
+          error.style.right = "30px"
+          error.innerText = resJSON.message
+          setTimeout(() => {
+            error.style.right = "-700px"
+            saveBtn.removeAttribute("disabled");
+          }, 2000)
+        }
+      });
+    })
+
+  openPopupButton.addEventListener('click', (e) => { 
+      e.preventDefault();
+      popupBg.classList.add('active');
+      popup.classList.add('active');
+  })
+
+  closePopupButton.addEventListener('click',() => {
+    popupBg.classList.remove('active');
+    popup.classList.remove('active');
+  });
+
+  document.addEventListener('click', (e) => {
+    if(e.target === popupBg) { 
+        popupBg.classList.remove('active');
+        popup.classList.remove('active');
+    }
+  });
+</script>
+
+{% endblock %}

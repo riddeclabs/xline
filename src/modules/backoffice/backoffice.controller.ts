@@ -54,6 +54,11 @@ import { CreditLineService } from "../credit-line/credit-line.service";
 import { RiskEngineService } from "../risk-engine/risk-engine.service";
 import { PaymentProcessingService } from "../payment-processing/payment-processing.service";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
+import { EconomicalParametersService } from "../economical-parameters/economical-parameters.service";
+import { BusinessRequisites } from "./decorators/business-requisites.decorators";
+import { EconomicalParametersDecorator } from "./decorators/economical.decorators";
+import { BusinesRequisitesDto } from "./dto/business-requisites.dto";
+import { EconomicalParametersDto } from "./dto/economical.dto";
 
 @Controller("backoffice")
 export class BackOfficeController {
@@ -64,7 +69,8 @@ export class BackOfficeController {
         private readonly creditLineService: CreditLineService,
         private readonly requestResolverService: RequestResolverService,
         private readonly paymentProcessingService: PaymentProcessingService,
-        private readonly requestHandler: RequestHandlerService
+        private readonly requestHandler: RequestHandlerService,
+        private readonly economicalParamsService: EconomicalParametersService
     ) {}
 
     @Get("/auth")
@@ -191,19 +197,99 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("economical")
     @Render("backoffice/economical")
-    economical(@Req() req: Request) {
+    async economical(@EconomicalParametersDecorator() query: EconomicalParametersDto) {
+        const { debt, collateral } = query;
+        const debtCurrency = await this.backofficeService.getDebtCurrency();
+        const collateralCurrency = await this.backofficeService.getCollateralCurrency();
+        const debtCurrencyById = await this.backofficeService.getDebtCurrencyById(debt || "1");
+        const freshEconomicalParams = await this.economicalParamsService.getFreshEconomicalParams(
+            Number(collateral) || 1,
+            Number(debt) || 1
+        );
+
+        const freshEcoFields = {
+            apr: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.apr, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            collateralFactor: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.collateralFactor, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            liquidationFactor: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.liquidationFactor, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            fiatProcessingFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.fiatProcessingFee, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            cryptoProcessingFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.cryptoProcessingFee, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+            liquidationFee: truncateDecimalsToStr(
+                formatUnits(freshEconomicalParams.liquidationFee, debtCurrencyById?.decimals),
+                4,
+                false
+            ),
+        };
+
         return {
-            account: req.user,
+            debtCurrency,
+            collateralCurrency,
+            checkCurrency: !!debt || !!collateral,
+            freshEcoFields,
         };
     }
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("xline-request")
-    @Render("backoffice/xline-request")
-    xlineRequest(@Req() req: Request) {
+    @Get("xline-requisites")
+    @Render("backoffice/xline-requisites")
+    async xlineRequisites(@BusinessRequisites() query: BusinesRequisitesDto) {
+        const { page, sortField, sortDirection } = query;
+        const businessPaymentRequisitesCount =
+            await this.backofficeService.getBusinesRaymentRequisitesCount();
+        const businessPaymentRequisites =
+            await this.backofficeService.getBusinesRaymentRequisitesAndDebt(
+                page - 1,
+                sortField,
+                sortDirection
+            );
+        const debtCurrency = await this.backofficeService.getDebtCurrency();
+        const requisites = businessPaymentRequisites.map(requisit => {
+            return {
+                currency: requisit.debtCurrency.symbol,
+                name: requisit.bankName,
+                iban: requisit.iban,
+            };
+        });
+        const queryWithDefaults = {
+            page: page > 1 ? page : undefined,
+            sortField,
+            sortDirection,
+        };
+        const totalPageCount = Math.ceil(businessPaymentRequisitesCount / PAGE_LIMIT_REQUEST);
         return {
-            account: req.user,
+            requisites,
+            debtCurrency,
+            page: {
+                current: page,
+                query: queryWithDefaults,
+                totalPageCount,
+                pages: makePagination({
+                    currentPage: page,
+                    totalPageCount,
+                    siblingCount: 1,
+                }),
+                disabled: businessPaymentRequisitesCount > PAGE_LIMIT_REQUEST,
+            },
         };
     }
 

@@ -12,6 +12,7 @@ import {
     CryptoTransaction,
     WithdrawRequest,
     DepositRequest,
+    BusinessPaymentRequisite,
 } from "src/database/entities";
 import { Connection, FindOptionsOrder, Like, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -77,6 +78,8 @@ export class BackOfficeService {
         private withdrawRepo: Repository<WithdrawRequest>,
         @InjectRepository(DepositRequest)
         private depositRepo: Repository<DepositRequest>,
+        @InjectRepository(BusinessPaymentRequisite)
+        private businessRequisite: Repository<BusinessPaymentRequisite>,
         private connection: Connection,
         private readonly riskEngineService: RiskEngineService,
         private readonly requestHandlerService: RequestHandlerService,
@@ -251,6 +254,13 @@ export class BackOfficeService {
             .createQueryBuilder("debtCurrency")
             .select("debtCurrency.symbol")
             .getRawMany();
+    }
+
+    getDebtCurrencyById(id: string) {
+        return this.debtCurrency
+            .createQueryBuilder("debtCurrency")
+            .where("debtCurrency.id = :id", { id })
+            .getOne();
     }
 
     getCollateralsAllSymbol(): Promise<{ collateralCurrency_symbol: string }[]> {
@@ -486,5 +496,26 @@ export class BackOfficeService {
             stateBefore,
             stateAfter,
         };
+    }
+
+    getBusinesRaymentRequisitesAndDebt(
+        page: number,
+        sortField = "createdAt",
+        sortDirection: "ASC" | "DESC"
+    ) {
+        return this.businessRequisite
+            .createQueryBuilder("biz")
+            .leftJoinAndSelect("biz.debtCurrency", "debtCurrency")
+            .skip(page * PAGE_LIMIT_REQUEST)
+            .take(PAGE_LIMIT_REQUEST)
+            .orderBy(
+                sortField === "symbol" ? `debtCurrency.${sortField}` : `biz.${sortField}`,
+                sortDirection
+            )
+            .getMany();
+    }
+
+    getBusinesRaymentRequisitesCount() {
+        return this.businessRequisite.createQueryBuilder("biz").getCount();
     }
 }
