@@ -33,7 +33,7 @@ export function truncateDecimalsToStr(value: string | number, accuracy = 2, md =
     return md ? floatToMd(res) : res.toString();
 }
 
-export function truncateDecimals(value: number | string, decimals: number): number {
+export function truncateDecimals(value: number | string, decimals = 2): number {
     const valueStr = typeof value === "string" ? value : value.toString();
     const dotIndex = valueStr.indexOf(".");
     if (dotIndex === -1) {

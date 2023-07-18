@@ -4,3 +4,5 @@ export const maxUint256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffff
 
 export const PAGE_LIMIT = 10;
 export const PAGE_LIMIT_REQUEST = 10;
+
+export const HOURS_IN_YEAR = 8760n;

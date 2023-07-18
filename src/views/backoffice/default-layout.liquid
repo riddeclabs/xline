@@ -107,6 +107,14 @@ input::-webkit-inner-spin-button {
     font-size: 14px;
     border-radius: 10px;
   }
+  .reject-button a {
+    text-decoration: none;
+    color: #fff;
+  }
+
+  .reject-button a:hover {
+    color: #880F0F;
+  }
   .reject-button:hover {
   background: #fff;
   color: #880F0F;
@@ -231,7 +239,7 @@ input::-webkit-inner-spin-button {
     padding: 6px 30px;
     text-align: center;
     transition: all 1s;
-    z-index: 1;
+    z-index: 5;
   }
 
   .error-mess {
@@ -244,7 +252,7 @@ input::-webkit-inner-spin-button {
     padding: 6px 30px;
     text-align: center;
     transition: all 1s;
-    z-index: 1;
+    z-index: 5;
   }
   .arrow-position {
     position: absolute;
@@ -271,21 +279,148 @@ input::-webkit-inner-spin-button {
     width: 100%;
   }
 
+  .economical-wrapper {
+    display: flex;
+    flex-direction: row;
+  }
+  .popup__bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgb(0 0 0 / 76%);
+    opacity: 0; 
+    pointer-events: none; 
+    transition: 0.5s all;
+}
+
+.popup__bg.active { 
+    opacity: 1;
+    pointer-events: all;
+    transition: 0.5s all;
+    z-index: 4;
+}
+
+.popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: #34373B;
+    width: 400px;
+    padding: 25px;
+    transition: 0.5s all;
+}
+
+.popup.active {
+    transform: translate(-50%, -50%) scale(1);
+    transition: 0.5s all;
+}
+.close-popup {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+.popup label {
+    width: 100%;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.popup .label__text {
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #cfd0d3;
+    margin-bottom: 5px;
+}
+
+.popup input, .popup select {
+    height: 45px;
+    font-size: 18px;
+    border: none;
+    background: #34373B;
+    color: #fff;
+    outline: none;
+    border-bottom: 1px solid #cfd0d3;
+}
+
+.popup input:focus, .popup select:focus {
+    border-bottom: 1px solid #2982ff;
+}
+
+.popup input:focus + .label__text {
+    color: #2982ff;
+}
+
+.popup select:focus + .label__text {
+    color: #2982ff;
+}
+
+.popup button {
+    width: 100%;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    border: 2px solid #2982ff;
+    background: #2982ff;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.5s all;
+}
+
+.popup button:hover {
+    background: #fff;
+    color:#2982ff;
+    transition: 0.5s all;
+}
   .tabs-content {
     display: none;
   }
 
-  .tabs-content li {
-    margin-left: 20px;
-    width: 90%;
-  }
+  .economical-wrapper select {
+    height: 25px;
+    font-size: 18px;
+    border: none;
+    background: #34373B;
+    color: #fff;
+    outline: none;
+    border-bottom: 1px solid #cfd0d3;
+    width: 100px;
+    margin: 0 26px;
+}
 
-  .tabs-wrapper {
-    width: 100%;
-    cursor: pointer;
-  }
-  
-    </style>
+.economical-wrapper select:focus {
+    border-bottom: 1px solid #2982ff;
+}
+
+.economical-wrapper select:focus {
+    color: #2982ff;
+}
+.tabs-content {
+  display: none;
+}
+
+.tabs-content li {
+  margin-left: 20px;
+  width: 90%;
+}
+
+.tabs-wrapper {
+  width: 100%;
+  cursor: pointer;
+}
+.breadcrumbs {
+  margin-bottom: 10px;
+}
+  </style>
   </head>
 
   <body>
@@ -358,8 +493,8 @@ input::-webkit-inner-spin-button {
           <hr>
           <li>
             <a
-              href='/backoffice/xline-request'
-              class='nav-link text-white {% if current_url == '/backoffice/xline-request'%}active{% endif %}'
+              href='/backoffice/xline-requisites'
+              class='nav-link text-white {% if current_url == '/backoffice/xline-requisites'%}active{% endif %}'
               >
               Xline reuqisites
             </a>

@@ -1,6 +1,6 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
-  <h1 class='pb-5 text-white fs-1'>Operators</h1>
+  <div class="title-page">Operators</div>
   <div class='d-flex flex-row mb-4 justify-content-end' style='gap: 20px;'>
     <div class='input-group' style='width: 350px'>
       <a
@@ -266,8 +266,8 @@
 
     document.getElementById('user-filter-input').addEventListener('change', function(event) {
       const val = event.target.value.trim();
-      const emptyQuery = '?  {{ query | mut-query: 'username' }}';
-      const queryTemplate = '?  {{ query | mut-query: 'username', 'template' }}';
+      const emptyQuery = '?   {{ query | mut-query: 'username' }}';
+      const queryTemplate = '?   {{ query | mut-query: 'username', 'template' }}';
 
       const newHref = val
         ? queryTemplate.replace('username=template', 'username=' + val)

@@ -3,7 +3,7 @@ import { CreateCreditLineDto } from "./dto/create-credit-line.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CreditLine } from "../../database/entities";
 import { Repository, UpdateResult } from "typeorm";
-import { CreditLineCurrencyExtended } from "./credit-line.types";
+import { CreditLineStatus } from "src/common";
 
 @Injectable()
 export class CreditLineService {
@@ -15,6 +15,22 @@ export class CreditLineService {
     async saveNewCreditLine(newCreditLineDto: CreateCreditLineDto) {
         const newLine = this.creditLineRepo.create(newCreditLineDto);
         return this.creditLineRepo.save(newLine);
+    }
+
+    async accrueInterestById(
+        creditLineId: number,
+        interestAmount: bigint,
+        accruedAt: Date
+    ): Promise<CreditLine> {
+        await this.creditLineRepo
+            .createQueryBuilder()
+            .update(CreditLine)
+            .set({ debtAmount: () => `debtAmount + ${interestAmount}` })
+            .set({ accruedAt: accruedAt })
+            .where("id = :id", { id: creditLineId })
+            .execute();
+
+        return await this.getCreditLinesByIdAllSettingsExtended(creditLineId);
     }
 
     async increaseDebtAmountById(creditLineId: number, addAmount: bigint): Promise<CreditLine> {
@@ -89,7 +105,7 @@ export class CreditLineService {
             .getOne();
     }
 
-    async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLineCurrencyExtended[]> {
+    async getCreditLinesByChatIdCurrencyExtended(chatId: number): Promise<CreditLine[]> {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
@@ -99,9 +115,7 @@ export class CreditLineService {
             .getMany();
     }
 
-    async getCreditLinesByIdAllSettingsExtended(
-        creditLineId: number
-    ): Promise<CreditLineCurrencyExtended> {
+    async getCreditLinesByIdAllSettingsExtended(creditLineId: number): Promise<CreditLine> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
@@ -111,5 +125,19 @@ export class CreditLineService {
             .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
+    }
+
+    async getAllActiveCreditLinesAllSettingsExtended(): Promise<CreditLine[] | null> {
+        return this.creditLineRepo
+            .createQueryBuilder("creditLine")
+            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .innerJoinAndSelect("creditLine.user", "user")
+            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .where("creditLine.creditLineStatus != :creditLineStatus", {
+                creditLineStatus: CreditLineStatus.CLOSED,
+            })
+            .getMany();
     }
 }

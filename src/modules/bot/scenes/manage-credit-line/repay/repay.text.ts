@@ -1,7 +1,7 @@
-import { CreditLineDetails } from "../../../../credit-line/credit-line.types";
 import { truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { bigintToFormattedPercent, escapeSpecialCharacters, formatUnits } from "../../../../../common";
 import { BusinessPaymentRequisite } from "../../../../../database/entities";
+import { CreditLineWithExtras } from "src/modules/bot/bot-manager.service";
 
 export class RepayTextSource {
     static getVerifyPendingRequestText(
@@ -21,8 +21,8 @@ export class RepayTextSource {
                 "To do this, go to *'View my requests'* tab from the *'Manage my portfolio'* menu."
         );
     }
-    static getRepayInfoText(creditLineDetails: CreditLineDetails) {
-        const cld = this.prepareCreditLineData(creditLineDetails);
+    static getRepayInfoText(clwe: CreditLineWithExtras) {
+        const cld = this.prepareCreditLineData(clwe);
         return escapeSpecialCharacters(
             "📜 *REPAY TERMS*\n\n" +
                 "📝 The Repay allows you to decrease your debt position and risk of liquidation by reducing the utilization factor of your debt position.\n" +
@@ -63,22 +63,17 @@ export class RepayTextSource {
         );
     }
 
-    private static prepareCreditLineData(creditLineDetails: CreditLineDetails) {
+    private static prepareCreditLineData(clwe: CreditLineWithExtras) {
         return {
-            mdDebtSymbol: creditLineDetails.debtCurrency.symbol,
-            mdCollateralSymbol: creditLineDetails.collateralCurrency.symbol,
-            mdDepositAmountUsd: truncateDecimalsToStr(
-                formatUnits(creditLineDetails.fiatCollateralAmount)
-            ),
+            mdDebtSymbol: clwe.debtCurrency.symbol,
+            mdCollateralSymbol: clwe.collateralCurrency.symbol,
+            mdDepositAmountUsd: truncateDecimalsToStr(formatUnits(clwe.fiatCollateralAmount)),
             mdDepositAmountRaw: truncateDecimalsToStr(
-                formatUnits(
-                    creditLineDetails.rawCollateralAmount,
-                    creditLineDetails.collateralCurrency.decimals
-                )
+                formatUnits(clwe.rawCollateralAmount, clwe.collateralCurrency.decimals)
             ),
-            mdDebtAmount: truncateDecimalsToStr(formatUnits(creditLineDetails.debtAmount)),
-            mdHealthyFactor: truncateDecimalsToStr(formatUnits(creditLineDetails.healthyFactor)),
-            mdUtilizationRate: bigintToFormattedPercent(creditLineDetails.utilizationRate),
+            mdDebtAmount: truncateDecimalsToStr(formatUnits(clwe.debtAmount)),
+            mdHealthyFactor: truncateDecimalsToStr(formatUnits(clwe.healthyFactor)),
+            mdUtilizationRate: bigintToFormattedPercent(clwe.utilizationRate),
         };
     }
 }

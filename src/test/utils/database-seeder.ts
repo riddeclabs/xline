@@ -284,7 +284,7 @@ export class TestDatabaseSeeder {
             br.creditLine = cl;
         }
 
-        br.borrowFiatAmount = opts?.borrowFiatAmount ?? 100500n;
+        br.borrowFiatAmount = opts?.borrowFiatAmount ?? parseUnits(100);
         br.initialRiskStrategy = opts?.initialRiskStrategy ?? null;
         br.borrowRequestStatus = opts?.borrowRequestStatus ?? BorrowRequestStatus.VERIFICATION_PENDING;
 

@@ -54,9 +54,6 @@ export class RequestResolverService {
     async resolveBorrowRequest(
         resolveBorrowRequest: ResolveBorrowRequestDto
     ): Promise<{ success: boolean }> {
-        // Accrue interest
-        // FIXME: add risk engine call
-
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
             resolveBorrowRequest.requestId
         );
@@ -146,12 +143,12 @@ export class RequestResolverService {
      @throws {HttpException} - If the request is not in the correct state
      */
     async finalizeBorrowRequest(dto: FinalizeOrRejectBorrowRequestDto): Promise<{ success: boolean }> {
-        // Accrue interest
-        // FIXME: add risk engine call
         const borrowRequest = await this.requestHandlerService.getFullyAssociatedBorrowRequest(
             dto.requestId
         );
-        const creditLine = borrowRequest.creditLine;
+
+        // Accrue interest for previous credit line state
+        const creditLine = await this.riskEngineService.accrueInterest(borrowRequest.creditLine);
 
         if (!borrowRequest.borrowFiatAmount) {
             throw new HttpException(
@@ -257,12 +254,13 @@ export class RequestResolverService {
     }
 
     // Used by operator to verify borrow request before transfer the payment
-    //TODOL accrueInterest here
     async verifyBorrowRequest(reqId: number) {
         const { request, creditLine } = await this.getRequestAndCreditLine(reqId, ActionTypes.BORROW);
         if (!(request instanceof BorrowRequest)) {
             throw new Error("Incorrect request received");
         }
+
+        await this.riskEngineService.accrueInterest(creditLine);
 
         const requestedBorrowAmount = await this.getBorrowAmount(
             request,
@@ -318,13 +316,13 @@ export class RequestResolverService {
      @throws {HttpException} - Throws an exception if the repay request status is not VERIFICATION_PENDING or if the repay amount exceeds the user's current debt.
      */
     async resolveRepayRequest(resolveRepayRequestDto: ResolveRepayRequestDto) {
-        // Accrue interest
-        // FIXME: add risk engine call
-
         const repayRequest = await this.requestHandlerService.getFullyAssociatedRepayRequest(
             resolveRepayRequestDto.requestId
         );
-        const creditLine = repayRequest.creditLine;
+
+        // Accrue interest for previous credit line state
+        const creditLine = await this.riskEngineService.accrueInterest(repayRequest.creditLine);
+
         const debtCurrency = creditLine.debtCurrency;
 
         // Validate block
@@ -409,10 +407,7 @@ export class RequestResolverService {
     // TODO: Add transaction mechanism ( increaseSupplyAmountById, update<X>ReqStatus, createCryptoTransaction )
     // Used by payment processing module to resolve pending crypto based request
     async resolveCryptoRequest(resolveDto: ResolveCryptoBasedRequestDto) {
-        // Accrue interest
-        // FIXME: add risk engine call
-
-        const creditLine = await this.creditLineService.getCreditLineByChatIdAndColSymbol(
+        let creditLine = await this.creditLineService.getCreditLineByChatIdAndColSymbol(
             Number(resolveDto.chatId),
             resolveDto.collateralSymbol
         );
@@ -420,6 +415,9 @@ export class RequestResolverService {
         if (!creditLine) {
             throw new Error("Credit line not found");
         }
+
+        // Accrue interest for previous credit line state
+        creditLine = await this.riskEngineService.accrueInterest(creditLine);
 
         const collateralCurrency = creditLine.collateralCurrency;
         const economicalParams = creditLine.economicalParameters;

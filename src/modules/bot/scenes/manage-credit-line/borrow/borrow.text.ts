@@ -42,7 +42,6 @@ export class BorrowTextSource extends BasicSourceText {
         const creditLineStateTextAfter = this.getCreditLineStateText(stateAfter, false);
         const requisitesText = this.getRequisitesText(requisites);
         const processingFeeText = BorrowTextSource.getFiatProcessingFeeText(
-            borrowAmount,
             processingFee,
             stateBefore.debtCurrency
         );
