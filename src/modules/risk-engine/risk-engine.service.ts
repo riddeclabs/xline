@@ -8,6 +8,11 @@ import { OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common";
 import { Cron } from "@nestjs/schedule";
 
+export interface CryptoFee {
+    feeCrypto: bigint;
+    feeFiat: bigint;
+}
+
 @Injectable()
 export class RiskEngineService {
     constructor(
@@ -94,20 +99,43 @@ export class RiskEngineService {
         return (supplyUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    //TODO: Add minimum processing fee support
     async calculateFiatProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
         const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        return (amount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+        return (
+            economicalParameters.minFiatProcessingFee +
+            (amount * economicalParameters.fiatProcessingFee) / EXP_SCALE
+        );
     }
-
-    //TODO: Add minimum processing fee support
-    async calculateCryptoProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
+    
+    async calculateCryptoProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<CryptoFee> {
         const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        return (amount * economicalParameters.cryptoProcessingFee) / EXP_SCALE;
+
+        const minFeeFiat = economicalParameters.minCryptoProcessingFeeFiat;
+
+        // TODO: in case we need to support not only USD needs to be refactored
+        const minFeeCrypto = await this.priceOracleService.convertUsdToCrypto(
+            economicalParameters.collateralCurrency.symbol,
+            economicalParameters.collateralCurrency.decimals,
+            minFeeFiat
+        );
+
+        const feeCrypto = (amount * economicalParameters.cryptoProcessingFee) / EXP_SCALE;
+
+        // TODO: in case we need to support not only USD needs to be refactored
+        const cryptoFeeUsd = await this.priceOracleService.convertCryptoToUsd(
+            economicalParameters.collateralCurrency.symbol,
+            economicalParameters.collateralCurrency.decimals,
+            feeCrypto
+            );
+
+        return {            
+            feeCrypto: minFeeCrypto + feeCrypto,
+            feeFiat: minFeeFiat + cryptoFeeUsd,
+        };
     }
 
     async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {

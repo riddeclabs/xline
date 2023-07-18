@@ -21,6 +21,7 @@ export class EconomicalParametersController {
         const allParameters = await this.economicalParametersService.getAllParams();
         return allParameters.map(ep => this.serializeEntity(ep));
     }
+    
     @Post()
     @UsePipes(ValidationPipe)
     async createEconomicalParams(@Body() createParamsDto: CreateEconomicalParameterDto) {

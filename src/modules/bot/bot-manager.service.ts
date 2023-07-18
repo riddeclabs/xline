@@ -290,16 +290,12 @@ export class BotManagerService {
             processingFeeCryptoAmount = 0n;
             processingFeeFiatAmount = 0n;
         } else {
-            processingFeeCryptoAmount = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
+            const fee = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
                 creditLine.id,
                 actualWithdrawAmount
             );
-            processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
-                collateralCurrency.symbol,
-                collateralCurrency.decimals,
-                processingFeeCryptoAmount,
-                scaledTokenPrice
-            );
+            processingFeeCryptoAmount = fee.feeCrypto;
+            processingFeeFiatAmount = fee.feeFiat;
         }
 
         const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
