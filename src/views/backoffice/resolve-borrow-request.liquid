@@ -225,32 +225,33 @@
       });
     }
 
-
-    finelizeBtn.addEventListener('click', () => {
-      const requestOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(
-          {requestId: Number(borrowId)}
-        )
-      };
-      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
-        if (resJSON.success) {
-          success.style.right = "30px"
-          setTimeout(() => {
-            success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
-          }, 2000)
-        } else {
-          error.style.right = "30px"
-          error.innerText = resJSON.message
-          setTimeout(() => {
-            error.style.right = "-700px"
-          }, 3000)
-        }
+    if (finelizeBtn) {
+      finelizeBtn.addEventListener('click', () => {
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(
+            {requestId: Number(borrowId)}
+          )
+        };
+        fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
+          if (resJSON.success) {
+            success.style.right = "30px"
+            setTimeout(() => {
+              success.style.right = "-700px";
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+            }, 2000)
+          } else {
+            error.style.right = "30px"
+            error.innerText = resJSON.message
+            setTimeout(() => {
+              error.style.right = "-700px"
+            }, 3000)
+          }
+        });
       });
-    });
+    }
   </script>
 {% endblock %}
