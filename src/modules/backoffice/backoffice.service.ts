@@ -22,9 +22,10 @@ import {
     CollatetalCurrencyType,
     DebtCurrencyType,
 } from "./backoffice.types";
-import { BotManagerService } from "../bot/bot-manager.service";
 import { RiskEngineService } from "../risk-engine/risk-engine.service";
 import { RequestHandlerService } from "../request-handler/request-handler.service";
+import { CreditLineService } from "../credit-line/credit-line.service";
+import { PriceOracleService } from "../price-oracle/price-oracle.service";
 
 export enum OperatorsListColumns {
     updated = "updated",
@@ -80,9 +81,10 @@ export class BackOfficeService {
         @InjectRepository(BusinessPaymentRequisite)
         private businessRequisite: Repository<BusinessPaymentRequisite>,
         private connection: Connection,
-        private readonly botManagerService: BotManagerService,
         private readonly riskEngineService: RiskEngineService,
-        private readonly requestHandlerService: RequestHandlerService
+        private readonly requestHandlerService: RequestHandlerService,
+        private readonly creditLineService: CreditLineService,
+        private readonly priceOracleService: PriceOracleService
     ) {}
 
     accountInfo() {
@@ -449,7 +451,18 @@ export class BackOfficeService {
         stateBefore: CreditLineStateDataRaw;
         stateAfter: CreditLineStateDataRaw;
     }> {
-        const cld = await this.botManagerService.getCreditLineDetails(creditLineId);
+        const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
+            creditLineId
+        );
+        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            creditLine.rawCollateralAmount
+        );
+        const utilizationRate = this.riskEngineService.calculateUtilizationRate(
+            fiatSupplyAmount,
+            creditLine.debtAmount
+        );
         const borrowRequest = await this.requestHandlerService.getBorrowRequest(borrowRequestId);
 
         if (!borrowRequest.borrowFiatAmount) {
@@ -457,29 +470,26 @@ export class BackOfficeService {
         }
 
         const stateBefore: CreditLineStateDataRaw = {
-            depositAmountFiat: cld.lineDetails.fiatCollateralAmount,
+            depositAmountFiat: fiatSupplyAmount,
             collateralAmountFiat:
-                (cld.lineDetails.fiatCollateralAmount * cld.economicalParams.collateralFactor) /
-                EXP_SCALE,
-            debtAmount: cld.lineDetails.debtAmount,
-            utilizationRate: cld.lineDetails.utilizationRate,
+                (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE,
+            debtAmount: creditLine.debtAmount,
+            utilizationRate: utilizationRate,
         };
 
         const borrowWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            cld.lineDetails.id,
+            creditLine.id,
             borrowRequest.borrowFiatAmount
         );
         const debtAfter = stateBefore.debtAmount + borrowWithFee;
-        //FIXME Move to cpmmon
-        const getUtilRate = () => {
-            if (cld.lineDetails.fiatCollateralAmount === 0n) return 0n;
-            return (debtAfter * EXP_SCALE) / cld.lineDetails.fiatCollateralAmount;
-        };
 
         const stateAfter: CreditLineStateDataRaw = {
             ...stateBefore,
             debtAmount: debtAfter,
-            utilizationRate: getUtilRate(),
+            utilizationRate: this.riskEngineService.calculateUtilizationRate(
+                fiatSupplyAmount,
+                debtAfter
+            ),
         };
 
         return {

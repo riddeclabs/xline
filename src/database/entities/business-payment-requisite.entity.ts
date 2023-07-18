@@ -37,7 +37,7 @@ export class BusinessPaymentRequisite {
     @Column("varchar", { name: "bank_name" })
     bankName!: string;
 
-    @Column("varchar", { name: "iban" })
+    @Column("varchar", { name: "iban", unique: true })
     iban!: string;
 
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })

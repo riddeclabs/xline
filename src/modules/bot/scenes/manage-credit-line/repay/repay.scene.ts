@@ -89,11 +89,12 @@ export class RepayActionWizard {
         ];
 
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const { lineDetails } = await this.botManager.getCreditLineDetails(creditLineId);
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
-        ctx.scene.session.state.referenceNumber = lineDetails.refNumber;
+        ctx.scene.session.state.referenceNumber = creditLine.refNumber;
 
-        const msgText = RepayTextSource.getRepayInfoText(lineDetails);
+        const msgText = RepayTextSource.getRepayInfoText({ ...creditLine, ...creditLineExtras });
 
         await ctx.editMessageText(msgText, { parse_mode: "MarkdownV2" });
         await ctx.editMessageReplyMarkup(

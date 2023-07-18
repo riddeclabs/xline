@@ -112,6 +112,9 @@ export class CreditLine {
     @Column("varchar", { name: "ref_number", unique: true })
     refNumber!: string;
 
+    @CreateDateColumn({ type: "timestamptz", name: "accrued_at" })
+    accruedAt!: Date;
+
     @CreateDateColumn({ type: "timestamptz", name: "created_at" })
     createdAt!: Date;
 

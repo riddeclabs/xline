@@ -18,6 +18,7 @@ import { RequestHandlerModule } from "./modules/request-handler/request-handler.
 import { CreditLineModule } from "./modules/credit-line/credit-line.module";
 import { TransactionModule } from "./modules/transaction/transaction.module";
 import { EconomicalParametersModule } from "./modules/economical-parameters/economical-parameters.module";
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
     imports: [
@@ -58,6 +59,7 @@ import { EconomicalParametersModule } from "./modules/economical-parameters/econ
         CreditLineModule,
         TransactionModule,
         EconomicalParametersModule,
+        ScheduleModule.forRoot(),
     ],
     controllers: [],
     providers: [],

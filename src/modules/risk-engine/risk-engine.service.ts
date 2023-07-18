@@ -3,9 +3,10 @@ import { EconomicalParametersService } from "../economical-parameters/economical
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
-import { EXP_SCALE } from "../../common/constants";
+import { EXP_SCALE, HOURS_IN_YEAR } from "../../common/constants";
 import { OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common";
+import { Cron } from "@nestjs/schedule";
 
 @Injectable()
 export class RiskEngineService {
@@ -34,7 +35,11 @@ export class RiskEngineService {
         );
         const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(collateralTokenSymbol);
 
-        const collateralLimitPrice = (userPortfolio.borrowUsd * EXP_SCALE) / scaledRawSupplyAmount;
+        const additionalDecimals = 18 - collateralTokenDecimals;
+
+        const collateralLimitPrice =
+            (userPortfolio.borrowUsd * EXP_SCALE) /
+            (scaledRawSupplyAmount * 10n ** BigInt(additionalDecimals));
 
         const supplyProcFeeUsd = (userPortfolio.supplyUsd * supplyProcFee) / EXP_SCALE;
         const borrowProcFeeUsd = (userPortfolio.borrowUsd * borrowProcFee) / EXP_SCALE;
@@ -42,7 +47,7 @@ export class RiskEngineService {
         return {
             expSupplyAmountUsd: userPortfolio.supplyUsd,
             expBorrowAmountUsd: userPortfolio.borrowUsd,
-            expCollateralAmountUsd: userPortfolio.borrowUsd,
+            expCollateralAmountUsd: userPortfolio.collateralAmount,
             collateralLimitPrice,
             currentPrice: parseUnits(currentPrice),
             supplyProcFeeUsd,
@@ -90,11 +95,19 @@ export class RiskEngineService {
     }
 
     //TODO: Add minimum processing fee support
-    async calculateFiatProcessingFeeAmount(creditLineId: number, borrowAmount: bigint): Promise<bigint> {
+    async calculateFiatProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
         const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
             creditLineId
         );
-        return (borrowAmount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+        return (amount * economicalParameters.fiatProcessingFee) / EXP_SCALE;
+    }
+
+    //TODO: Add minimum processing fee support
+    async calculateCryptoProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
+        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
+            creditLineId
+        );
+        return (amount * economicalParameters.cryptoProcessingFee) / EXP_SCALE;
     }
 
     async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {
@@ -211,5 +224,60 @@ export class RiskEngineService {
     calculateUtilizationRate(depositFiatAmount: bigint, debtFiatAmount: bigint) {
         if (!depositFiatAmount) return 0n;
         return (debtFiatAmount * EXP_SCALE) / depositFiatAmount;
+    }
+
+    // Every day at 1 AM
+    @Cron("0 1 * * *")
+    async accrueInterestCron() {
+        const allCreditLines = await this.creditLineService.getAllActiveCreditLinesAllSettingsExtended();
+
+        if (!allCreditLines) {
+            return;
+        }
+
+        for (const creditLine of allCreditLines) {
+            await this.accrueInterest(creditLine);
+        }
+    }
+
+    async accrueInterest(creditLine: CreditLine): Promise<CreditLine> {
+        const now = new Date();
+        const timeDelta = (now.getTime() - creditLine.accruedAt.getTime()) / (1000 * 3600);
+        const hoursSinceAccrual = Math.floor(timeDelta);
+
+        if (hoursSinceAccrual <= 0) {
+            return creditLine;
+        }
+
+        const interestAccrued = this.calculateInterestAccrued(creditLine, hoursSinceAccrual);
+        return await this.creditLineService.accrueInterestById(creditLine.id, interestAccrued, now);
+    }
+
+    calculateInterestAccrued(creditLine: CreditLine, hours: number): bigint {
+        const apr = creditLine.economicalParameters.apr;
+        const ratePerHour = apr / HOURS_IN_YEAR;
+        return (creditLine.debtAmount * ratePerHour * parseUnits(hours)) / EXP_SCALE / EXP_SCALE;
+    }
+
+    async getMaxAllowedBorrowAmount(
+        creditLine: CreditLine,
+        externalScaledPrice?: bigint
+    ): Promise<bigint> {
+        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            creditLine.rawCollateralAmount,
+            externalScaledPrice
+        );
+
+        const fiatCollateralAmount =
+            (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
+        const freeLiquidityFiatAmount = fiatCollateralAmount - creditLine.debtAmount;
+        const processingFee = await this.calculateFiatProcessingFeeAmount(
+            creditLine.id,
+            freeLiquidityFiatAmount
+        );
+
+        return freeLiquidityFiatAmount - processingFee;
     }
 }

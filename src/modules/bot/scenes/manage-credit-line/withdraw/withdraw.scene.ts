@@ -62,18 +62,19 @@ export class WithdrawActionWizard {
         };
 
         if (!pendingWithdrawRequest && !pendingBorrowRequest) {
-            const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
+            const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(
                 creditLineId
             );
+            const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
-            if (lineDetails.rawCollateralAmount <= 0n) {
+            if (creditLine.rawCollateralAmount <= 0n) {
                 const msgText = WithdrawTextSource.getZeroBalanceText();
                 await updateMessage(msgText, true);
                 return;
-            } else if (lineDetails.maxAllowedCryptoToWithdraw <= 0n) {
+            } else if (creditLineExtras.maxAllowedCryptoToWithdraw <= 0n) {
                 const msgText = WithdrawTextSource.getInsufficientBalanceText(
-                    lineDetails.utilizationRate,
-                    economicalParams.collateralFactor
+                    creditLineExtras.utilizationRate,
+                    creditLine.economicalParameters.collateralFactor
                 );
                 await updateMessage(msgText, true);
                 return;
@@ -127,22 +128,22 @@ export class WithdrawActionWizard {
     @WizardStep(WithdrawSteps.ENTER_WITHDRAW_AMOUNT)
     async onEnterWithdrawAmount(@Ctx() ctx: WithdrawContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const { economicalParams, lineDetails } = await this.botManager.getCreditLineDetails(
-            creditLineId
-        );
+
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
         let msgText: string;
         let buttons: InlineKeyboardButton[] = [];
 
-        if (lineDetails.debtAmount === 0n) {
+        if (creditLine.debtAmount === 0n) {
             // Set flag to handle this case in further steps
             ctx.scene.session.state.isWithdrawAllCase = true;
 
             msgText = WithdrawTextSource.getFullWithdrawEnterAmountText(
-                lineDetails.collateralCurrency,
-                lineDetails.rawCollateralAmount,
-                lineDetails.maxAllowedCryptoToWithdraw,
-                lineDetails.utilizationRate
+                creditLine.collateralCurrency,
+                creditLine.rawCollateralAmount,
+                creditLineExtras.maxAllowedCryptoToWithdraw,
+                creditLineExtras.utilizationRate
             );
 
             buttons = [
@@ -154,11 +155,11 @@ export class WithdrawActionWizard {
             ];
         } else {
             msgText = WithdrawTextSource.getGeneralEnterAmountText(
-                lineDetails.collateralCurrency,
-                lineDetails.rawCollateralAmount,
-                lineDetails.maxAllowedCryptoToWithdraw,
-                lineDetails.utilizationRate,
-                economicalParams.collateralFactor
+                creditLine.collateralCurrency,
+                creditLine.rawCollateralAmount,
+                creditLineExtras.maxAllowedCryptoToWithdraw,
+                creditLineExtras.utilizationRate,
+                creditLine.economicalParameters.collateralFactor
             );
         }
 
@@ -329,12 +330,14 @@ export class WithdrawActionWizard {
         }
 
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const { lineDetails } = await this.botManager.getCreditLineDetails(creditLineId);
+
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
         const validationStatus = validateWithdrawInputValue(
             userInput,
-            lineDetails.collateralCurrency,
-            lineDetails.maxAllowedCryptoToWithdraw
+            creditLine.collateralCurrency,
+            creditLineExtras.maxAllowedCryptoToWithdraw
         );
 
         // In case of correct input go to the next step
@@ -350,20 +353,20 @@ export class WithdrawActionWizard {
             case WithdrawSceneValidationStatus.INCORRECT_DECIMALS:
                 errorMsg = WithdrawTextSource.getIncorrectInputDecimalsText(
                     userInput,
-                    lineDetails.collateralCurrency
+                    creditLine.collateralCurrency
                 );
                 break;
             case WithdrawSceneValidationStatus.INCORRECT_STRUCT_OR_ZERO:
                 errorMsg = WithdrawTextSource.getIncorrectInputStructText(
                     userInput,
-                    lineDetails.collateralCurrency
+                    creditLine.collateralCurrency
                 );
                 break;
             case WithdrawSceneValidationStatus.EXCEEDS_MAX_AMOUNT:
                 errorMsg = WithdrawTextSource.getIncorrectInputMaxAmountText(
                     userInput,
-                    lineDetails.collateralCurrency,
-                    lineDetails.maxAllowedCryptoToWithdraw
+                    creditLine.collateralCurrency,
+                    creditLineExtras.maxAllowedCryptoToWithdraw
                 );
                 break;
             default:
@@ -413,15 +416,19 @@ export class WithdrawActionWizard {
                 throw new Error("Withdraw scene: some of scene parameters are missed or incorrect");
             }
 
-            const { lineDetails } = await this.botManager.getCreditLineDetails(creditLineId);
+            const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(
+                creditLineId
+            );
+            const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
+
             const actualWithdrawAmount = requestedWithdrawAmount
                 ? parseUnits(requestedWithdrawAmount, collateralCurrency.decimals)
-                : lineDetails.maxAllowedCryptoToWithdraw;
+                : creditLineExtras.maxAllowedCryptoToWithdraw;
 
             let withdrawRequest: WithdrawRequest;
             try {
                 await this.botManager.verifyHypWithdrawRequestOrThrow(
-                    lineDetails.maxAllowedCryptoToWithdraw,
+                    creditLineExtras.maxAllowedCryptoToWithdraw,
                     actualWithdrawAmount
                 );
                 withdrawRequest = await this.botManager.saveNewWithdrawRequest(
