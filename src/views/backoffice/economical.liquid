@@ -1,4 +1,219 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
+  <div class="success-mess" id="success">Successfully!</div>
+  <div class="error-mess" id="error">Something went wrong!</div>
   <div class="title-page">Economical params</div>
+  {% if checkCurrency %}
+    <div class='pb-1 text-white fs-5 d-flex'>
+      <div>Step 2: Update economical parameters</div>
+      <div style="margin-left: auto;">
+        <a href="/backoffice/economical">
+          <button class="reject-button" style="padding: 2px 15px;">Back to step 1</button>
+        </a>
+      </div>
+      </div>
+    <div class='card bg-dark shadow-sm wrapper-table mt-3'>
+      <table class='table table-striped m-3' style='text-align: center; width: 96%;'>
+        <thead>
+          <tr>
+            <th scope='col'>
+              Parameter
+            </th>
+            <th scope='col'>
+              Current value
+            </th>
+            <th scope='col'>
+              New value
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              APR
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.apr }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="apr">
+            </td>
+          </tr>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              Liquidation factor
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.liquidationFactor }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="liquidationFactor">
+            </td>
+          </tr>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              Collateral factor
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.collateralFactor }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="collateralFactor">
+            </td>
+          </tr>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              Liquidation fee
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.liquidationFee }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="liquidationFee">
+            </td>
+          </tr>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              Fiat processing
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.fiatProcessingFee }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="fiatProcessingFee">
+            </td>
+          </tr>
+          <tr style='height:50px' class="table-column">
+            <td class='align-middle'>
+              Crypto processing fee
+            </td>
+            <td class='align-middle'>
+              {{ freshEcoFields.cryptoProcessingFee }}
+            </td>
+            <td class='align-middle'>
+              <input type="text" onkeypress='validate(event)' id="cryptoProcessingFee">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button
+        class="accept-button"
+        style="margin: 5px 10px 15px auto; padding: 4px 20px;"
+        id="submit">Submit</button>
+    </div>
+  {% else %}
+    <div class='pb-1 text-white fs-5'>Step 1: Select currency pair.</div>
+    <div class='card bg-dark shadow-sm wrapper-table economical-wrapper p-3 mt-2'>
+      <div class="select-wrapper d-flex">
+        <select  style="margin-left: 0px" id="collateral">
+          {% for collateral in collateralCurrency %}
+            <option value={{collateral.id}} style="margin-top: 20px;">{{ collateral.symbol }}</option>
+          {% endfor %}
+        </select>
+        /
+        <select id="debt">
+          {% for debt in debtCurrency %}
+            <option value={{debt.id}} style="margin-top: 20px;">{{ debt.symbol }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button
+        class="accept-button"
+        id="select"
+        style="padding: 2px 20px;"
+        >Select</button>
+    </div>
+  {% endif %}
+  <script>
+    const collateral = document.getElementById("collateral")
+    const debt = document.getElementById("debt")
+    const selectBtn = document.getElementById("select")
+    const submitBtn = document.getElementById("submit")
+    const baseUrl = document.location.origin;
+    const success = document.getElementById('success');
+    const error = document.getElementById('error');
+
+    const apr = document.getElementById("apr")
+    const liquidationFactor = document.getElementById("liquidationFactor")
+    const collateralFactor = document.getElementById("collateralFactor")
+    const liquidationFee = document.getElementById("liquidationFee")
+    const fiatProcessingFee = document.getElementById("fiatProcessingFee")
+    const cryptoProcessingFee = document.getElementById("cryptoProcessingFee")
+
+    if (selectBtn) {
+      selectBtn.addEventListener('click', () => {
+        const queryTemplate = `?debt=${
+          debt.value
+        }&collateral=${
+          collateral.value
+        }`;
+        selectBtn.setAttribute('href', queryTemplate);
+        window.location.assign(queryTemplate);
+      })
+    }
+
+    function validate(evt) {
+      var theEvent = evt || window.event;
+      var key = theEvent.keyCode || theEvent.which;
+      key = String.fromCharCode( key );
+      var regex = /[0-9]|\./;
+      if( !regex.test(key) ) {
+        theEvent.returnValue = false;
+        if(theEvent.preventDefault) theEvent.preventDefault();
+      }
+    }
+
+    submitBtn.addEventListener('click', () => {
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          {
+            collateralCurrencyId: Number(document
+              .location
+              .search
+              .split('&')[1]
+              .slice(-1)),
+            debtCurrencyId: Number(document
+              .location
+              .search
+              .split('&')[0]
+              .slice(-1)),
+            apr: apr.value,
+            liquidationFee: liquidationFee.value,
+            collateralFactor: collateralFactor.value,
+            liquidationFactor: liquidationFactor.value,
+            fiatProcessingFee: fiatProcessingFee.value,
+            cryptoProcessingFee: cryptoProcessingFee.value
+          }
+        )
+      };
+      if (apr.value && liquidationFactor.value && collateralFactor.value && liquidationFee.value && fiatProcessingFee.value && cryptoProcessingFee.value) {
+        fetch(`${baseUrl}/economical-parameters`, requestOptions).then(response => response.json()).then(resJSON => {
+          if (resJSON.success) {
+            success.style.right = "30px"
+            setTimeout(() => {
+              success.style.right = "-700px";
+              location.reload()
+            }, 2000)
+          } else {
+            error.style.right = "30px"
+            error.innerText = resJSON.message
+            setTimeout(() => {
+              error.style.right = "-700px"
+            }, 2000)
+          }
+        });
+      } else {
+        error.style.right = "30px"
+        error.innerText = "Please, enter all fields!"
+        setTimeout(() => {
+          error.style.right = "-700px"
+        }, 3000)
+      }
+      
+    })
+  </script>
 {% endblock %}

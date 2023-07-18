@@ -254,6 +254,13 @@ export class BackOfficeService {
             .getRawMany();
     }
 
+    getDebtCurrencyById(id: string) {
+        return this.debtCurrency
+            .createQueryBuilder("debtCurrency")
+            .where("debtCurrency.id = :id", { id })
+            .getOne();
+    }
+
     getCollateralsAllSymbol(): Promise<{ collateralCurrency_symbol: string }[]> {
         return this.collateralCurrency
             .createQueryBuilder("collateralCurrency")

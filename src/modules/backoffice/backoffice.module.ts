@@ -24,6 +24,7 @@ import { BotModule } from "../bot/bot.module";
 import { RiskEngineModule } from "../risk-engine/risk-engine.module";
 import { RequestHandlerModule } from "../request-handler/request-handler.module";
 import { RequestResolverModule } from "../request-resolver/request-resolver.module";
+import { EconomicalParametersModule } from "../economical-parameters/economical-parameters.module";
 
 @Module({
     imports: [
@@ -47,6 +48,7 @@ import { RequestResolverModule } from "../request-resolver/request-resolver.modu
         RiskEngineModule,
         RequestHandlerModule,
         RequestResolverModule,
+        EconomicalParametersModule,
     ],
     exports: [BackOfficeService],
     providers: [BackOfficeService],
