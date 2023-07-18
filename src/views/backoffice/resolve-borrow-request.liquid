@@ -166,6 +166,11 @@
       .pathname
       .split("/")
       .slice(-2)[0];
+    const customerId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-3)[0];
     rejectBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -181,7 +186,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"
@@ -212,7 +217,7 @@
             success.style.right = "30px"
             setTimeout(() => {
               success.style.right = "-700px";
-              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
             }, 3000)
           } else {
             error.style.right = "30px"
@@ -241,7 +246,7 @@
             success.style.right = "30px"
             setTimeout(() => {
               success.style.right = "-700px";
-              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
             }, 2000)
           } else {
             error.style.right = "30px"

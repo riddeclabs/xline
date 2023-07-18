@@ -3,7 +3,7 @@
 <div class="title-page">Requests</div>
   <div class="breadcrumbs">
     <a href="/backoffice/customers">customers</a> / 
-    <a href="/backoffice/customers-credit-line/{{creditLineId}}">credit lines</a> / ...
+    <a href="/backoffice/customers-credit-line/{{ customerId }}">credit lines</a> / ...
   </div>
 <div style="color: #fff;" class="pb-3">
     <div>Credit line: {{ resultTable.mainInfo.collateral }} / {{ resultTable.mainInfo.debt }}</div>
@@ -89,7 +89,7 @@
                 {{ transaction.updated_at }}
               </td>
               <td class='align-middle'>
-                <a href="/backoffice/customers/credit-line-detail/{{ transaction.type }}/{{ creditLineId }}/{{ transaction.id }}">
+                <a href="/backoffice/customers/credit-line-detail/{{ transaction.type }}/{{ customerId }}/{{ creditLineId }}/{{ transaction.id }}">
                   <button class="icon-button">
                     <i class='bi-info-circle'></i>
                   </button>
