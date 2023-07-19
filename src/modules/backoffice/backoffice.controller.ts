@@ -672,7 +672,7 @@ export class BackOfficeController {
             sortField,
             sortDirection,
         };
-        if (!resultTable.length) {
+        if (!checkStatus(type, status.status)) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
 
