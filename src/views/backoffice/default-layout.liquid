@@ -268,6 +268,7 @@ input::-webkit-inner-spin-button {
   }
   .input-resolve {
     max-width: 350px;
+    width: 100%;
   }
 
   .title-page {
@@ -416,6 +417,30 @@ input::-webkit-inner-spin-button {
 .tabs-wrapper {
   width: 100%;
   cursor: pointer;
+}
+
+.custom-select {
+  position: relative;
+}
+
+.dropdown-content {
+  position: absolute;
+  background-color: #212529;
+  display: none;
+  max-width: 350px;
+  overflow: auto;
+  width: 100%;
+  z-index: 1;
+  max-height: 165px;
+}
+
+.dropdown-content .option {
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.dropdown-content .option:hover {
+  background-color: #2f2f2f;
 }
   </style>
   </head>

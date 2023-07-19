@@ -319,7 +319,7 @@ export class BackOfficeController {
                 ),
             };
         });
-        const totalCount = await this.backofficeService.getBorrowCount();
+        const totalCount = await this.backofficeService.getBorrowCount(chatIdFilter);
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -367,7 +367,7 @@ export class BackOfficeController {
             };
         });
 
-        const totalCount = await this.backofficeService.getRepayCount();
+        const totalCount = await this.backofficeService.getRepayCount(chatIdFilter, refNumberFilter);
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -427,6 +427,8 @@ export class BackOfficeController {
             symbol: creditLine.debtCurrency.symbol,
         };
 
+        const businessPeymentRequisites = await this.backofficeService.getBusinessPeymentRequisites();
+
         const resultPageData = {
             accountName: creditLine.user.name,
             iban: creditLine.userPaymentRequisite.iban,
@@ -466,6 +468,7 @@ export class BackOfficeController {
             status: borrowRequest.borrowRequestStatus,
             fiatTransactions,
             borrowAmountAndStatus,
+            ibanList: businessPeymentRequisites.map(item => item.iban),
         };
         return { resultPageData };
     }
