@@ -1,6 +1,6 @@
 import { EconomicalParameters } from "../../../../database/entities";
 import { OpenCreditLineData } from "../../../risk-engine/risk-engine.types";
-import { formatUnits, formatUnitsNumber } from "../../../../common/fixed-number";
+import { formatUnits } from "../../../../common/fixed-number";
 import { truncateDecimals } from "../../../../common/text-formatter";
 import { EXP_SCALE } from "../../../../common/constants";
 import {
@@ -9,9 +9,11 @@ import {
     SignApplicationSceneData,
 } from "./new-credit-request.types";
 import { SignApplicationOptions } from "../../constants";
-import { escapeSpecialCharacters } from "../../../../common";
+import { bigintToFormattedPercent, escapeSpecialCharacters } from "../../../../common";
+import { BasicSourceText } from "../common/basic-source.text";
+import { RatesMsgData, Requisites } from "../common/types";
 
-export class NewCreditRequestText {
+export class NewCreditRequestText extends BasicSourceText {
     static getSignGeneralTermsMsg() {
         return escapeSpecialCharacters(
             "📜 *GENERAL TERMS*\n\n\n" +
@@ -79,61 +81,56 @@ export class NewCreditRequestText {
 
     static getSignApplicationDetailMsg(
         economicalParameters: EconomicalParameters,
-        loanData: OpenCreditLineData,
-        sceneData: SignApplicationSceneData
+        openCLData: OpenCreditLineData,
+        sceneData: SignApplicationSceneData,
+        ratesMsgData: RatesMsgData
     ) {
-        const dtd = this.prepareDetailsTextData(economicalParameters, loanData, sceneData);
+        const dtd = this.prepareDetailsTextData(economicalParameters, openCLData, sceneData);
 
         return escapeSpecialCharacters(
-            `🔸 *The amounts you see have been calculated based on an estimated deposit of ${dtd.supplyAmountRaw} ${sceneData.colToken.symbol}* \n` +
+            `🔸 *The amounts you see have been calculated based on an estimated deposit of ${dtd.deposityAmountRaw} ${ratesMsgData.collateralCurrency}* \n` +
                 "\n" +
-                `Supply Amount:           ${dtd.supplyAmountUsd} ${sceneData.debtToken.symbol} \n` +
-                `Collateral Amount:      ${dtd.collateralAmountUsd} ${sceneData.debtToken.symbol} \n` +
-                `Debt Amount:              ${dtd.debtAmountUsd} ${sceneData.debtToken.symbol} \n` +
+                `Deposit Amount:         ${dtd.depositAmountUsd} ${ratesMsgData.debtCurrency} \n` +
+                `Collateral Amount:      ${dtd.collateralAmountUsd} ${ratesMsgData.debtCurrency} \n` +
+                `Debt Amount:              ${dtd.debtAmountUsd} ${ratesMsgData.debtCurrency} \n` +
                 "\n" +
                 `Risk level: ${dtd.riskLevel} \n` +
                 `Utilization rate: ${dtd.utilPercent} % \n` +
                 `\n` +
                 `Processing fees:\n` +
-                `Deposit: ${dtd.supplyProcFeePercent} % / ${dtd.supplyProcFeeUsd} ${sceneData.debtToken.symbol} \n` +
-                `Borrow: ${dtd.borrowProcFeePercent} % / ${dtd.borrowProcFeeUsd} ${sceneData.debtToken.symbol} \n` +
-                `Total fee: ${dtd.totalProcFeeUsd} ${sceneData.debtToken.symbol} \n` +
+                `Deposit:  ${ratesMsgData.minCryptoProcessingFee} ${ratesMsgData.debtCurrency} + ${ratesMsgData.cryptoProcessingFeePercent}% / ${dtd.depositProcFeeUsd} ${ratesMsgData.debtCurrency} \n` +
+                `Borrow: ${ratesMsgData.minFiatProcessingFee} ${ratesMsgData.debtCurrency} + ${ratesMsgData.fiatProcessingFeePercent}% / ${dtd.borrowProcFeeUsd} ${ratesMsgData.debtCurrency} \n` +
+                `Total fee: ${dtd.totalProcFeeUsd} ${ratesMsgData.debtCurrency} \n` +
                 "\n" +
-                `Fiat Amount to Receive:    ${dtd.fiatToReceive} ${sceneData.debtToken.symbol} \n` +
-                `Actual debt amount:          ${dtd.actualDebtAmountUsd} ${sceneData.debtToken.symbol}` +
+                `Fiat Amount to Receive:    ${dtd.fiatToReceive} ${ratesMsgData.debtCurrency} \n` +
+                `Actual debt amount:          ${dtd.actualDebtAmountUsd} ${ratesMsgData.debtCurrency}` +
                 "\n\n" +
-                `Current ${sceneData.colToken.symbol} Price: ${dtd.currentPrice} ${sceneData.debtToken.symbol} \n` +
-                `You will be liquidated when ${sceneData.colToken.symbol} price drops below ${dtd.limitPrice} ${sceneData.debtToken.symbol} (🔻 - ${dtd.mdDropPricePercent} %) \n\n\n`
+                `Current ${economicalParameters.collateralCurrency.symbol} Price: ${dtd.currentPrice} ${ratesMsgData.debtCurrency} \n` +
+                `You will be liquidated when ${economicalParameters.collateralCurrency.symbol} price drops below ${dtd.limitPrice} ${ratesMsgData.debtCurrency} (🔻 - ${dtd.dropPricePercent} %) \n\n\n`
         );
     }
 
     static getSignApplicationMainMsg(
-        economicalParameters: EconomicalParameters,
-        sceneData: SignApplicationSceneData
+        ratesMsgData: RatesMsgData,
+        riskStrategy: number,
+        requisites: Requisites
     ) {
-        const mtd = this.prepareMainTextData(economicalParameters, sceneData);
+        const ratesMsgTxt = this.getRatesMsgText(ratesMsgData);
+        const riskStrategyMsgTxt = this.getRiskStrategyText(riskStrategy);
+        const bankAccountInfoMsgTxt = this.getRequisitesText(requisites);
 
         return escapeSpecialCharacters(
             "📊 *Loan request details*\n\n\n" +
                 `📈 *Your rates:*\n` +
-                `APR: ${mtd.aprPercent} %\n` +
-                `LiqFee: ${mtd.liqFeePercent} %\n` +
+                ratesMsgTxt +
+                `Risk level:                     ${riskStrategyMsgTxt}` +
                 "\n" +
-                `Selected risk strategy: ${mtd.selectedRiskStrategyPercent} %\n` +
-                `Max utilization: ${mtd.maxUtilization} % from your deposit\n` +
+                `Collateral token:          ${ratesMsgData.collateralCurrency}\n` +
                 "\n" +
-                `Processing fees:\n` +
-                `Deposit: ${mtd.supplyProcFeePercent} %\n` +
-                `Borrow : ${mtd.borrowProcFeePercent} % \n` +
-                "\n" +
-                `Collateral token: ${sceneData.colToken.symbol}\n` +
-                "\n" +
-                "🏦 *Bank account info*:\n" +
-                `IBAN: ${sceneData.userIban}\n` +
-                `Account name: ${sceneData.userName}\n` +
+                bankAccountInfoMsgTxt +
                 "\n\n" +
                 `🔸 You can send any collateral amount you want, the size of the credit will be` +
-                `calculated based on chosen risk strategy ( ${mtd.selectedRiskStrategyPercent} % utilization ) ` +
+                `calculated based on chosen risk strategy utilization` +
                 "and the actual oracle prices at the time of receipt of collateral\n"
         );
     }
@@ -224,34 +221,30 @@ export class NewCreditRequestText {
 
         return {
             riskLevel,
-            supplyAmountRaw: truncateDecimals(sceneData.supplyAmount),
-            supplyAmountUsd: truncateDecimals(formatUnits(loanData.expSupplyAmountUsd)),
+            deposityAmountRaw: truncateDecimals(sceneData.depositAmount),
+            depositAmountUsd: truncateDecimals(formatUnits(loanData.expDepositAmountUsd)),
             collateralAmountUsd: truncateDecimals(formatUnits(loanData.expCollateralAmountUsd)),
             debtAmountUsd: truncateDecimals(formatUnits(loanData.expBorrowAmountUsd)),
             utilPercent: truncateDecimals(Number(sceneData.riskStrategy) * 100),
-            supplyProcFeePercent: formatUnitsNumber(ep.fiatProcessingFee) * 100,
-            supplyProcFeeUsd: truncateDecimals(formatUnits(loanData.supplyProcFeeUsd)),
-            borrowProcFeePercent: formatUnitsNumber(ep.cryptoProcessingFee) * 100,
+
+            depositProcFeePercent: bigintToFormattedPercent(ep.fiatProcessingFee),
+            depositProcFeeUsd: truncateDecimals(formatUnits(loanData.depositProcFeeUsd)),
+
+            borrowProcFeePercent: bigintToFormattedPercent(ep.cryptoProcessingFee),
             borrowProcFeeUsd: truncateDecimals(formatUnits(loanData.borrowProcFeeUsd)),
+
             totalProcFeeUsd: truncateDecimals(formatUnits(loanData.totalProcFeeUsd)),
+
             fiatToReceive: truncateDecimals(
                 formatUnits(loanData.expBorrowAmountUsd - loanData.totalProcFeeUsd)
             ),
             actualDebtAmountUsd: truncateDecimals(formatUnits(loanData.expBorrowAmountUsd)),
-            currentPrice: truncateDecimals(formatUnits(loanData.currentPrice)),
-            limitPrice: truncateDecimals(formatUnits(loanData.collateralLimitPrice)),
-            mdDropPricePercent: dropPricePercent,
-        };
-    }
 
-    static prepareMainTextData(ep: EconomicalParameters, sceneData: SignApplicationSceneData) {
-        return {
-            aprPercent: truncateDecimals(formatUnitsNumber(ep.apr) * 100),
-            liqFeePercent: truncateDecimals(formatUnitsNumber(ep.liquidationFee) * 100),
-            selectedRiskStrategyPercent: Number(sceneData.riskStrategy) * 100,
-            maxUtilization: formatUnitsNumber(ep.collateralFactor) * 100,
-            supplyProcFeePercent: truncateDecimals(formatUnitsNumber(ep.fiatProcessingFee) * 100),
-            borrowProcFeePercent: truncateDecimals(formatUnitsNumber(ep.cryptoProcessingFee) * 100),
+            currentPrice: truncateDecimals(formatUnits(loanData.currentPrice)),
+
+            limitPrice: truncateDecimals(formatUnits(loanData.collateralLimitPrice)),
+
+            dropPricePercent: dropPricePercent,
         };
     }
 }

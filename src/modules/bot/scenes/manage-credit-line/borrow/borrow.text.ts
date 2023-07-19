@@ -5,6 +5,7 @@ import { CreditLineStateMsgData, Requisites, XLineRequestMsgData } from "../../c
 export class BorrowTextSource extends BasicSourceText {
     static getBorrowTermsText(
         maxCollateral: string,
+        minProcessingFee: string,
         processingFee: string,
         debtCurrencySymbol: string
     ): string {
@@ -14,7 +15,7 @@ export class BorrowTextSource extends BasicSourceText {
                 `After confirmation of your request by the system, the requested amount of *${debtCurrencySymbol}* will be sent to your IBAN\n\n` +
                 "⚠️ Borrow operation increases the utilization rate of your position and *increases the risk of liquidation*.\n\n" +
                 `️️⚠ The total debt for your position cannot exceed *${maxCollateral} %* of the remaining deposit.\n\n` +
-                `⚠️ *${processingFee} %* of the borrowed amount will be applied as a processing fee.\n` +
+                `⚠️ *${minProcessingFee} ${debtCurrencySymbol} + ${processingFee} % of the borrowed amount* will be applied as a processing fee.\n` +
                 "An amount equal to the fee will be added to your debt position.\n"
         );
     }
@@ -41,10 +42,7 @@ export class BorrowTextSource extends BasicSourceText {
         const creditLineStateTextBefore = this.getCreditLineStateText(stateBefore, false);
         const creditLineStateTextAfter = this.getCreditLineStateText(stateAfter, false);
         const requisitesText = this.getRequisitesText(requisites);
-        const processingFeeText = BorrowTextSource.getFiatProcessingFeeText(
-            processingFee,
-            stateBefore.debtCurrency
-        );
+        const processingFeeText = this.getFiatProcessingFeeText(processingFee, stateBefore.debtCurrency);
         return escapeSpecialCharacters(
             "📜 *Borrow request details*\n\n" +
                 `💱 You have requested * ${borrowAmount} ${stateBefore.debtCurrency} * to borrow.\n\n` +

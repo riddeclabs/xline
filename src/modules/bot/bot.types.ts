@@ -22,7 +22,7 @@ export type ExtendedWizardContext<D extends ExtendedSessionData = ExtendedSessio
         };
     };
 
-export type SceneTransferObject = {
+type SceneTransferObject = {
     creditLineData?: CreditLineSceneData;
 };
 

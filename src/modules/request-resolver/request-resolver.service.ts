@@ -26,7 +26,6 @@ import {
     RepayRequest,
     WithdrawRequest,
 } from "../../database/entities";
-import { EXP_SCALE } from "../../common/constants";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
 import { validateIban, validateName } from "../../common/input-validation";
@@ -97,7 +96,7 @@ export class RequestResolverService {
         }
 
         const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLine.id,
+            creditLine.economicalParameters,
             borrowRequest.borrowFiatAmount
         );
 
@@ -192,19 +191,17 @@ export class RequestResolverService {
             BorrowRequestStatus.FINISHED
         );
 
-        const feeAmount = await this.riskEngineService.calculateFiatProcessingFeeAmount(
-            creditLine.id,
+        const feeAmount = this.riskEngineService.calculateFiatProcessingFeeAmount(
+            creditLine.economicalParameters,
             borrowRequest.borrowFiatAmount
         );
 
-        // Increase debt amount for borrow request on borrow value
-        await this.creditLineService.increaseDebtAmountById(
+        // Increase debt amount for borrow request on borrow and fee value
+        await this.creditLineService.increaseDebtAmountAndFeeAccumulatedById(
             creditLine.id,
-            borrowRequest.borrowFiatAmount + feeAmount
+            borrowRequest.borrowFiatAmount + feeAmount,
+            feeAmount
         );
-
-        // Increase debt amount for borrow request on fee value
-        await this.creditLineService.increaseAccumulatedFeeAmountById(creditLine.id, feeAmount);
 
         return {
             success: true,
@@ -266,7 +263,7 @@ export class RequestResolverService {
             request,
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount
+            creditLine.rawDepositAmount
         );
 
         try {
@@ -297,7 +294,7 @@ export class RequestResolverService {
         hypotheticalBorrowAmount: bigint
     ) {
         const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLineCurrencyExtended.id,
+            creditLineCurrencyExtended.economicalParameters,
             hypotheticalBorrowAmount
         );
 
@@ -420,7 +417,6 @@ export class RequestResolverService {
         creditLine = await this.riskEngineService.accrueInterest(creditLine);
 
         const collateralCurrency = creditLine.collateralCurrency;
-        const economicalParams = creditLine.economicalParameters;
 
         this.verifyTransferAmount(resolveDto.rawTransferAmount, collateralCurrency.decimals);
 
@@ -430,14 +426,12 @@ export class RequestResolverService {
             ({ depositRequestId, withdrawRequestId } = await this.resolveDepositRequest(
                 creditLine,
                 collateralCurrency,
-                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else if (resolveDto.callbackType === CallbackTypes.WITHDRAWAL) {
             ({ depositRequestId, withdrawRequestId } = await this.resolveWithdrawRequest(
                 creditLine,
                 collateralCurrency,
-                economicalParams.cryptoProcessingFee,
                 resolveDto.rawTransferAmount
             ));
         } else {
@@ -464,7 +458,7 @@ export class RequestResolverService {
         request: BorrowRequest,
         collateralSymbol: string,
         collateralDecimals: number,
-        rawSupplyAmount: bigint
+        rawDepositAmount: bigint
     ) {
         let requestedBorrowAmount: bigint;
 
@@ -472,7 +466,7 @@ export class RequestResolverService {
             requestedBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
                 collateralSymbol,
                 collateralDecimals,
-                rawSupplyAmount,
+                rawDepositAmount,
                 request.initialRiskStrategy
             );
         } else if (!request.initialRiskStrategy && request.borrowFiatAmount) {
@@ -523,11 +517,10 @@ export class RequestResolverService {
     }
 
     // Resolves a deposit request by updating the request status
-    // and increasing the supply amount for the associated credit line.
+    // and increasing the deposit amount for the associated credit line.
     private async resolveDepositRequest(
         creditLine: CreditLine,
         collateralToken: CollateralCurrency,
-        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
         // FIXME: VERIFY IF REQUEST IS INITIAL AND UPDATE BORROW REQUEST IN THAT CASE
@@ -544,26 +537,22 @@ export class RequestResolverService {
         );
 
         const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
-        const newSupplyAmount = creditLine.rawCollateralAmount + convRawTransferAmount;
+        const newDepositAmount = creditLine.rawDepositAmount + convRawTransferAmount;
 
         // FIXME: merge 2 creditLine based db requests to one
-        // Increase supply amount for credit line
-        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+        // Increase deposit amount for credit line
+        await this.creditLineService.updateDepositAmountById(creditLine.id, newDepositAmount);
 
-        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
-        const processingFeeCryptoAmount = (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
-        const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
-            collateralToken.symbol,
-            collateralToken.decimals,
-            processingFeeCryptoAmount
+        const processingFee = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
+            creditLine.economicalParameters,
+            convRawTransferAmount
         );
+
         // Increase the debt position and fee accumulated by the amount of processing fee
-        const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
-        const newFeeAccumulatedAmount = creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
-        await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
+        await this.creditLineService.increaseDebtAmountAndFeeAccumulatedById(
             creditLine.id,
-            newDebtAmount,
-            newFeeAccumulatedAmount
+            processingFee.feeFiat,
+            processingFee.feeFiat
         );
 
         return {
@@ -573,11 +562,10 @@ export class RequestResolverService {
     }
 
     // Resolves a withdrawal request by verifying the withdrawal amount, updating the request status,
-    // and decreasing the supply amount for the associated credit line.
+    // and decreasing the deposit amount for the associated credit line.
     private async resolveWithdrawRequest(
         creditLine: CreditLine,
         collateralToken: CollateralCurrency,
-        cryptoProcessingFeeRate: bigint,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingWithdrawReq(
@@ -591,11 +579,11 @@ export class RequestResolverService {
         // FIXME: do we need somehow handle exception and save failed callbacks ?
         this.verifyWithdrawAmount(pendingRequest, collateralToken, rawTransferAmount);
 
-        // Decrease supply amount for credit line
+        // Decrease deposit amount for credit line
         const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
-        const newSupplyAmount = creditLine.rawCollateralAmount - convRawTransferAmount;
+        const newDepositAmount = creditLine.rawDepositAmount - convRawTransferAmount;
 
-        if (newSupplyAmount < 0) {
+        if (newDepositAmount < 0) {
             // FIXME: do we need somehow handle it and save failed callbacks ?
             // Throw 500 in that case
             throw new Error("Deposit amount after withdraw can not be negative");
@@ -606,26 +594,20 @@ export class RequestResolverService {
             WithdrawRequestStatus.FINISHED
         );
 
-        await this.creditLineService.updateSupplyAmountById(creditLine.id, newSupplyAmount);
+        await this.creditLineService.updateDepositAmountById(creditLine.id, newDepositAmount);
 
         // Apply processing fee for all cases, except the case when user withdraw all his collateral
-        if (newSupplyAmount !== 0n) {
-            // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
-            const processingFeeCryptoAmount =
-                (convRawTransferAmount * cryptoProcessingFeeRate) / EXP_SCALE;
-            const processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
-                collateralToken.symbol,
-                collateralToken.decimals,
-                processingFeeCryptoAmount
+        if (newDepositAmount !== 0n) {
+            const processingFee = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
+                creditLine.economicalParameters,
+                convRawTransferAmount
             );
+
             // Increase the debt position by the amount of processing fee
-            const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
-            const newFeeAccumulatedAmount =
-                creditLine.feeAccumulatedFiatAmount + processingFeeFiatAmount;
-            await this.creditLineService.updateDebtAmountAndFeeAccumulatedById(
+            await this.creditLineService.increaseDebtAmountAndFeeAccumulatedById(
                 creditLine.id,
-                newDebtAmount,
-                newFeeAccumulatedAmount
+                processingFee.feeFiat,
+                processingFee.feeFiat
             );
         }
 

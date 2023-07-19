@@ -10,6 +10,7 @@ export { entities, migrations };
 
 dotenv.config();
 
+// ts-unused-exports:disable-next-line
 export default new DataSource({
     type: "postgres",
     host: process.env.DB_HOST!,

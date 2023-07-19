@@ -44,19 +44,6 @@ export class CreditLineService {
         return await this.getCreditLineById(creditLineId);
     }
 
-    async updateDebtAmountAndFeeAccumulatedById(
-        creditLineId: number,
-        newDebtAmount: bigint,
-        newFeeAccumulatedAmount: bigint
-    ): Promise<UpdateResult> {
-        return this.creditLineRepo
-            .createQueryBuilder()
-            .update()
-            .set({ debtAmount: newDebtAmount, feeAccumulatedFiatAmount: newFeeAccumulatedAmount })
-            .where("id = :creditLineId", { creditLineId })
-            .execute();
-    }
-
     async increaseAccumulatedFeeAmountById(
         creditLineId: number,
         addAmount: bigint
@@ -71,6 +58,23 @@ export class CreditLineService {
         return this.getCreditLineById(creditLineId);
     }
 
+    // if addFeeAccumulatedAmount === undefined, then addFeeAccumulatedAmount = addDebtAmount
+    async increaseDebtAmountAndFeeAccumulatedById(
+        creditLineId: number,
+        addDebtAmount: bigint,
+        addFeeAccumulatedAmount: bigint
+    ): Promise<UpdateResult> {
+        return this.creditLineRepo
+            .createQueryBuilder()
+            .update()
+            .set({
+                debtAmount: () => `debtAmount + ${addDebtAmount}`,
+                feeAccumulatedFiatAmount: () => `feeAccumulatedFiatAmount + ${addFeeAccumulatedAmount}`,
+            })
+            .where("id = :creditLineId", { creditLineId })
+            .execute();
+    }
+
     async decreaseDebtAmountById(creditLineId: number, subAmount: bigint) {
         await this.creditLineRepo
             .createQueryBuilder()
@@ -82,11 +86,11 @@ export class CreditLineService {
         return this.getCreditLineById(creditLineId);
     }
 
-    async updateSupplyAmountById(creditLineId: number, newSupplyAmount: bigint) {
+    async updateDepositAmountById(creditLineId: number, newSupplyAmount: bigint) {
         return this.creditLineRepo
             .createQueryBuilder()
             .update()
-            .set({ rawCollateralAmount: newSupplyAmount })
+            .set({ rawDepositAmount: newSupplyAmount })
             .where("id = :creditLineId", { creditLineId })
             .execute();
     }

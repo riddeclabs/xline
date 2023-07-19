@@ -18,7 +18,7 @@ export enum LineActions {
     REPAY = "REPAY",
 }
 
-export type ManageCreditLineSessionData = ExtendedSessionData & {
+type ManageCreditLineSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
         creditLineId?: string;
     };

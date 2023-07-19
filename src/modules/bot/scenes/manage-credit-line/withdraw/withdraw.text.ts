@@ -1,10 +1,9 @@
 import { bigintToFormattedPercent, escapeSpecialCharacters, formatUnits } from "../../../../../common";
-import { floatToMd, truncateDecimalsToStr } from "../../../../../common/text-formatter";
+import { truncateDecimalsToStr } from "../../../../../common/text-formatter";
 import { CollateralCurrency } from "../../../../../database/entities";
 import { SUPPORTED_TOKENS } from "../../../constants";
-import { WithdrawRequestDetails } from "../../../bot-manager.service";
 import { BasicSourceText } from "../../common/basic-source.text";
-import { XLineRequestMsgData } from "../../common/types";
+import { CreditLineStateMsgData, XLineRequestMsgData } from "../../common/types";
 
 export class WithdrawTextSource extends BasicSourceText {
     static getExistingWithdrawPendingRequestText(data: XLineRequestMsgData) {
@@ -157,35 +156,29 @@ export class WithdrawTextSource extends BasicSourceText {
     }
 
     static getSignWithdrawApplicationText(
-        withdrawRequestDetails: WithdrawRequestDetails,
+        stateBefore: CreditLineStateMsgData,
+        stateAfter: CreditLineStateMsgData,
+        withdrawAmount: string,
         addressToWithdraw: string,
-        withdrawAmount: bigint
+        processingFee: number
     ) {
-        const colSymbol = withdrawRequestDetails.currencies.collateralCurrency.symbol;
-        const debtSymbol = withdrawRequestDetails.currencies.debtCurrency.symbol;
-
-        const { cs, ns, mdProcessingFeeFiatAmount, mdProcessingFeeCryptoAmount, mdWithdrawAmount } =
-            this.prepareSignApplicationData(withdrawRequestDetails, withdrawAmount);
+        const creditLineStateTextBefore = this.getCreditLineStateText(stateBefore, false);
+        const creditLineStateTextAfter = this.getCreditLineStateText(stateAfter, false);
+        const processingFeeText = this.getFiatProcessingFeeText(processingFee, stateBefore.debtCurrency);
         return escapeSpecialCharacters(
             "📜 *Withdraw request details*\n" +
                 "\n" +
-                `💱 You have requested *${mdWithdrawAmount} ${colSymbol}* to withdraw\n` +
+                `💱 You have requested *${withdrawAmount} ${stateBefore.collateralCurrency}* to withdraw\n` +
                 "\n" +
                 "📉 *Current state:*\n" +
-                `Deposit amount: ${cs.mdRawDepositAmount} ${colSymbol}\n` +
-                `Debt amount:      ${cs.mdDebtAmount} ${debtSymbol}\n` +
-                `Utilization rate:    ${cs.mdUtilizationPercent} %\n` +
-                `Liquidation risk:  ${cs.mdLiquidationRisk}\n` +
+                creditLineStateTextBefore +
                 "\n" +
                 "📈 *New state:*\n" +
-                `Deposit amount: ${ns.mdRawDepositAmount} ${colSymbol}\n` +
-                `Debt amount:      ${ns.mdDebtAmount} ${debtSymbol}\n` +
-                `Utilization rate:    ${ns.mdUtilizationPercent} %\n` +
-                `Liquidation risk:  ${ns.mdLiquidationRisk}\n` +
+                creditLineStateTextAfter +
                 "\n" +
-                `💸 Processing fee: ${mdProcessingFeeCryptoAmount} ${colSymbol} ( ${mdProcessingFeeFiatAmount} ${debtSymbol} )\n` +
+                processingFeeText +
                 "\n" +
-                "✅ *After you agree to our offer, we will send requested collateral amount to your address:*\n" +
+                `✅ *After you agree to our offer, we will send requested ${stateBefore.collateralCurrency} amount to your address:*\n` +
                 `\` ${addressToWithdraw} \``
         );
     }
@@ -209,56 +202,6 @@ export class WithdrawTextSource extends BasicSourceText {
                 "We have received confirmation that you've rejected the request to withdrawal.\n" +
                 "If you have any questions or need further assistance, please contact our customer support team.\n"
         );
-    }
-
-    private static prepareSignApplicationData(
-        withdrawRequestDetails: WithdrawRequestDetails,
-        withdrawAmount: bigint
-    ) {
-        const collateralCurrency = withdrawRequestDetails.currencies.collateralCurrency;
-        const debtCurrency = withdrawRequestDetails.currencies.debtCurrency;
-        const currentState = withdrawRequestDetails.currentState;
-        const newState = withdrawRequestDetails.newState;
-        return {
-            cs: {
-                mdRawDepositAmount: truncateDecimalsToStr(
-                    formatUnits(currentState.rawDepositAmount, collateralCurrency.decimals),
-                    4
-                ),
-                mdDebtAmount: truncateDecimalsToStr(
-                    formatUnits(currentState.debtAmount, debtCurrency.decimals)
-                ),
-                mdUtilizationPercent: bigintToFormattedPercent(currentState.utilizationRate),
-                mdLiquidationRisk: this.getCurrentLiquidationRisk(
-                    currentState.utilizationRate,
-                    withdrawRequestDetails.collateralFactor
-                ),
-            },
-            ns: {
-                mdRawDepositAmount: truncateDecimalsToStr(
-                    formatUnits(newState.rawDepositAmount, collateralCurrency.decimals),
-                    4
-                ),
-                mdDebtAmount: truncateDecimalsToStr(
-                    formatUnits(newState.debtAmount, debtCurrency.decimals)
-                ),
-                mdUtilizationPercent: bigintToFormattedPercent(newState.utilizationRate),
-                mdLiquidationRisk: this.getCurrentLiquidationRisk(
-                    newState.utilizationRate,
-                    withdrawRequestDetails.collateralFactor
-                ),
-            },
-            mdProcessingFeeCryptoAmount: floatToMd(
-                formatUnits(
-                    withdrawRequestDetails.processingFeeCryptoAmount,
-                    collateralCurrency.decimals
-                )
-            ),
-            mdProcessingFeeFiatAmount: truncateDecimalsToStr(
-                formatUnits(withdrawRequestDetails.processingFeeFiatAmount, debtCurrency.decimals)
-            ),
-            mdWithdrawAmount: formatUnits(withdrawAmount, collateralCurrency.decimals),
-        };
     }
 
     static getIncorrectInputStructText(userInput: string, collateralCurrency: CollateralCurrency) {

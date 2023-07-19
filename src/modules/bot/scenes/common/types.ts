@@ -15,9 +15,9 @@ export interface XLineRequestMsgData {
 }
 
 export interface CreditLineStateMsgData {
-    supplyAmountCrypto: number;
-    supplyAmountFiat: number;
-    cryptoCurrency: string;
+    depositAmountCrypto: number;
+    depositAmountFiat: number;
+    collateralCurrency: string;
     debtCurrency: string;
     debtAmount: number;
     utilizationRatePercent: string;
@@ -44,6 +44,19 @@ export interface CryptoTxMsgData {
     currency: string;
     created: string;
     updated: string;
+}
+
+export interface RatesMsgData {
+    collateralCurrency: string;
+    debtCurrency: string;
+    apr: string;
+    collateralFactor: string;
+    liquidationFactor: string;
+    liquidationFee: string;
+    minCryptoProcessingFee: number;
+    minFiatProcessingFee: number;
+    fiatProcessingFeePercent: string;
+    cryptoProcessingFeePercent: string;
 }
 
 export type XLineRequestsTypes = DepositRequest | WithdrawRequest | BorrowRequest | RepayRequest;

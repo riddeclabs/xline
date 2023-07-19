@@ -2,7 +2,7 @@ import { Injectable, UseFilters } from "@nestjs/common";
 import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { BotCommonService } from "../../../bot-common.service";
 import { CustomExceptionFilter } from "../../../exception-filter";
-import { bigintToFormattedPercent, formatUnitsNumber, parseUnits } from "src/common";
+import { bigintToFormattedPercent, formatUnits, formatUnitsNumber, parseUnits } from "src/common";
 import { Markup } from "telegraf";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { SignApplicationOptions } from "../../../constants";
@@ -75,7 +75,7 @@ export class BorrowActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
-        if (creditLine.rawCollateralAmount <= 0n) {
+        if (creditLine.rawDepositAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -114,10 +114,16 @@ export class BorrowActionWizard {
         const collateralFactor = bigintToFormattedPercent(
             creditLine.economicalParameters.collateralFactor
         );
+        const minFee = formatUnits(creditLine.economicalParameters.minFiatProcessingFee);
         const fee = bigintToFormattedPercent(creditLine.economicalParameters.fiatProcessingFee);
 
         const msg = (await ctx.editMessageText(
-            BorrowTextSource.getBorrowTermsText(collateralFactor, fee, creditLine.debtCurrency.symbol),
+            BorrowTextSource.getBorrowTermsText(
+                collateralFactor,
+                minFee,
+                fee,
+                creditLine.debtCurrency.symbol
+            ),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -199,7 +205,7 @@ export class BorrowActionWizard {
             2
         );
         stateAfter.utilizationRatePercent = bigintToFormattedPercent(
-            parseUnits(stateAfter.debtAmount / stateAfter.supplyAmountFiat)
+            parseUnits(stateAfter.debtAmount / stateAfter.depositAmountFiat)
         );
 
         const requisites: Requisites = {

@@ -17,7 +17,7 @@ export enum WithdrawCallbacks {
     BACK_TO_MAIN_MENU = "back",
 }
 
-export type WithdrawSessionData = ExtendedSessionData & {
+type WithdrawSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
         addressToWithdraw?: string;
         requestedWithdrawAmountRaw?: string;

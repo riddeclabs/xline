@@ -23,6 +23,7 @@ import { validateIban, validateName } from "src/common/input-validation";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { escapeSpecialCharacters } from "src/common";
 import { ManageCreditLineWizard } from "../manage-credit-line/manage-credit-line.scene";
+import { getRatesMsgData } from "../common/utils";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -187,7 +188,7 @@ export class NewCreditRequestWizard {
         const sceneData: SignApplicationSceneData = {
             colToken: csss.collateralCurrency!,
             debtToken: csss.debtCurrency!,
-            supplyAmount: csss.reqDepositAmountRaw!,
+            depositAmount: csss.reqDepositAmountRaw!,
             riskStrategy: csss.riskStrategyLevel!,
             userName: userName!,
             userIban: userIban!,
@@ -197,9 +198,19 @@ export class NewCreditRequestWizard {
             throw new Error("Incorrect scene state");
         }
 
-        const { economicalParameters, openCreditLineData } = await this.botManager.getNewCreditDetails(
-            sceneData
+        const economicalParameters = await this.botManager.getFreshEconomicalParams(
+            sceneData.colToken.id,
+            sceneData.debtToken.id
         );
+
+        const openCreditLineData = await this.botManager.calculateOpenCreditLineData(
+            sceneData.colToken.symbol,
+            sceneData.colToken.decimals,
+            parseUnits(sceneData.depositAmount, sceneData.colToken.decimals),
+            parseUnits(sceneData.riskStrategy),
+            economicalParameters
+        );
+
         csss.economicalParamsId = economicalParameters.id;
 
         const buttonText = NewCreditRequestText.getSignApplicationButtonMsg();
@@ -218,9 +229,19 @@ export class NewCreditRequestWizard {
             },
         ];
 
+        const ratesMsgData = getRatesMsgData(economicalParameters);
+
         if (!viewDetails) {
+            const requisites = {
+                iban: sceneData.userIban,
+                accountName: sceneData.userName,
+            };
             await ctx.editMessageText(
-                NewCreditRequestText.getSignApplicationMainMsg(economicalParameters, sceneData),
+                NewCreditRequestText.getSignApplicationMainMsg(
+                    ratesMsgData,
+                    Number(sceneData.riskStrategy),
+                    requisites
+                ),
                 { parse_mode: "MarkdownV2" }
             );
 
@@ -238,7 +259,8 @@ export class NewCreditRequestWizard {
             const detailsText = NewCreditRequestText.getSignApplicationDetailMsg(
                 economicalParameters,
                 openCreditLineData,
-                sceneData
+                sceneData,
+                ratesMsgData
             );
 
             // Last sent message should be edited.

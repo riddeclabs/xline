@@ -4,6 +4,7 @@ import {
     CreditLineStateMsgData,
     CryptoTxMsgData,
     FiatTxMsgData,
+    RatesMsgData,
     XLineRequestMsgData,
     XLineRequestsTypes,
     isBorrowRequest,
@@ -16,10 +17,11 @@ import {
     CollateralCurrency,
     CryptoTransaction,
     DebtCurrency,
+    EconomicalParameters,
     FiatTransaction,
 } from "src/database/entities";
 import { truncateDecimals } from "src/common/text-formatter";
-export function getFiatTxMsgData(tx: FiatTransaction, currency: DebtCurrency): FiatTxMsgData {
+function getFiatTxMsgData(tx: FiatTransaction, currency: DebtCurrency): FiatTxMsgData {
     return {
         ibanFrom: tx.ibanFrom,
         ibanTo: tx.ibanTo,
@@ -33,10 +35,7 @@ export function getFiatTxMsgData(tx: FiatTransaction, currency: DebtCurrency): F
     };
 }
 
-export function getCryptoTxMsgData(
-    tx: CryptoTransaction,
-    currency: CollateralCurrency
-): CryptoTxMsgData {
+function getCryptoTxMsgData(tx: CryptoTransaction, currency: CollateralCurrency): CryptoTxMsgData {
     return {
         txHash: tx.txHash,
         amount: formatUnitsNumber(tx.rawTransferAmount, currency.decimals),
@@ -131,12 +130,9 @@ export function getTxDataForRequest(request: XLineRequestsTypes): FiatTxMsgData[
 
 export function getCreditLineStateMsgData(clwe: CreditLineWithExtras): CreditLineStateMsgData {
     return {
-        supplyAmountCrypto: formatUnitsNumber(
-            clwe.rawCollateralAmount,
-            clwe.collateralCurrency.decimals
-        ),
-        supplyAmountFiat: truncateDecimals(formatUnitsNumber(clwe.fiatSupplyAmount), 2),
-        cryptoCurrency: clwe.collateralCurrency.symbol,
+        depositAmountCrypto: formatUnitsNumber(clwe.rawDepositAmount, clwe.collateralCurrency.decimals),
+        depositAmountFiat: truncateDecimals(formatUnitsNumber(clwe.fiatDepositAmount), 2),
+        collateralCurrency: clwe.collateralCurrency.symbol,
         debtCurrency: clwe.debtCurrency.symbol,
         debtAmount: truncateDecimals(formatUnitsNumber(clwe.debtAmount), 2),
         utilizationRatePercent: bigintToFormattedPercent(clwe.utilizationRate),
@@ -146,5 +142,20 @@ export function getCreditLineStateMsgData(clwe: CreditLineWithExtras): CreditLin
             clwe.economicalParameters.collateralFactor
         ),
         hasBeenLiquidated: clwe.isLiquidated ? "Yes" : "No",
+    };
+}
+
+export function getRatesMsgData(ep: EconomicalParameters): RatesMsgData {
+    return {
+        collateralCurrency: ep.collateralCurrency.symbol,
+        debtCurrency: ep.debtCurrency.symbol,
+        apr: bigintToFormattedPercent(ep.apr),
+        collateralFactor: bigintToFormattedPercent(ep.collateralFactor),
+        liquidationFactor: bigintToFormattedPercent(ep.liquidationFactor),
+        liquidationFee: bigintToFormattedPercent(ep.liquidationFee),
+        minCryptoProcessingFee: formatUnitsNumber(ep.minCryptoProcessingFeeFiat),
+        minFiatProcessingFee: formatUnitsNumber(ep.minFiatProcessingFee),
+        cryptoProcessingFeePercent: bigintToFormattedPercent(ep.cryptoProcessingFee),
+        fiatProcessingFeePercent: bigintToFormattedPercent(ep.fiatProcessingFee),
     };
 }

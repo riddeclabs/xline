@@ -41,11 +41,6 @@ export enum BorrowRequestColumns {
     updatedAt = "DESC",
 }
 
-export enum ModifyReserveDirection {
-    increase = "increase",
-    reduce = "reduce",
-}
-
 interface CreditLineStateDataRaw {
     depositAmountFiat: bigint;
     collateralAmountFiat: bigint;
@@ -457,7 +452,7 @@ export class BackOfficeService {
         const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount
+            creditLine.rawDepositAmount
         );
         const utilizationRate = this.riskEngineService.calculateUtilizationRate(
             fiatSupplyAmount,
@@ -478,7 +473,7 @@ export class BackOfficeService {
         };
 
         const borrowWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLine.id,
+            creditLine.economicalParameters,
             borrowRequest.borrowFiatAmount
         );
         const debtAfter = stateBefore.debtAmount + borrowWithFee;

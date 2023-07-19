@@ -835,7 +835,7 @@ export class BackOfficeController {
                     const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
                         creditLine.collateralCurrency.symbol,
                         creditLine.collateralCurrency.decimals,
-                        creditLine.rawCollateralAmount
+                        creditLine.rawDepositAmount
                     );
                     const utilizationRate = this.riskEngineService.calculateUtilizationRate(
                         fiatSupplyAmount,
@@ -849,7 +849,7 @@ export class BackOfficeController {
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
                             rawSupplyAmount: formatUnits(
-                                creditLine.rawCollateralAmount,
+                                creditLine.rawDepositAmount,
                                 creditLine.collateralCurrency.decimals
                             ), // raw collateral amount, use collateral decimals to convert to float
                             usdSupplyAmount: truncateDecimalsToStr(

@@ -3,7 +3,6 @@ import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import { callbackQuery } from "telegraf/filters";
 import * as filters from "telegraf/filters";
-import { ExtendedWizardContext } from "../../../bot.types";
 import { CustomExceptionFilter } from "../../../exception-filter";
 import { BotCommonService } from "../../../bot-common.service";
 import { BotManagerService } from "../../../bot-manager.service";
@@ -12,18 +11,7 @@ import { DepositTextSource } from "./deposit.text";
 import { InlineKeyboardButton } from "typegram/markup";
 import { MainScene } from "../../main.scene";
 import { Message } from "typegram";
-
-export enum DepositSteps {
-    VERIFY_PENDING_REQUESTS,
-    SIGN_APPLICATION,
-}
-
-export enum DepositCallbacks {
-    SIGN_APPLICATION = "choseCreditLine",
-    BACK_TO_MAIN_MENU = "back",
-}
-
-export type DepositContext = ExtendedWizardContext;
+import { DepositSteps, DepositContext, DepositCallbacks } from "./deposit.types";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)

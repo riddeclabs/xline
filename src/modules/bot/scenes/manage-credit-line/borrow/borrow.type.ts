@@ -19,7 +19,7 @@ export enum BorrowReqCallbacks {
     BACK_TO_MAIN_MENU = "back",
 }
 
-export type BorrowActionSessionData = ExtendedSessionData & {
+type BorrowActionSessionData = ExtendedSessionData & {
     state: DefaultSessionState & {
         borrowAmount?: string;
     };

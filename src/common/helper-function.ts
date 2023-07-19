@@ -82,7 +82,7 @@ export function createUserGatewayId(chatId: number, currencyId: number) {
 export function xor(a: any, b: any): boolean {
     return !!a !== !!b;
 }
-
+/*
 export type BigintPropertiesToString<T> = {
     [Property in keyof T]: T[Property] extends bigint ? string : T[Property];
 };
@@ -98,3 +98,4 @@ export function parseBigintProperties<T extends object>(obj: T): BigintPropertie
     });
     return result;
 }
+*/

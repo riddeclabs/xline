@@ -4,6 +4,7 @@ import {
     CreditLineStateMsgData,
     CryptoTxMsgData,
     FiatTxMsgData,
+    RatesMsgData,
     Requisites,
     XLineRequestMsgData,
 } from "./types";
@@ -48,7 +49,7 @@ export abstract class BasicSourceText {
             ? `\n🎯 *Max allowed amount to borrow:* ${data.maxAllowedBorrowAmount} ${data.debtCurrency}\n`
             : "";
         return (
-            `Deposit amount: ${data.supplyAmountCrypto} ${data.cryptoCurrency} / ${data.supplyAmountFiat} ${data.debtCurrency}\n` +
+            `Deposit amount: ${data.depositAmountCrypto} ${data.collateralCurrency} / ${data.depositAmountFiat} ${data.debtCurrency}\n` +
             `Debt amount:       ${data.debtAmount} ${data.debtCurrency}\n` +
             `Utilization rate:    ${data.utilizationRatePercent}%\n` +
             `Liquidation risk:   ${data.liquidationRisk}\n` +
@@ -181,6 +182,17 @@ export abstract class BasicSourceText {
             `*Amount:* ${data.amount} ${data.currency}\n\n` +
             `Created: ${data.created}\n` +
             `Updated: ${data.updated}\n\n`
+        );
+    }
+
+    static getRatesMsgText(data: RatesMsgData): string {
+        return (
+            `APR:                              ${data.apr}%\n` +
+            `Collateral Factor:        ${data.collateralFactor}%\n` +
+            `Liquidation Factor:     ${data.liquidationFactor}%\n` +
+            `Liquidation Fee:          ${data.liquidationFee}%\n` +
+            `${data.debtCurrency} Processing Fee:  ${data.minFiatProcessingFee} ${data.debtCurrency} + ${data.fiatProcessingFeePercent}%\n` +
+            `${data.collateralCurrency} Processing Fee:   ${data.minCryptoProcessingFee} ${data.debtCurrency} + ${data.cryptoProcessingFeePercent}%\n`
         );
     }
 }

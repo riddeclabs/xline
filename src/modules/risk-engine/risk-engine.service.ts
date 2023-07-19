@@ -4,14 +4,9 @@ import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { EXP_SCALE, HOURS_IN_YEAR } from "../../common/constants";
-import { OpenCreditLineData } from "./risk-engine.types";
+import { CryptoFee, OpenCreditLineData } from "./risk-engine.types";
 import { parseUnits } from "../../common";
 import { Cron } from "@nestjs/schedule";
-
-export interface CryptoFee {
-    feeCrypto: bigint;
-    feeFiat: bigint;
-}
 
 @Injectable()
 export class RiskEngineService {
@@ -21,99 +16,74 @@ export class RiskEngineService {
         private priceOracleService: PriceOracleService
     ) {}
 
+    // scaledRawDepositAmount - token Amount must be scaled by 1e18 to get correct USD value
     async calculateOpenCreditLineData(
         collateralTokenSymbol: string,
         collateralTokenDecimals: number,
-        scaledRawSupplyAmount: bigint,
+        scaledRawDepositAmount: bigint,
         riskStrategy: bigint,
         economicalParams: EconomicalParameters
     ): Promise<OpenCreditLineData> {
-        const supplyProcFee = economicalParams.fiatProcessingFee;
-        const borrowProcFee = economicalParams.cryptoProcessingFee;
-
-        const userPortfolio = await this.calculateUserPortfolio(
+        const depositUsd = await this.priceOracleService.convertCryptoToUsd(
             collateralTokenSymbol,
             collateralTokenDecimals,
-            scaledRawSupplyAmount,
-            economicalParams.collateralFactor,
-            riskStrategy
+            scaledRawDepositAmount
         );
+        const borrowUsd = (depositUsd * riskStrategy) / EXP_SCALE;
+        const collateralAmount = (depositUsd * economicalParams.collateralFactor) / EXP_SCALE;
+
         const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(collateralTokenSymbol);
 
         const additionalDecimals = 18 - collateralTokenDecimals;
 
         const collateralLimitPrice =
-            (userPortfolio.borrowUsd * EXP_SCALE) /
-            (scaledRawSupplyAmount * 10n ** BigInt(additionalDecimals));
+            (borrowUsd * EXP_SCALE) / (scaledRawDepositAmount * 10n ** BigInt(additionalDecimals));
 
-        const supplyProcFeeUsd = (userPortfolio.supplyUsd * supplyProcFee) / EXP_SCALE;
-        const borrowProcFeeUsd = (userPortfolio.borrowUsd * borrowProcFee) / EXP_SCALE;
+        const depositProcFeeUsd = (
+            await this.calculateCryptoProcessingFeeAmount(economicalParams, scaledRawDepositAmount)
+        ).feeFiat;
+        const borrowProcFeeUsd = this.calculateFiatProcessingFeeAmount(economicalParams, borrowUsd);
 
         return {
-            expSupplyAmountUsd: userPortfolio.supplyUsd,
-            expBorrowAmountUsd: userPortfolio.borrowUsd,
-            expCollateralAmountUsd: userPortfolio.collateralAmount,
+            expDepositAmountUsd: depositUsd,
+            expBorrowAmountUsd: borrowUsd,
+            expCollateralAmountUsd: collateralAmount,
             collateralLimitPrice,
             currentPrice: parseUnits(currentPrice),
-            supplyProcFeeUsd,
+            depositProcFeeUsd,
             borrowProcFeeUsd,
-            totalProcFeeUsd: supplyProcFeeUsd + borrowProcFee,
-        };
-    }
-
-    // scaledRawSupplyAmount - token Amount must be scaled by 1e18 to get correct USD value
-    private async calculateUserPortfolio(
-        collateralTokenSymbol: string,
-        collateralTokenDecimals: number,
-        scaledRawSupplyAmount: bigint,
-        collateralFactor: bigint,
-        riskStrategyRate: bigint
-    ) {
-        const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
-            collateralTokenSymbol,
-            collateralTokenDecimals,
-            scaledRawSupplyAmount
-        );
-        const borrowUsd = (supplyUsd * riskStrategyRate) / EXP_SCALE;
-        const collateralAmount = (supplyUsd * collateralFactor) / EXP_SCALE;
-
-        return {
-            supplyUsd,
-            borrowUsd,
-            // FIXME: add similar name collateralAmountUsd or change borrowAmountUsd
-            collateralAmount,
+            totalProcFeeUsd: depositProcFeeUsd + borrowProcFeeUsd,
         };
     }
 
     async calculateInitialBorrowAmount(
         collateralTokenSymbol: string,
         collateralTokenDecimals: number,
-        scaledRawSupplyAmount: bigint,
+        scaledRawDepositAmount: bigint,
         riskStrategyRate: bigint
     ) {
-        const supplyUsd = await this.priceOracleService.convertCryptoToUsd(
+        const depositUsd = await this.priceOracleService.convertCryptoToUsd(
             collateralTokenSymbol,
             collateralTokenDecimals,
-            scaledRawSupplyAmount
+            scaledRawDepositAmount
         );
-        return (supplyUsd * riskStrategyRate) / EXP_SCALE;
+        return (depositUsd * riskStrategyRate) / EXP_SCALE;
     }
 
-    async calculateFiatProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<bigint> {
-        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
-            creditLineId
-        );
+    calculateFiatProcessingFeeAmount(
+        economicalParameters: EconomicalParameters,
+        amount: bigint
+    ): bigint {
         return (
             economicalParameters.minFiatProcessingFee +
             (amount * economicalParameters.fiatProcessingFee) / EXP_SCALE
         );
     }
-    
-    async calculateCryptoProcessingFeeAmount(creditLineId: number, amount: bigint): Promise<CryptoFee> {
-        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
-            creditLineId
-        );
 
+    async calculateCryptoProcessingFeeAmount(
+        economicalParameters: EconomicalParameters,
+        amount: bigint
+    ): Promise<CryptoFee> {
         const minFeeFiat = economicalParameters.minCryptoProcessingFeeFiat;
 
         // TODO: in case we need to support not only USD needs to be refactored
@@ -130,16 +100,19 @@ export class RiskEngineService {
             economicalParameters.collateralCurrency.symbol,
             economicalParameters.collateralCurrency.decimals,
             feeCrypto
-            );
+        );
 
-        return {            
+        return {
             feeCrypto: minFeeCrypto + feeCrypto,
             feeFiat: minFeeFiat + cryptoFeeUsd,
         };
     }
 
-    async calculateBorrowAmountWithFees(creditLineId: number, borrowAmount: bigint) {
-        const fee = await this.calculateFiatProcessingFeeAmount(creditLineId, borrowAmount);
+    calculateBorrowAmountWithFees(
+        economicalParameters: EconomicalParameters,
+        borrowAmount: bigint
+    ): bigint {
+        const fee = this.calculateFiatProcessingFeeAmount(economicalParameters, borrowAmount);
         return borrowAmount + fee;
     }
 
@@ -228,7 +201,7 @@ export class RiskEngineService {
         collateralOrLiquidationFactor: bigint
     ): Promise<boolean> {
         const collateralAmount =
-            (creditLine.rawCollateralAmount * collateralOrLiquidationFactor) / EXP_SCALE;
+            (creditLine.rawDepositAmount * collateralOrLiquidationFactor) / EXP_SCALE;
 
         const usdCollateralAmount = await this.priceOracleService.convertCryptoToUsd(
             collateralSymbol,
@@ -291,21 +264,64 @@ export class RiskEngineService {
         creditLine: CreditLine,
         externalScaledPrice?: bigint
     ): Promise<bigint> {
-        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+        const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount,
+            creditLine.rawDepositAmount,
             externalScaledPrice
         );
 
         const fiatCollateralAmount =
-            (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
+            (fiatDepositAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
         const freeLiquidityFiatAmount = fiatCollateralAmount - creditLine.debtAmount;
-        const processingFee = await this.calculateFiatProcessingFeeAmount(
-            creditLine.id,
+        const processingFee = this.calculateFiatProcessingFeeAmount(
+            creditLine.economicalParameters,
             freeLiquidityFiatAmount
         );
 
         return freeLiquidityFiatAmount - processingFee;
+    }
+
+    async calculateMaxAllowedToWithdraw(
+        creditLine: CreditLine,
+        scaledTokenPrice?: bigint
+    ): Promise<bigint> {
+        // In case debt amount is zero, we do not apply processing fee and allow to withdraw entire deposit amount
+        if (creditLine.debtAmount === 0n) {
+            return creditLine.rawDepositAmount;
+        }
+
+        // Calculate the diff between max amount tha user can borrow and actual debt amount
+        const depositFiatAmount = await this.priceOracleService.convertCryptoToUsd(
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            creditLine.rawDepositAmount,
+            scaledTokenPrice
+        );
+
+        const maxAllowedDebtAmount =
+            (depositFiatAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
+
+        const freeLiquidityFiat = maxAllowedDebtAmount - creditLine.debtAmount;
+
+        if (freeLiquidityFiat <= 0) {
+            return 0n;
+        }
+
+        const freeLiquidityCrypto = await this.priceOracleService.convertUsdToCrypto(
+            creditLine.collateralCurrency.symbol,
+            creditLine.collateralCurrency.decimals,
+            freeLiquidityFiat,
+            scaledTokenPrice
+        );
+
+        const processingFeeCrypto = await this.calculateCryptoProcessingFeeAmount(
+            creditLine.economicalParameters,
+            freeLiquidityCrypto
+        );
+
+        return freeLiquidityCrypto > processingFeeCrypto.feeCrypto
+            ? freeLiquidityCrypto - processingFeeCrypto.feeCrypto
+            : 0n;
     }
 }

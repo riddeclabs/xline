@@ -8,11 +8,13 @@ import { BotCommonService } from "../bot-common.service";
 import { buildTypeExp } from "../helpers";
 import { ExtendedSessionData, ExtendedWizardContext } from "../bot.types";
 import { CustomExceptionFilter } from "../exception-filter";
-import { bigintToFormattedPercent, escapeSpecialCharacters } from "src/common";
+import { escapeSpecialCharacters } from "src/common";
 import { ConfigService } from "@nestjs/config";
 import { ManagePortfolioWizard } from "./manage-portfolio.scene";
 import { BotManagerService } from "../bot-manager.service";
 import * as filters from "telegraf/filters";
+import { getRatesMsgData } from "./common/utils";
+import { BasicSourceText } from "./common/basic-source.text";
 
 type GotoVariant = "viewRequest" | "managePortfolio";
 
@@ -144,14 +146,10 @@ export class MainScene {
                         cc.id,
                         dc.id
                     );
-                // prettier-ignore
-                text += `🪙 ${cc.symbol} / ${dc.symbol}\n`
-                + `APR:                              ${bigintToFormattedPercent(economicalParameters.apr)}%\n`
-                + `Collateral Factor:        ${bigintToFormattedPercent(economicalParameters.collateralFactor)}%\n`
-                + `Liquidation Factor:     ${bigintToFormattedPercent(economicalParameters.liquidationFactor)}%\n`
-                + `Liquidation Fee:          ${bigintToFormattedPercent(economicalParameters.liquidationFee)}%\n`
-                + `${dc.symbol} Processing Fee:  ${bigintToFormattedPercent(economicalParameters.fiatProcessingFee)}%\n`
-                + `${cc.symbol} Processing Fee:  ${bigintToFormattedPercent(economicalParameters.cryptoProcessingFee)}%\n\n`;
+                const data = getRatesMsgData(economicalParameters);
+                const rateMsgTxt = BasicSourceText.getRatesMsgText(data);
+
+                text += `🪙 ${cc.symbol} / ${dc.symbol}\n ${rateMsgTxt}\n`;
             }
         }
 

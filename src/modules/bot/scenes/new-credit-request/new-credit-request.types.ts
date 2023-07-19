@@ -48,7 +48,7 @@ export type NewCreditRequestContext = ExtendedWizardContext<NewCreditRequestSess
 export interface SignApplicationSceneData {
     colToken: CollateralCurrency;
     debtToken: DebtCurrency;
-    supplyAmount: string;
+    depositAmount: string;
     riskStrategy: string;
     userName: string;
     userIban: string;
