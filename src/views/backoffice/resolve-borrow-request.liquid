@@ -2,7 +2,11 @@
 {% block content %}
   <div class="success-mess" id="success">Successfully!</div>
   <div class="error-mess" id="error">Something went wrong!</div>
-  <div class="title-page">Borrow request resolve page</div>
+  <div class="title-page">Borrow request resolve page.</div>
+  <div class="breadcrumbs">
+    <a href="/backoffice/borrow-request">borrow requests</a>
+    / ...
+  </div>
   {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
     <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
@@ -205,6 +209,11 @@
     }
 
 
+    const customerId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-3)[0];
     rejectBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -220,7 +229,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"
@@ -260,7 +269,7 @@
             success.style.right = "30px"
             setTimeout(() => {
               success.style.right = "-700px";
-              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
             }, 3000)
           } else {
             error.style.right = "30px"
@@ -289,7 +298,7 @@
             success.style.right = "30px"
             setTimeout(() => {
               success.style.right = "-700px";
-              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
             }, 2000)
           } else {
             error.style.right = "30px"

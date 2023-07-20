@@ -1,6 +1,11 @@
 {% layout 'backoffice/default-layout' %}
 {% block content %}
 <div class="title-page">{{ resultPageInfo.mainInfo.type }} request #{{ resultPageInfo.mainInfo.id }}</div>
+<div class="breadcrumbs">
+  <a href="/backoffice/customers">customers</a> / 
+  <a href="/backoffice/customers-credit-line/{{resultPageInfo.mainInfo.customerId}}">credit lines</a> / 
+  <a href="/backoffice/customers/creditline-user-list/{{resultPageInfo.mainInfo.customerId}}/{{resultPageInfo.mainInfo.creditLineId}}">requests</a> / ...
+</div>
 <div class="d-flex">
   <div style="color: #fff; margin-right: 80px;" class="pb-3">
     <h1 class='pb-2 text-white fs-4'>General info:</h1>
@@ -131,7 +136,7 @@
       <tbody>
         {% unless resultPageInfo.rowTable.size > 0 %}
           <tr>
-            <td colspan="6">Unfortunately, we did not find any client.</td>
+            <td colspan="6">Currently no data.</td>
           </tr>
         {% endunless %}
           {% for transaction in resultPageInfo.rowTable %}
@@ -211,7 +216,7 @@
       <tbody>
         {% unless resultPageInfo.rowTable.size > 0 %}
           <tr>
-            <td colspan="8">Unfortunately, we did not find any client.</td>
+            <td colspan="8">Currently no data.</td>
           </tr>
         {% endunless %}
           {% for transaction in resultPageInfo.rowTable %}
