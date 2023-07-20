@@ -526,7 +526,7 @@ export class BackOfficeService {
         return this.businessRequisite.createQueryBuilder("biz").getCount();
     }
 
-    getBusinessPeymentRequisites() {
+    getBusinessPaymentRequisites() {
         return this.businessRequisite.createQueryBuilder("biz").getMany();
     }
 }

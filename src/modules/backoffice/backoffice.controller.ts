@@ -427,7 +427,7 @@ export class BackOfficeController {
             symbol: creditLine.debtCurrency.symbol,
         };
 
-        const businessPeymentRequisites = await this.backofficeService.getBusinessPeymentRequisites();
+        const businessPaymentRequisites = await this.backofficeService.getBusinessPaymentRequisites();
 
         const resultPageData = {
             accountName: creditLine.user.name,
@@ -468,7 +468,7 @@ export class BackOfficeController {
             status: borrowRequest.borrowRequestStatus,
             fiatTransactions,
             borrowAmountAndStatus,
-            ibanList: businessPeymentRequisites.map(item => item.iban),
+            ibanList: businessPaymentRequisites.map(item => item.iban),
         };
         return { resultPageData };
     }
