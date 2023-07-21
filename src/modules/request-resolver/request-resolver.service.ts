@@ -532,7 +532,7 @@ export class RequestResolverService {
         }
 
         // Initial deposit case
-        if (creditLine.rawCollateralAmount <= 0n) {
+        if (creditLine.rawDepositAmount <= 0n) {
             const initialBorrowRequest = await this.requestHandlerService.getInitialPendingBorrowReq(
                 creditLine.id
             );
