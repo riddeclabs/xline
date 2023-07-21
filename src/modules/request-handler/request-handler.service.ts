@@ -247,6 +247,17 @@ export class RequestHandlerService {
             .getOne();
     }
 
+    async getInitialPendingBorrowReq(creditLineId: number) {
+        return this.borrowRequestRepo
+            .createQueryBuilder("br")
+            .where("br.creditLineId = :creditLineId", { creditLineId })
+            .andWhere("br.borrowRequestStatus = :status", {
+                status: BorrowRequestStatus.WAITING_FOR_DEPOSIT,
+            })
+            .orderBy("br.createdAt", "ASC")
+            .getOne();
+    }
+
     async getNewestBorrowReq(creditLineId: number): Promise<BorrowRequest | null> {
         return this.borrowRequestRepo
             .createQueryBuilder("br")
@@ -281,7 +292,21 @@ export class RequestHandlerService {
             .set({ borrowRequestStatus: newStatus })
             .where("id = :id", { id: requestId })
             .execute();
-        return this.getBorrowRequest(requestId);
+        return this.getFullyAssociatedBorrowRequest(requestId);
+    }
+
+    async updateInitialBorrowReq(requestId: number, amount: bigint): Promise<BorrowRequest> {
+        await this.borrowRequestRepo
+            .createQueryBuilder()
+            .update(BorrowRequest)
+            .set({
+                borrowFiatAmount: amount,
+                initialRiskStrategy: null,
+                borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING,
+            })
+            .where("id = :id", { id: requestId })
+            .execute();
+        return this.getFullyAssociatedBorrowRequest(requestId);
     }
 
     // RepayRequest block

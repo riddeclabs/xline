@@ -523,15 +523,40 @@ export class RequestResolverService {
         collateralToken: CollateralCurrency,
         rawTransferAmount: string
     ) {
-        // FIXME: VERIFY IF REQUEST IS INITIAL AND UPDATE BORROW REQUEST IN THAT CASE
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
             creditLine.id
         );
+
         if (!pendingRequest) {
             throw new Error("Pending deposit request not found");
         }
 
-        const updatedRequest = await this.requestHandlerService.updateDepositReqStatus(
+        // Initial deposit case
+        if (creditLine.rawCollateralAmount <= 0n) {
+            const initialBorrowRequest = await this.requestHandlerService.getInitialPendingBorrowReq(
+                creditLine.id
+            );
+
+            if (
+                initialBorrowRequest &&
+                initialBorrowRequest.initialRiskStrategy &&
+                !initialBorrowRequest.borrowFiatAmount
+            ) {
+                const initialBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
+                    collateralToken.symbol,
+                    collateralToken.decimals,
+                    parseUnits(rawTransferAmount, collateralToken.decimals),
+                    initialBorrowRequest.initialRiskStrategy
+                );
+
+                await this.requestHandlerService.updateInitialBorrowReq(
+                    initialBorrowRequest.id,
+                    initialBorrowAmount
+                );
+            }
+        }
+
+        const updatedDepositRequest = await this.requestHandlerService.updateDepositReqStatus(
             pendingRequest.id,
             DepositRequestStatus.FINISHED
         );
@@ -556,7 +581,7 @@ export class RequestResolverService {
         );
 
         return {
-            depositRequestId: updatedRequest.id,
+            depositRequestId: updatedDepositRequest.id,
             withdrawRequestId: null,
         };
     }
