@@ -13,7 +13,7 @@ export enum NewCreditRequestSteps {
 
 export enum NewCreditReqCallbacks {
     GENERAL_TERMS = "generalTerms",
-    SUPPLY_CURRENCY = "supplyCurrency",
+    DEPOSIT_CURRENCY = "depositCurrency",
     RISK_STRATEGY = "riskStrategy",
     SIGN_APPLICATION = "signApplication",
     VIEW_EXISTING_CREDIT_LINES = "viewExistingCreditLines",

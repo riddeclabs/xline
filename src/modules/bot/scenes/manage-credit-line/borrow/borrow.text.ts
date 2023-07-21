@@ -163,8 +163,8 @@ export class BorrowTextSource extends BasicSourceText {
     }
 
     static getZeroBalanceText(): string {
-        const zeroSupplyCaseText = "🚫 Your current deposit balance is *zero*. \n";
-        const txt = this.makeInsufficientBalanceTemplateText(zeroSupplyCaseText);
+        const zeroDepositCaseText = "🚫 Your current deposit balance is *zero*. \n";
+        const txt = this.makeInsufficientBalanceTemplateText(zeroDepositCaseText);
         return escapeSpecialCharacters(txt);
     }
 

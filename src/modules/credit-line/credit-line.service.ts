@@ -86,11 +86,11 @@ export class CreditLineService {
         return this.getCreditLineById(creditLineId);
     }
 
-    async updateDepositAmountById(creditLineId: number, newSupplyAmount: bigint) {
+    async updateDepositAmountById(creditLineId: number, newDepositAmount: bigint) {
         return this.creditLineRepo
             .createQueryBuilder()
             .update()
-            .set({ rawDepositAmount: newSupplyAmount })
+            .set({ rawDepositAmount: newDepositAmount })
             .where("id = :creditLineId", { creditLineId })
             .execute();
     }

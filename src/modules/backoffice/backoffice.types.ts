@@ -21,8 +21,8 @@ export type CreditLineDetailsType = {
     collateralSymbol: string;
     creditLineId: number;
     amountsTable: {
-        rawSupplyAmount: string;
-        usdSupplyAmount: string;
+        rawDepositAmount: string;
+        usdDepositAmount: string;
         usdCollateralAmount: string;
         debtAmount: string;
         usdAvailableLiquidity: number;

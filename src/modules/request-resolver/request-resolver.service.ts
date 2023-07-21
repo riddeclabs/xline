@@ -401,7 +401,7 @@ export class RequestResolverService {
     }
 
     // FIXME: If there is no any Deposit/Withdraw requests, but we received a callback, store it somehow
-    // TODO: Add transaction mechanism ( increaseSupplyAmountById, update<X>ReqStatus, createCryptoTransaction )
+    // TODO: Add transaction mechanism ( increaseDepositAmountById, update<X>ReqStatus, createCryptoTransaction )
     // Used by payment processing module to resolve pending crypto based request
     async resolveCryptoRequest(resolveDto: ResolveCryptoBasedRequestDto) {
         let creditLine = await this.creditLineService.getCreditLineByChatIdAndColSymbol(

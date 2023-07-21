@@ -36,8 +36,8 @@ export class WithdrawTextSource extends BasicSourceText {
     }
 
     static getZeroBalanceText() {
-        const zeroSupplyCaseText = "🚫 Your current deposit balance is *zero*. \n";
-        return this.makeInsufficientBalanceTemplateText(zeroSupplyCaseText);
+        const zeroDepositCaseText = "🚫 Your current deposit balance is *zero*. \n";
+        return this.makeInsufficientBalanceTemplateText(zeroDepositCaseText);
     }
 
     static getInsufficientBalanceText(utilizationFactor: bigint, collateralFactor: bigint) {

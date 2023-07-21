@@ -143,14 +143,14 @@ export class BackOfficeController {
             })
         );
 
-        const totalSupply = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
+        const totalDeposit = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
 
         const totalDebt = debtCurrencyInitial.map(item => item.amount).reduce((a, b) => +a + +b, 0);
         return {
             totalCustomers: allCustomersLength,
-            totalSupply,
+            totalDeposit,
             collateralCurrencyAmount,
             //TODO must be fixed when new debt currency will be added
             totalDebt: truncateDecimalsToStr(
@@ -439,7 +439,7 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            beforeSupplyAmount: truncateDecimalsToStr(
+            beforeDepositAmount: truncateDecimalsToStr(
                 formatUnits(stateBefore.depositAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
@@ -458,7 +458,7 @@ export class BackOfficeController {
                 2,
                 false
             ),
-            afterSupplyAmount: truncateDecimalsToStr(
+            afterDepositAmount: truncateDecimalsToStr(
                 formatUnits(stateAfter.depositAmountFiat ?? 0n, creditLine.debtCurrency.decimals),
                 2,
                 false
@@ -832,13 +832,13 @@ export class BackOfficeController {
                 fullyAssociatedUser?.creditLines.map(async (item, idx) => {
                     const creditLine =
                         await this.creditLineService.getCreditLinesByIdAllSettingsExtended(+item.id);
-                    const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+                    const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
                         creditLine.collateralCurrency.symbol,
                         creditLine.collateralCurrency.decimals,
                         creditLine.rawDepositAmount
                     );
                     const utilizationRate = this.riskEngineService.calculateUtilizationRate(
-                        fiatSupplyAmount,
+                        fiatDepositAmount,
                         creditLine.debtAmount
                     );
 
@@ -848,18 +848,18 @@ export class BackOfficeController {
                         debtSymbol: item.debtCurrency.symbol,
                         collateralSymbol: item.collateralCurrency.symbol,
                         amountsTable: {
-                            rawSupplyAmount: formatUnits(
+                            rawDepositAmount: formatUnits(
                                 creditLine.rawDepositAmount,
                                 creditLine.collateralCurrency.decimals
                             ), // raw collateral amount, use collateral decimals to convert to float
-                            usdSupplyAmount: truncateDecimalsToStr(
-                                formatUnits(fiatSupplyAmount, creditLine.debtCurrency.decimals),
+                            usdDepositAmount: truncateDecimalsToStr(
+                                formatUnits(fiatDepositAmount, creditLine.debtCurrency.decimals),
                                 2,
                                 false
                             ), // raw fiat amount, use debt currency decimals to convert to float
                             usdCollateralAmount: truncateDecimalsToStr(
                                 formatUnits(
-                                    (fiatSupplyAmount *
+                                    (fiatDepositAmount *
                                         creditLine.economicalParameters.collateralFactor) /
                                         EXP_SCALE,
                                     creditLine.debtCurrency.decimals

@@ -449,13 +449,13 @@ export class BackOfficeService {
         const creditLine = await this.creditLineService.getCreditLinesByIdAllSettingsExtended(
             creditLineId
         );
-        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+        const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
             creditLine.rawDepositAmount
         );
         const utilizationRate = this.riskEngineService.calculateUtilizationRate(
-            fiatSupplyAmount,
+            fiatDepositAmount,
             creditLine.debtAmount
         );
         const borrowRequest = await this.requestHandlerService.getBorrowRequest(borrowRequestId);
@@ -465,9 +465,9 @@ export class BackOfficeService {
         }
 
         const stateBefore: CreditLineStateDataRaw = {
-            depositAmountFiat: fiatSupplyAmount,
+            depositAmountFiat: fiatDepositAmount,
             collateralAmountFiat:
-                (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE,
+                (fiatDepositAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE,
             debtAmount: creditLine.debtAmount,
             utilizationRate: utilizationRate,
         };
@@ -482,7 +482,7 @@ export class BackOfficeService {
             ...stateBefore,
             debtAmount: debtAfter,
             utilizationRate: this.riskEngineService.calculateUtilizationRate(
-                fiatSupplyAmount,
+                fiatDepositAmount,
                 debtAfter
             ),
         };

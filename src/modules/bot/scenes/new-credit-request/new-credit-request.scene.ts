@@ -67,7 +67,7 @@ export class NewCreditRequestWizard {
         const buttons = collateralTokens.map(ct => {
             return {
                 text: `💵 ${ct.symbol}`,
-                callback_data: `${NewCreditReqCallbacks.SUPPLY_CURRENCY}:${ct.symbol}`,
+                callback_data: `${NewCreditReqCallbacks.DEPOSIT_CURRENCY}:${ct.symbol}`,
             };
         });
         buttons.push(this.botCommon.goBackButton());
@@ -298,8 +298,8 @@ export class NewCreditRequestWizard {
             case NewCreditReqCallbacks.GENERAL_TERMS:
                 await this.generalTermHandler(ctx, value);
                 break;
-            case NewCreditReqCallbacks.SUPPLY_CURRENCY:
-                await this.supplyActionHandler(ctx, value);
+            case NewCreditReqCallbacks.DEPOSIT_CURRENCY:
+                await this.depositActionHandler(ctx, value);
                 break;
             case NewCreditReqCallbacks.RISK_STRATEGY:
                 await this.riskStrategyHandler(ctx, value);
@@ -366,7 +366,7 @@ export class NewCreditRequestWizard {
         }
     }
 
-    private async supplyActionHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
+    private async depositActionHandler(ctx: NewCreditRequestContext, callbackValue?: string) {
         if (!callbackValue) throw new Error("Incorrect collateral currency callback received");
 
         // Will fail if currency is not found

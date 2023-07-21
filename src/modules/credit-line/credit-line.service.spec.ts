@@ -224,7 +224,7 @@ describe("ReviewService", () => {
         });
     });
 
-    describe("updateSupplyAmountById", () => {
+    describe("updateDepositAmountById", () => {
         it("should update the `rawCollateralAmount` of a credit line", async () => {
             const newRawCollateralAmount = 1775n;
 

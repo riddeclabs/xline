@@ -175,14 +175,14 @@ export class BotManagerService {
                 creditLine.collateralCurrency.symbol
             ));
 
-        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+        const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
             creditLine.rawDepositAmount,
             scaledTokenPrice
         );
 
-        return this.riskEngineService.calculateUtilizationRate(fiatSupplyAmount, creditLine.debtAmount);
+        return this.riskEngineService.calculateUtilizationRate(fiatDepositAmount, creditLine.debtAmount);
     }
 
     async getCreditLineExtras(
