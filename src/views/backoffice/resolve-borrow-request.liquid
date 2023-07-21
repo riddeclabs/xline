@@ -85,11 +85,21 @@
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
         <h1 class='pb-2 fs-5'>Resolve request form:</h1>
+
         <p class='fs-6'>IBAN from:</p>
-        <input
-          id="iban"
-          type="text"
-          class="input-resolve">
+        <div class="custom-select">
+          <input
+            type="text"
+            id="iban"
+            placeholder="Search.."
+            class="input-resolve">
+
+          <div id="myDropdown" class="dropdown-content">
+            {% for iban in resultPageData.ibanList %}
+              <div class="option" onclick="selectOption(this)">{{ iban }}</div>
+            {% endfor %}
+          </div>
+        </div>
         <p class='fs-6 mt-2'>Transfer amount:</p>
         <input
           id="transferAmount"
@@ -156,6 +166,8 @@
     const baseUrl = document.location.origin;
     const acceptBtn = document.getElementById('acceptBtn');
     const finelizeBtn = document.getElementById('finelizeBtn');
+    const input = document.getElementById("iban");
+    const dropdown = document.getElementById("myDropdown");
     const borrowId = document
       .location
       .pathname
@@ -166,6 +178,37 @@
       .pathname
       .split("/")
       .slice(-2)[0];
+
+    if (input) {
+      input.addEventListener("focus", () => {
+        dropdown.style.display = "block"
+      });
+      input.addEventListener("focusout", () => {
+        setTimeout(() => {
+          dropdown.style.display = "none"
+        }, 300)
+      })
+
+      input.addEventListener("keyup", function filterFunction() {
+        let filter,
+          options,
+          i;
+
+        filter = input.value.toUpperCase();
+        options = dropdown.getElementsByClassName("option");
+
+        for (i = 0; i < options.length; i++) {
+          txtValue = options[i].textContent || options[i].innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            options[i].style.display = "block";
+          } else {
+            options[i].style.display = "none";
+          }
+        }
+      });
+    }
+
+
     const customerId = document
       .location
       .pathname
@@ -197,6 +240,15 @@
         }
       });
     });
+
+    function selectOption(element) {
+      document.getElementById("iban").value = element.textContent;
+      var options = document.getElementsByClassName("option");
+      for (var i = 0; i < options.length; i++) {
+        options[i].style.display = "none";
+      }
+    }
+
     if (acceptBtn) {
       acceptBtn.addEventListener('click', () => {
         const requestOptions = {
