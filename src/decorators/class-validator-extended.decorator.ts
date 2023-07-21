@@ -1,4 +1,4 @@
-import { ValidationOptions, registerDecorator, ValidationArguments } from "class-validator";
+import { ValidationOptions, registerDecorator } from "class-validator";
 import { validate } from "class-validator";
 
 export async function validateDto(dtoClass: any) {
@@ -17,7 +17,7 @@ export function IsBigInt(validationOptions: ValidationOptions = {}) {
             propertyName: propertyName,
             options: validationOptions,
             validator: {
-                validate(value: any, args: ValidationArguments) {
+                validate(value: any) {
                     return typeof value === "bigint";
                 },
             },

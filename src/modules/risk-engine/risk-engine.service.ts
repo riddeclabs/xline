@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { EconomicalParametersService } from "../economical-parameters/economical-parameters.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
-import { CreditLine, EconomicalParameters } from "../../database/entities";
+import { CollateralCurrency, CreditLine, EconomicalParameters } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { EXP_SCALE, HOURS_IN_YEAR } from "../../common/constants";
 import { CryptoFee, OpenCreditLineData } from "./risk-engine.types";
@@ -18,29 +18,34 @@ export class RiskEngineService {
 
     // scaledRawDepositAmount - token Amount must be scaled by 1e18 to get correct USD value
     async calculateOpenCreditLineData(
-        collateralTokenSymbol: string,
-        collateralTokenDecimals: number,
+        collateralCurrency: CollateralCurrency,
         scaledRawDepositAmount: bigint,
         riskStrategy: bigint,
         economicalParams: EconomicalParameters
     ): Promise<OpenCreditLineData> {
         const depositUsd = await this.priceOracleService.convertCryptoToUsd(
-            collateralTokenSymbol,
-            collateralTokenDecimals,
+            collateralCurrency.symbol,
+            collateralCurrency.decimals,
             scaledRawDepositAmount
         );
         const borrowUsd = (depositUsd * riskStrategy) / EXP_SCALE;
         const collateralAmount = (depositUsd * economicalParams.collateralFactor) / EXP_SCALE;
 
-        const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(collateralTokenSymbol);
+        const currentPrice = await this.priceOracleService.getTokenPriceBySymbol(
+            collateralCurrency.symbol
+        );
 
-        const additionalDecimals = 18 - collateralTokenDecimals;
+        const additionalDecimals = 18 - collateralCurrency.decimals;
 
         const collateralLimitPrice =
             (borrowUsd * EXP_SCALE) / (scaledRawDepositAmount * 10n ** BigInt(additionalDecimals));
 
         const depositProcFeeUsd = (
-            await this.calculateCryptoProcessingFeeAmount(economicalParams, scaledRawDepositAmount)
+            await this.calculateCryptoProcessingFeeAmount(
+                economicalParams,
+                collateralCurrency,
+                scaledRawDepositAmount
+            )
         ).feeFiat;
         const borrowProcFeeUsd = this.calculateFiatProcessingFeeAmount(economicalParams, borrowUsd);
 
@@ -82,14 +87,15 @@ export class RiskEngineService {
 
     async calculateCryptoProcessingFeeAmount(
         economicalParameters: EconomicalParameters,
+        collateralCurrency: CollateralCurrency,
         amount: bigint
     ): Promise<CryptoFee> {
         const minFeeFiat = economicalParameters.minCryptoProcessingFeeFiat;
 
         // TODO: in case we need to support not only USD needs to be refactored
         const minFeeCrypto = await this.priceOracleService.convertUsdToCrypto(
-            economicalParameters.collateralCurrency.symbol,
-            economicalParameters.collateralCurrency.decimals,
+            collateralCurrency.symbol,
+            collateralCurrency.decimals,
             minFeeFiat
         );
 
@@ -97,8 +103,8 @@ export class RiskEngineService {
 
         // TODO: in case we need to support not only USD needs to be refactored
         const cryptoFeeUsd = await this.priceOracleService.convertCryptoToUsd(
-            economicalParameters.collateralCurrency.symbol,
-            economicalParameters.collateralCurrency.decimals,
+            collateralCurrency.symbol,
+            collateralCurrency.decimals,
             feeCrypto
         );
 
@@ -317,11 +323,10 @@ export class RiskEngineService {
 
         const processingFeeCrypto = await this.calculateCryptoProcessingFeeAmount(
             creditLine.economicalParameters,
+            creditLine.collateralCurrency,
             freeLiquidityCrypto
         );
 
-        return freeLiquidityCrypto > processingFeeCrypto.feeCrypto
-            ? freeLiquidityCrypto - processingFeeCrypto.feeCrypto
-            : 0n;
+        return freeLiquidityCrypto - processingFeeCrypto.feeCrypto;
     }
 }

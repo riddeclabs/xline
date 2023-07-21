@@ -18,6 +18,7 @@ import {
     RepayRequest,
     WithdrawRequest,
     EconomicalParameters,
+    CollateralCurrency,
 } from "src/database/entities";
 import { EXP_SCALE } from "../../common/constants";
 import { SceneRequestTypes } from "./scenes/view-requests/view-request.types";
@@ -114,15 +115,13 @@ export class BotManagerService {
     }
 
     async calculateOpenCreditLineData(
-        collateralTokenSymbol: string,
-        collateralTokenDecimals: number,
+        collateralCurrency: CollateralCurrency,
         scaledRawDepositAmount: bigint,
         riskStrategy: bigint,
         economicalParams: EconomicalParameters
     ): Promise<OpenCreditLineData> {
         return this.riskEngineService.calculateOpenCreditLineData(
-            collateralTokenSymbol,
-            collateralTokenDecimals,
+            collateralCurrency,
             scaledRawDepositAmount,
             riskStrategy,
             economicalParams
@@ -259,9 +258,14 @@ export class BotManagerService {
 
     async calculateCryptoProcessingFeeAmount(
         economicalParameters: EconomicalParameters,
+        collateralCurrency: CollateralCurrency,
         amount: bigint
     ): Promise<CryptoFee> {
-        return this.riskEngineService.calculateCryptoProcessingFeeAmount(economicalParameters, amount);
+        return this.riskEngineService.calculateCryptoProcessingFeeAmount(
+            economicalParameters,
+            collateralCurrency,
+            amount
+        );
     }
 
     async getCreditLineByChatIdAndColSymbol(

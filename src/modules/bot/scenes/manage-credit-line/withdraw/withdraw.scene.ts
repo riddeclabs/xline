@@ -116,7 +116,9 @@ export class WithdrawActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const economicalParameters = await this.botManager.getEconomicalParamsByLineId(creditLineId);
         const msgText = WithdrawTextSource.getWithdrawInfoText(
+            economicalParameters.minCryptoProcessingFeeFiat,
             economicalParameters.cryptoProcessingFee,
+            economicalParameters.debtCurrency.symbol,
             economicalParameters.collateralFactor
         );
 
@@ -148,7 +150,6 @@ export class WithdrawActionWizard {
             msgText = WithdrawTextSource.getFullWithdrawEnterAmountText(
                 creditLine.collateralCurrency,
                 creditLine.rawDepositAmount,
-                creditLineExtras.maxAllowedCryptoToWithdraw,
                 creditLineExtras.utilizationRate
             );
 
@@ -213,10 +214,7 @@ export class WithdrawActionWizard {
         }
 
         const requestedWithdrawAmountRaw = requestedWithdrawAmount
-            ? parseUnits(
-                  requestedWithdrawAmount,
-                  creditLine.economicalParameters.collateralCurrency.decimals
-              )
+            ? parseUnits(requestedWithdrawAmount, creditLine.collateralCurrency.decimals)
             : await this.botManager.calculateMaxAllowedToWithdraw(creditLine);
 
         const depositAfter = creditLine.rawDepositAmount - requestedWithdrawAmountRaw;
@@ -225,6 +223,7 @@ export class WithdrawActionWizard {
             ? { feeCrypto: 0n, feeFiat: 0n }
             : await this.botManager.calculateCryptoProcessingFeeAmount(
                   creditLine.economicalParameters,
+                  creditLine.collateralCurrency,
                   requestedWithdrawAmountRaw
               );
 
@@ -240,17 +239,9 @@ export class WithdrawActionWizard {
         const msgText = WithdrawTextSource.getSignWithdrawApplicationText(
             stateBefore,
             stateAfter,
-            formatUnits(
-                requestedWithdrawAmountRaw,
-                creditLine.economicalParameters.collateralCurrency.decimals
-            ),
+            formatUnits(requestedWithdrawAmountRaw, creditLine.collateralCurrency.decimals),
             addressToWithdraw,
-            truncateDecimals(
-                formatUnitsNumber(
-                    processingFee.feeFiat,
-                    creditLine.economicalParameters.debtCurrency.decimals
-                )
-            )
+            truncateDecimals(formatUnitsNumber(processingFee.feeFiat, creditLine.debtCurrency.decimals))
         );
 
         const buttons = [

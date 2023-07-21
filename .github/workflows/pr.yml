@@ -27,4 +27,4 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Linter
-        run: yarn lint
+        run: yarn lint && yarn unused-exports

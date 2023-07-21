@@ -204,8 +204,7 @@ export class NewCreditRequestWizard {
         );
 
         const openCreditLineData = await this.botManager.calculateOpenCreditLineData(
-            sceneData.colToken.symbol,
-            sceneData.colToken.decimals,
+            sceneData.colToken,
             parseUnits(sceneData.depositAmount, sceneData.colToken.decimals),
             parseUnits(sceneData.riskStrategy),
             economicalParameters

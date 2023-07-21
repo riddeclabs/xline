@@ -2,7 +2,8 @@ import { ExecutionContext, createParamDecorator } from "@nestjs/common";
 
 import { OperatorsListDto } from "../dto";
 
-export const OperatorsListQuery = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const OperatorsListQuery = createParamDecorator((_: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
     const result = new OperatorsListDto();

@@ -520,7 +520,7 @@ export class RequestResolverService {
     // and increasing the deposit amount for the associated credit line.
     private async resolveDepositRequest(
         creditLine: CreditLine,
-        collateralToken: CollateralCurrency,
+        collateralCurrency: CollateralCurrency,
         rawTransferAmount: string
     ) {
         const pendingRequest = await this.requestHandlerService.getOldestPendingDepositReq(
@@ -543,9 +543,9 @@ export class RequestResolverService {
                 !initialBorrowRequest.borrowFiatAmount
             ) {
                 const initialBorrowAmount = await this.riskEngineService.calculateInitialBorrowAmount(
-                    collateralToken.symbol,
-                    collateralToken.decimals,
-                    parseUnits(rawTransferAmount, collateralToken.decimals),
+                    collateralCurrency.symbol,
+                    collateralCurrency.decimals,
+                    parseUnits(rawTransferAmount, collateralCurrency.decimals),
                     initialBorrowRequest.initialRiskStrategy
                 );
 
@@ -561,7 +561,7 @@ export class RequestResolverService {
             DepositRequestStatus.FINISHED
         );
 
-        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralToken.decimals);
+        const convRawTransferAmount = parseUnits(rawTransferAmount, collateralCurrency.decimals);
         const newDepositAmount = creditLine.rawDepositAmount + convRawTransferAmount;
 
         // FIXME: merge 2 creditLine based db requests to one
@@ -570,6 +570,7 @@ export class RequestResolverService {
 
         const processingFee = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
             creditLine.economicalParameters,
+            collateralCurrency,
             convRawTransferAmount
         );
 
@@ -625,6 +626,7 @@ export class RequestResolverService {
         if (newDepositAmount !== 0n) {
             const processingFee = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
                 creditLine.economicalParameters,
+                creditLine.collateralCurrency,
                 convRawTransferAmount
             );
 

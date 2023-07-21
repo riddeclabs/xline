@@ -62,9 +62,15 @@ export class WithdrawTextSource extends BasicSourceText {
         );
     }
 
-    static getWithdrawInfoText(cryptoProcFee: bigint, collateralFactor: bigint) {
-        const mdProcessingFee = bigintToFormattedPercent(cryptoProcFee);
-        const mdCollateralFactor = bigintToFormattedPercent(collateralFactor);
+    static getWithdrawInfoText(
+        minCryptoProcessingFeeFiat: bigint,
+        cryptoProcFee: bigint,
+        debtCurrency: string,
+        collateralFactor: bigint
+    ) {
+        const minFee = truncateDecimalsToStr(formatUnits(minCryptoProcessingFeeFiat));
+        const processingFeePercent = bigintToFormattedPercent(cryptoProcFee);
+        const collateralFactorPercent = bigintToFormattedPercent(collateralFactor);
         return escapeSpecialCharacters(
             "📜 *WITHDRAW TERMS*\n" +
                 "\n" +
@@ -72,9 +78,9 @@ export class WithdrawTextSource extends BasicSourceText {
                 "\n" +
                 "️️⚠️ Withdraw operation increases the utilization rate of your position and increases the risk of liquidation.\n" +
                 "\n" +
-                `️️⚠ The total debt for your position cannot exceed *${mdCollateralFactor} %* of the remaining deposit.\n` +
+                `️️⚠ The total debt for your position cannot exceed *${collateralFactorPercent}%* of the remaining deposit.\n` +
                 "\n" +
-                `⚠️ *${mdProcessingFee} %* of withdrawal amount will be apply as processing fee.\n` +
+                `⚠️ *${minFee}* ${debtCurrency} + *${processingFeePercent}%* of withdrawal amount will be apply as processing fee.\n` +
                 "An amount equal to the fee *will be added to your debt position*"
         );
     }
@@ -113,7 +119,6 @@ export class WithdrawTextSource extends BasicSourceText {
     static getFullWithdrawEnterAmountText(
         collateralCurrency: CollateralCurrency,
         rawDepositAmount: bigint,
-        maxAmountToWithdraw: bigint,
         utilizationRate: bigint
     ) {
         const mdDepositAmount = truncateDecimalsToStr(

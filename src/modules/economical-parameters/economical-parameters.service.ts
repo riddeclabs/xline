@@ -30,6 +30,8 @@ export class EconomicalParametersService {
         return this.economicalParamsRepo
             .createQueryBuilder("ep")
             .leftJoin("ep.creditLines", "cl")
+            .leftJoinAndSelect("ep.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("ep.debtCurrency", "debtCurrency")
             .where("cl.id = :creditLineId", { creditLineId })
             .getOneOrFail();
     }

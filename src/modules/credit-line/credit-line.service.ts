@@ -102,10 +102,12 @@ export class CreditLineService {
         return await this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoin("creditLine.user", "user")
-            .leftJoinAndSelect("creditLine.collateralCurrency", "cc")
-            .leftJoinAndSelect("creditLine.economicalParameters", "ep")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("user.chatId = :chatId", { chatId })
-            .andWhere("cc.symbol = :collateralSymbol", { collateralSymbol })
+            .andWhere("collateralCurrency.symbol = :collateralSymbol", { collateralSymbol })
             .getOne();
     }
 
@@ -122,11 +124,11 @@ export class CreditLineService {
     async getCreditLinesByIdAllSettingsExtended(creditLineId: number): Promise<CreditLine> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
-            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
-            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-            .innerJoinAndSelect("creditLine.user", "user")
-            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
-            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .leftJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("creditLine.id = :creditLineId", { creditLineId })
             .getOneOrFail();
     }
@@ -134,11 +136,11 @@ export class CreditLineService {
     async getAllActiveCreditLinesAllSettingsExtended(): Promise<CreditLine[] | null> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
-            .innerJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
-            .innerJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
-            .innerJoinAndSelect("creditLine.user", "user")
-            .innerJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
-            .innerJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
+            .leftJoinAndSelect("creditLine.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("creditLine.debtCurrency", "debtCurrency")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .leftJoinAndSelect("creditLine.economicalParameters", "economicalParameters")
+            .leftJoinAndSelect("creditLine.userPaymentRequisite", "userPaymentRequisite")
             .where("creditLine.creditLineStatus != :creditLineStatus", {
                 creditLineStatus: CreditLineStatus.CLOSED,
             })

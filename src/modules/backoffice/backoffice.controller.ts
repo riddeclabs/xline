@@ -478,7 +478,7 @@ export class BackOfficeController {
 
     @Get("repay-request/:customerId/:creditLineId/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(@Res() res: Response, @Param("id") id: string) {
+    async repayItem(@Param("id") id: string) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         if (!repayRequestById) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
@@ -499,7 +499,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers")
     @Render("backoffice/customers")
-    async getCustomers(@Req() req: Request, @CustomersListQuery() query: CustomersListDto) {
+    async getCustomers(@CustomersListQuery() query: CustomersListDto) {
         const { page, username, sort, chatId } = query;
         const chatIdFilter = chatId?.trim() ?? "";
         const userFilter = username?.trim() ?? "";
@@ -547,7 +547,6 @@ export class BackOfficeController {
     @Get("customers/credit-line-detail/:type/:customerId/:creditLineId/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
-        @Res() res: Response,
         @Param("id") id: string,
         @Param("customerId") customerId: string,
         @Param("creditLineId") creditLineId: string,
@@ -619,11 +618,13 @@ export class BackOfficeController {
                     sortDirection
                 );
                 const withdrawRequest = await this.backofficeService.getWithdrawReqById(id);
+                console.log(withdrawRequest);
                 status = {
                     status: withdrawRequest?.withdrawRequestStatus || "",
                     id: withdrawRequest?.id || 0,
                     wallet: withdrawRequest?.walletToWithdraw || "",
                 };
+                // FIXME: truncation doesn't acocunt for the decimals, will not work for BTC
                 withdrawAmount = truncateDecimalsToStr(
                     formatUnits(withdrawRequest?.withdrawAmount ?? 0n),
                     2,
@@ -713,6 +714,7 @@ export class BackOfficeController {
                     ...item,
                     createdAt: moment(item.createdAt).format("DD.MM.YYYY HH:mm"),
                     updatedAt: moment(item.updatedAt).format("DD.MM.YYYY HH:mm"),
+                    // FIXME: doesn't account the decimals, will not work for BTC
                     rawTransferAmount: formatUnits(item.rawTransferAmount),
                     usdTransferAmount: truncateDecimalsToStr(
                         formatUnits((item as CryptoTransaction).usdTransferAmount ?? 0n),
@@ -735,7 +737,6 @@ export class BackOfficeController {
     @Get("customers/creditline-user-list/:customerId/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
-        @Res() res: Response,
         @Param("customerId") customerId: string,
         @Param("creditLineId") creditLineId: string,
         @TransactionsQuery() query: TransactionsDto
@@ -821,7 +822,7 @@ export class BackOfficeController {
     @UseGuards(AuthenticatedGuard, RoleGuard)
     @Get("customers-credit-line/:customerId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Res() res: Response, @Param("customerId") customerId: string) {
+    async customerCreditLine(@Param("customerId") customerId: string) {
         const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(customerId);
         if (!fullyAssociatedUser) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);

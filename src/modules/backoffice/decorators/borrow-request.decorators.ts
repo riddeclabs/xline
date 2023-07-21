@@ -1,7 +1,8 @@
 import { ExecutionContext, createParamDecorator } from "@nestjs/common";
 import { RepayRequestDto } from "../dto/repay-request.dto";
 
-export const BorrowRequest = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const BorrowRequest = createParamDecorator((_: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
     const result = new RepayRequestDto();
