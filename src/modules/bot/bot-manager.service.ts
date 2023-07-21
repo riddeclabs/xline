@@ -10,40 +10,23 @@ import { UserService } from "../user/user.service";
 import { CreditLineService } from "../credit-line/credit-line.service";
 import { CreateCreditLineDto } from "../credit-line/dto/create-credit-line.dto";
 import { BorrowRequestStatus, createUserGatewayId, generateReferenceNumber, xor } from "../../common";
-import { parseUnits } from "../../common";
 import { RequestResolverService } from "../request-resolver/request-resolver.service";
-import { SignApplicationSceneData } from "./scenes/new-credit-request/new-credit-request.types";
 import {
-    CollateralCurrency,
     BorrowRequest,
     CreditLine,
     DepositRequest,
-    DebtCurrency,
     RepayRequest,
     WithdrawRequest,
+    EconomicalParameters,
+    CollateralCurrency,
 } from "src/database/entities";
-import { EXP_SCALE, maxUint256 } from "../../common/constants";
+import { EXP_SCALE } from "../../common/constants";
 import { SceneRequestTypes } from "./scenes/view-requests/view-request.types";
 import { XLineRequestsTypes } from "./scenes/common/types";
+import { CryptoFee, OpenCreditLineData } from "../risk-engine/risk-engine.types";
 
-export interface WithdrawRequestDetails {
-    currentState: {
-        utilizationRate: bigint;
-        rawDepositAmount: bigint;
-        debtAmount: bigint;
-    };
-    newState: { utilizationRate: bigint; rawDepositAmount: bigint; debtAmount: bigint };
-    currencies: {
-        collateralCurrency: CollateralCurrency;
-        debtCurrency: DebtCurrency;
-    };
-    processingFeeFiatAmount: bigint;
-    processingFeeCryptoAmount: bigint;
-    collateralFactor: bigint;
-}
-
-export type CreditLineExtras = {
-    fiatSupplyAmount: bigint;
+type CreditLineExtras = {
+    fiatDepositAmount: bigint;
     fiatCollateralAmount: bigint;
     utilizationRate: bigint;
     maxAllowedCryptoToWithdraw: bigint;
@@ -131,24 +114,18 @@ export class BotManagerService {
         });
     }
 
-    async getNewCreditDetails(sceneData: SignApplicationSceneData) {
-        const economicalParameters = await this.getFreshEconomicalParams(
-            sceneData.colToken.id,
-            sceneData.debtToken.id
+    async calculateOpenCreditLineData(
+        collateralCurrency: CollateralCurrency,
+        scaledRawDepositAmount: bigint,
+        riskStrategy: bigint,
+        economicalParams: EconomicalParameters
+    ): Promise<OpenCreditLineData> {
+        return this.riskEngineService.calculateOpenCreditLineData(
+            collateralCurrency,
+            scaledRawDepositAmount,
+            riskStrategy,
+            economicalParams
         );
-
-        const openCreditLineData = await this.riskEngineService.calculateOpenCreditLineData(
-            sceneData.colToken.symbol,
-            sceneData.colToken.decimals,
-            parseUnits(sceneData.supplyAmount, sceneData.colToken.decimals),
-            parseUnits(sceneData.riskStrategy),
-            economicalParameters
-        );
-
-        return {
-            economicalParameters,
-            openCreditLineData,
-        };
     }
 
     // Supported tokens
@@ -197,14 +174,14 @@ export class BotManagerService {
                 creditLine.collateralCurrency.symbol
             ));
 
-        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+        const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount,
+            creditLine.rawDepositAmount,
             scaledTokenPrice
         );
 
-        return this.riskEngineService.calculateUtilizationRate(fiatSupplyAmount, creditLine.debtAmount);
+        return this.riskEngineService.calculateUtilizationRate(fiatDepositAmount, creditLine.debtAmount);
     }
 
     async getCreditLineExtras(
@@ -216,24 +193,23 @@ export class BotManagerService {
             (await this.priceOracleService.getScaledTokenPriceBySymbol(
                 creditLine.collateralCurrency.symbol
             ));
-        const fiatSupplyAmount = await this.priceOracleService.convertCryptoToUsd(
+        const fiatDepositAmount = await this.priceOracleService.convertCryptoToUsd(
             creditLine.collateralCurrency.symbol,
             creditLine.collateralCurrency.decimals,
-            creditLine.rawCollateralAmount,
+            creditLine.rawDepositAmount,
             scaledTokenPrice
         );
 
         const fiatCollateralAmount =
-            (fiatSupplyAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
+            (fiatDepositAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
 
         const utilizationRate = this.riskEngineService.calculateUtilizationRate(
-            fiatSupplyAmount,
+            fiatDepositAmount,
             creditLine.debtAmount
         );
 
         const maxAllowedCryptoToWithdraw = await this.calculateMaxAllowedToWithdraw(
             creditLine,
-            fiatSupplyAmount,
             scaledTokenPrice
         );
 
@@ -243,7 +219,7 @@ export class BotManagerService {
         );
 
         return {
-            fiatSupplyAmount,
+            fiatDepositAmount,
             fiatCollateralAmount,
             utilizationRate,
             maxAllowedCryptoToWithdraw,
@@ -251,115 +227,45 @@ export class BotManagerService {
         };
     }
 
-    async getMaxAllowedBorrowAmount(CreditLine: CreditLine, scaledTokenPrice?: bigint) {
+    async getMaxAllowedBorrowAmount(CreditLine: CreditLine, scaledTokenPrice?: bigint): Promise<bigint> {
         return await this.riskEngineService.getMaxAllowedBorrowAmount(CreditLine, scaledTokenPrice);
     }
 
-    async calculateWithdrawRequestDetails(
+    async calculateBorrowAmountWithFeeAndFee(
         creditLineId: number,
-        withdrawAmount: bigint
-    ): Promise<WithdrawRequestDetails> {
-        const creditLine = await this.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
-        const scaledTokenPrice = await this.priceOracleService.getScaledTokenPriceBySymbol(
-            creditLine.collateralCurrency.symbol
+        borrowFiatAmount: bigint
+    ): Promise<[bigint, bigint]> {
+        const economicalParameters = await this.economicalParamsService.getEconomicalParamsByLineId(
+            creditLineId
         );
-        const creditLineExtras = await this.getCreditLineExtras(creditLine, scaledTokenPrice);
-
-        const collateralCurrency = creditLine.collateralCurrency;
-        const currentState = {
-            rawDepositAmount: creditLine.rawCollateralAmount,
-            debtAmount: creditLine.debtAmount,
-            utilizationRate: creditLineExtras.utilizationRate,
-        };
-
-        const actualWithdrawAmount =
-            withdrawAmount === maxUint256 ? creditLineExtras.maxAllowedCryptoToWithdraw : withdrawAmount;
-
-        const newDepositAmountRaw = creditLine.rawCollateralAmount - actualWithdrawAmount;
-        const newDepositAmountFiat = await this.priceOracleService.convertCryptoToUsd(
-            collateralCurrency.symbol,
-            collateralCurrency.decimals,
-            newDepositAmountRaw,
-            scaledTokenPrice
+        const amountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+            economicalParameters,
+            borrowFiatAmount
         );
-
-        let processingFeeCryptoAmount: bigint;
-        let processingFeeFiatAmount: bigint;
-
-        if (withdrawAmount === maxUint256) {
-            processingFeeCryptoAmount = 0n;
-            processingFeeFiatAmount = 0n;
-        } else {
-            processingFeeCryptoAmount = await this.riskEngineService.calculateCryptoProcessingFeeAmount(
-                creditLine.id,
-                actualWithdrawAmount
-            );
-            processingFeeFiatAmount = await this.priceOracleService.convertCryptoToUsd(
-                collateralCurrency.symbol,
-                collateralCurrency.decimals,
-                processingFeeCryptoAmount,
-                scaledTokenPrice
-            );
-        }
-
-        const newDebtAmount = creditLine.debtAmount + processingFeeFiatAmount;
-
-        const newUtilizationRate = this.riskEngineService.calculateUtilizationRate(
-            newDepositAmountFiat,
-            newDebtAmount
+        const fee = this.riskEngineService.calculateFiatProcessingFeeAmount(
+            economicalParameters,
+            borrowFiatAmount
         );
-
-        const newState = {
-            rawDepositAmount: newDepositAmountRaw,
-            debtAmount: newDebtAmount,
-            utilizationRate: newUtilizationRate,
-        };
-
-        return {
-            currentState,
-            newState,
-            processingFeeCryptoAmount,
-            processingFeeFiatAmount,
-            collateralFactor: creditLine.economicalParameters.collateralFactor,
-            currencies: {
-                collateralCurrency: creditLine.collateralCurrency,
-                debtCurrency: creditLine.debtCurrency,
-            },
-        };
+        return [amountWithFee, fee];
     }
 
     async calculateMaxAllowedToWithdraw(
         creditLine: CreditLine,
-        depositFiatAmount: bigint,
         scaledTokenPrice?: bigint
-    ) {
-        // In case debt amount is zero, we do not apply processing fee and allow to withdraw entire deposit amount
-        if (creditLine.debtAmount === 0n) {
-            return creditLine.rawCollateralAmount;
-        }
+    ): Promise<bigint> {
+        return this.riskEngineService.calculateMaxAllowedToWithdraw(creditLine, scaledTokenPrice);
+    }
 
-        // Calculate the diff between max amount tha user can borrow and actual debt amount
-        const maxAllowedDebtAmount =
-            (depositFiatAmount * creditLine.economicalParameters.collateralFactor) / EXP_SCALE;
-        const freeLiquidityFiat = maxAllowedDebtAmount - creditLine.debtAmount;
-
-        if (freeLiquidityFiat <= 0) {
-            return 0n;
-        }
-
-        const freeLiquidityCrypto = await this.priceOracleService.convertUsdToCrypto(
-            creditLine.collateralCurrency.symbol,
-            creditLine.collateralCurrency.decimals,
-            freeLiquidityFiat,
-            scaledTokenPrice
+    async calculateCryptoProcessingFeeAmount(
+        economicalParameters: EconomicalParameters,
+        collateralCurrency: CollateralCurrency,
+        amount: bigint
+    ): Promise<CryptoFee> {
+        return this.riskEngineService.calculateCryptoProcessingFeeAmount(
+            economicalParameters,
+            collateralCurrency,
+            amount
         );
-
-        // FIXME: add a separate fn to calculate a processing fee (with fixed/minimal fee support functionality)
-        //        and return ZERO in case (freeLiquidityCrypto - processingFeeCrypto) < 0
-        // Calculate processing fee based on entire free liquidity amount
-        const processingFeeCrypto =
-            (freeLiquidityCrypto * creditLine.economicalParameters.cryptoProcessingFee) / EXP_SCALE;
-        return freeLiquidityCrypto - processingFeeCrypto;
     }
 
     async getCreditLineByChatIdAndColSymbol(
@@ -404,21 +310,6 @@ export class BotManagerService {
             initialRiskStrategy: null,
             borrowRequestStatus: BorrowRequestStatus.VERIFICATION_PENDING,
         });
-    }
-
-    async calculateBorrowAmountWithFeeAndFee(
-        creditLineId: number,
-        borrowFiatAmount: bigint
-    ): Promise<[bigint, bigint]> {
-        const amountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
-            creditLineId,
-            borrowFiatAmount
-        );
-        const fee = await this.riskEngineService.calculateFiatProcessingFeeAmount(
-            creditLineId,
-            borrowFiatAmount
-        );
-        return [amountWithFee, fee];
     }
 
     async verifyHypBorrowRequest(creditLine: CreditLine, borrowFiatAmount: bigint) {

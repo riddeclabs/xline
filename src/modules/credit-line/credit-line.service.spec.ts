@@ -121,7 +121,7 @@ describe("ReviewService", () => {
             const newCl = await creditLineService.saveNewCreditLine(clDto);
 
             expect(newCl).toHaveProperty("id");
-            expect(newCl.rawCollateralAmount).toEqual(0n);
+            expect(newCl.rawDepositAmount).toEqual(0n);
             expect(newCl.debtAmount).toEqual(0n);
             expect(newCl.feeAccumulatedFiatAmount).toEqual(0n);
             expect(newCl.healthyFactor).toEqual(0n);
@@ -211,7 +211,7 @@ describe("ReviewService", () => {
             const newDebtAmount = 1775n;
             const newFeeAmount = 142n;
 
-            await creditLineService.updateDebtAmountAndFeeAccumulatedById(
+            await creditLineService.increaseDebtAmountAndFeeAccumulatedById(
                 creditLine_BTC_USD.id,
                 newDebtAmount,
                 newFeeAmount
@@ -224,18 +224,15 @@ describe("ReviewService", () => {
         });
     });
 
-    describe("updateSupplyAmountById", () => {
-        it("should update the `rawCollateralAmount` of a credit line", async () => {
-            const newRawCollateralAmount = 1775n;
+    describe("updateDepositAmountById", () => {
+        it("should update the `rawDepositAmount` of a credit line", async () => {
+            const newRawDepositAmount = 1775n;
 
-            await creditLineService.updateSupplyAmountById(
-                creditLine_BTC_USD.id,
-                newRawCollateralAmount
-            );
+            await creditLineService.updateDepositAmountById(creditLine_BTC_USD.id, newRawDepositAmount);
             const updatedCl = await creditLineService.getCreditLineById(creditLine_BTC_USD.id);
 
             expect(updatedCl.id).toEqual(creditLine_BTC_USD.id);
-            expect(updatedCl.rawCollateralAmount).toEqual(newRawCollateralAmount);
+            expect(updatedCl.rawDepositAmount).toEqual(newRawDepositAmount);
         });
     });
 

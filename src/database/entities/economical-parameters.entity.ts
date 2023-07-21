@@ -56,8 +56,14 @@ export class EconomicalParameters {
     @Column("numeric", { ...uint256(), name: "liquidation_factor" })
     liquidationFactor!: bigint;
 
+    @Column("numeric", { ...uint256(), name: "min_fiat_processing_fee" })
+    minFiatProcessingFee = 0n;
+
     @Column("numeric", { ...uint256(), name: "fiat_processing_fee" })
     fiatProcessingFee!: bigint;
+
+    @Column("numeric", { ...uint256(), name: "min_crypto_processing_fee_fiat" })
+    minCryptoProcessingFeeFiat = 0n;
 
     @Column("numeric", { ...uint256(), name: "crypto_processing_fee" })
     cryptoProcessingFee!: bigint;

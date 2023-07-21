@@ -1,10 +1,15 @@
 export interface OpenCreditLineData {
-    expSupplyAmountUsd: bigint;
+    expDepositAmountUsd: bigint;
     expBorrowAmountUsd: bigint;
     expCollateralAmountUsd: bigint;
     collateralLimitPrice: bigint;
     currentPrice: bigint;
-    supplyProcFeeUsd: bigint;
+    depositProcFeeUsd: bigint;
     borrowProcFeeUsd: bigint;
     totalProcFeeUsd: bigint;
+}
+
+export interface CryptoFee {
+    feeCrypto: bigint;
+    feeFiat: bigint;
 }

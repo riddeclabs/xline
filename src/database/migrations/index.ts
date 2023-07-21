@@ -7,6 +7,8 @@ import { BorrowRequestStatus1686833303368 } from "./1686833303368-BorrowRequestS
 import { AddNewStatusForWithdrawRequest1688135557277 } from "./1688135557277-AddNewStatusForWithdrawRequest";
 import { AddAccruedAt1689165378233 } from "./1689165378233-AddAccruedAt";
 import { UniqueBusinessReqIban1689590506724 } from "./1689590506724-UniqueBusinessReqIban";
+import { MinFee1689681543358 } from "./1689681543358-MinFee";
+import { EconomicalParamsUpd1689765127284 } from "./1689765127284-EconomicalParamsUpd";
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 const migrations: MixedList<string | Function> = [
@@ -18,6 +20,8 @@ const migrations: MixedList<string | Function> = [
     AddNewStatusForWithdrawRequest1688135557277,
     AddAccruedAt1689165378233,
     UniqueBusinessReqIban1689590506724,
+    MinFee1689681543358,
+    EconomicalParamsUpd1689765127284,
 ];
 
 export default migrations;

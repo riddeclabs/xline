@@ -37,7 +37,7 @@ export class EntityBatchGenerator extends TestDatabaseSeeder {
                 ...(debtCurrency && {
                     debtCurrency,
                 }),
-                rawCollateralAmount: parseUnits("2.54321", collateralCurrency?.decimals),
+                rawDepositAmount: parseUnits("2.54321", collateralCurrency?.decimals),
                 debtAmount: parseUnits("3000", debtCurrency?.decimals),
                 feeAccumulatedFiatAmount: parseUnits("277.54321", debtCurrency?.decimals),
                 healthyFactor: parseUnits("1.54321"),

@@ -3,7 +3,6 @@ import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { Markup } from "telegraf";
 import * as filters from "telegraf/filters";
 import { callbackQuery } from "telegraf/filters";
-import { DefaultSessionState, ExtendedSessionData, ExtendedWizardContext } from "../../../bot.types";
 import { CustomExceptionFilter } from "../../../exception-filter";
 import { BotCommonService } from "../../../bot-common.service";
 import { BotManagerService } from "../../../bot-manager.service";
@@ -12,24 +11,7 @@ import { RepayTextSource } from "./repay.text";
 import { InlineKeyboardButton } from "typegram/markup";
 import { MainScene } from "../../main.scene";
 import { createRepayRequestRefNumber } from "../../../../../common";
-
-export enum RepaySteps {
-    VERIFY_PENDING_REQUESTS,
-    SIGN_APPLICATION,
-}
-
-export enum RepayCallbacks {
-    SIGN_APPLICATION = "choseCreditLine",
-    BACK_TO_MAIN_MENU = "back",
-}
-
-type RepaySessionData = ExtendedSessionData & {
-    state: DefaultSessionState & {
-        referenceNumber?: string;
-    };
-};
-
-export type RepayContext = ExtendedWizardContext<RepaySessionData>;
+import { RepaySteps, RepayContext, RepayCallbacks } from "./repay.types";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)

@@ -2,7 +2,7 @@ import { Injectable, UseFilters } from "@nestjs/common";
 import { Action, Ctx, Hears, Wizard, WizardStep } from "nestjs-telegraf";
 import { BotCommonService } from "../../../bot-common.service";
 import { CustomExceptionFilter } from "../../../exception-filter";
-import { bigintToFormattedPercent, formatUnitsNumber, parseUnits } from "src/common";
+import { bigintToFormattedPercent, formatUnits, formatUnitsNumber, parseUnits } from "src/common";
 import { Markup } from "telegraf";
 import { Message } from "telegraf/typings/core/types/typegram";
 import { SignApplicationOptions } from "../../../constants";
@@ -75,7 +75,7 @@ export class BorrowActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const creditLine = await this.botManager.getCreditLinesByIdAllSettingsExtended(creditLineId);
 
-        if (creditLine.rawCollateralAmount <= 0n) {
+        if (creditLine.rawDepositAmount <= 0n) {
             await ctx.editMessageText(BorrowTextSource.getZeroBalanceText(), {
                 parse_mode: "MarkdownV2",
             });
@@ -114,10 +114,16 @@ export class BorrowActionWizard {
         const collateralFactor = bigintToFormattedPercent(
             creditLine.economicalParameters.collateralFactor
         );
+        const minFee = formatUnits(creditLine.economicalParameters.minFiatProcessingFee);
         const fee = bigintToFormattedPercent(creditLine.economicalParameters.fiatProcessingFee);
 
         const msg = (await ctx.editMessageText(
-            BorrowTextSource.getBorrowTermsText(collateralFactor, fee, creditLine.debtCurrency.symbol),
+            BorrowTextSource.getBorrowTermsText(
+                collateralFactor,
+                minFee,
+                fee,
+                creditLine.debtCurrency.symbol
+            ),
             {
                 parse_mode: "MarkdownV2",
             }
@@ -199,7 +205,7 @@ export class BorrowActionWizard {
             2
         );
         stateAfter.utilizationRatePercent = bigintToFormattedPercent(
-            parseUnits(stateAfter.debtAmount / stateAfter.supplyAmountFiat)
+            parseUnits(stateAfter.debtAmount / stateAfter.depositAmountFiat)
         );
 
         const requisites: Requisites = {
@@ -262,7 +268,7 @@ export class BorrowActionWizard {
                 await this.signApplicationHandler(ctx, value);
                 break;
             case BorrowReqCallbacks.APPROVE_TERMS:
-                await this.approveTermsHandler(ctx, value);
+                await this.approveTermsHandler(ctx);
                 break;
             case BorrowReqCallbacks.RE_ENTER__AMOUNT:
                 ctx.scene.session.cursor = BorrowActionSteps.AMOUNT_REQUEST;
@@ -323,7 +329,11 @@ export class BorrowActionWizard {
                 await this.botManager.saveNewBorrowRequest(creditLine, borrowFiatAmount);
             } catch (e) {
                 const errorMsg = BorrowTextSource.getFinalAmountValidationFailedMsg();
-                await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+                await this.botCommon.retryOrBackHandler(
+                    ctx,
+                    errorMsg,
+                    BorrowReqCallbacks.RE_ENTER__AMOUNT
+                );
                 return;
             }
 
@@ -348,7 +358,7 @@ export class BorrowActionWizard {
         }
     }
 
-    private async approveTermsHandler(ctx: BorrowContext, callbackValue?: string) {
+    private async approveTermsHandler(ctx: BorrowContext) {
         await this.botCommon.executeCurrentStep(ctx);
     }
 
@@ -363,45 +373,22 @@ export class BorrowActionWizard {
         const input = Number(userInput);
         if (!input || input <= 0) {
             const errorMsg = BorrowTextSource.getAmountValidationErrorMsg(userInput);
-            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            await this.botCommon.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;
         } else if (!validateAmountDecimals(input, 2)) {
             const errorMsg = BorrowTextSource.getAmountDecimalsValidationErrorMsg(userInput, 2);
-            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            await this.botCommon.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;
         } else if (input > state.maxAllowedBorrowAmount) {
             const errorMsg = BorrowTextSource.getAmountValidationErrorMaxAllowedMsg(
                 userInput,
                 state.maxAllowedBorrowAmount
             );
-            await this.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
+            await this.botCommon.retryOrBackHandler(ctx, errorMsg, BorrowReqCallbacks.RE_ENTER__AMOUNT);
             return;
         } else {
             ctx.scene.session.state.borrowAmount = userInput;
             await this.botCommon.executeCurrentStep(ctx);
         }
-    }
-
-    // FIXME: Move to common
-    private async retryOrBackHandler(ctx: BorrowContext, errorMsg: string, retryCallbackValue: string) {
-        const editMsgId = ctx.scene.session.state.sceneEditMsgId;
-        await ctx.telegram.editMessageText(ctx.chat?.id, editMsgId, undefined, errorMsg, {
-            parse_mode: "MarkdownV2",
-        });
-        await ctx.telegram.editMessageReplyMarkup(
-            ctx.chat?.id,
-            editMsgId,
-            undefined,
-            Markup.inlineKeyboard(
-                [
-                    {
-                        text: "🔁 Try again",
-                        callback_data: `${retryCallbackValue}`,
-                    },
-                    this.botCommon.goBackButton(),
-                ],
-                { columns: 2 }
-            ).reply_markup
-        );
     }
 }

@@ -8,7 +8,7 @@
  *
  * floatToMd("2.71828"); // Returns "2`.`71828"
  */
-export function floatToMd(value: number | string): string {
+function floatToMd(value: number | string): string {
     const stringValue = typeof value === "number" ? value.toString() : value;
     return stringValue.replace(".", "`.`");
 }

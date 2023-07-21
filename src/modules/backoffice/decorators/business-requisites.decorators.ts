@@ -1,7 +1,8 @@
 import { ExecutionContext, createParamDecorator } from "@nestjs/common";
 import { CreditLineDetailsDto } from "../dto/credit-line-details.dto";
 
-export const BusinessRequisites = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const BusinessRequisites = createParamDecorator((_: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
     const result = new CreditLineDetailsDto();

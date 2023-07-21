@@ -108,7 +108,7 @@ export class TestDatabaseSeeder {
         cl.repayRequests = params?.repayRequests ?? [];
         cl.gatewayUserId = params?.gatewayUserId ?? "MOCKED_USER_ID";
         cl.creditLineStatus = params?.creditLineStatus ?? CreditLineStatus.INITIALIZED;
-        cl.rawCollateralAmount = params?.rawCollateralAmount ?? 0n;
+        cl.rawDepositAmount = params?.rawDepositAmount ?? 0n;
         cl.debtAmount = params?.debtAmount ?? 0n;
         cl.feeAccumulatedFiatAmount = params?.feeAccumulatedFiatAmount ?? 0n;
         cl.healthyFactor = params?.healthyFactor ?? 0n;

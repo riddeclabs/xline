@@ -18,6 +18,8 @@ export class EconomicalParametersService {
     ): Promise<EconomicalParameters> {
         return this.economicalParamsRepo
             .createQueryBuilder("ep")
+            .leftJoinAndSelect("ep.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("ep.debtCurrency", "debtCurrency")
             .where("ep.collateralCurrencyId = :collateralId", { collateralId: collateralCurrencyId })
             .andWhere("ep.debtCurrencyId = :debtId", { debtId: debtCurrencyId })
             .orderBy("ep.createdAt", "DESC")
@@ -28,6 +30,8 @@ export class EconomicalParametersService {
         return this.economicalParamsRepo
             .createQueryBuilder("ep")
             .leftJoin("ep.creditLines", "cl")
+            .leftJoinAndSelect("ep.collateralCurrency", "collateralCurrency")
+            .leftJoinAndSelect("ep.debtCurrency", "debtCurrency")
             .where("cl.id = :creditLineId", { creditLineId })
             .getOneOrFail();
     }

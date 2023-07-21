@@ -69,7 +69,7 @@ export class RepayTextSource {
             mdCollateralSymbol: clwe.collateralCurrency.symbol,
             mdDepositAmountUsd: truncateDecimalsToStr(formatUnits(clwe.fiatCollateralAmount)),
             mdDepositAmountRaw: truncateDecimalsToStr(
-                formatUnits(clwe.rawCollateralAmount, clwe.collateralCurrency.decimals)
+                formatUnits(clwe.rawDepositAmount, clwe.collateralCurrency.decimals)
             ),
             mdDebtAmount: truncateDecimalsToStr(formatUnits(clwe.debtAmount)),
             mdHealthyFactor: truncateDecimalsToStr(formatUnits(clwe.healthyFactor)),

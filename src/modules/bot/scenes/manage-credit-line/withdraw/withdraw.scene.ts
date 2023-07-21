@@ -16,12 +16,18 @@ import {
     validateWithdrawInputValue,
     WithdrawSceneValidationStatus,
 } from "../../../../../common/input-validation";
-import { formatUnits, parseUnits, WithdrawRequestStatus } from "../../../../../common";
+import {
+    formatUnits,
+    formatUnitsNumber,
+    parseUnits,
+    WithdrawRequestStatus,
+} from "../../../../../common";
 import { DepositActionWizard } from "../deposit/deposit.scene";
-import { maxUint256 } from "../../../../../common/constants";
-import { WithdrawRequest } from "../../../../../database/entities";
+import { CreditLine, WithdrawRequest } from "../../../../../database/entities";
 import { WithdrawCallbacks, WithdrawContext, WithdrawSteps } from "./withdraw.types";
-import { getXLineRequestMsgData } from "../../common/utils";
+import { getCreditLineStateMsgData, getXLineRequestMsgData } from "../../common/utils";
+import { truncateDecimals } from "src/common/text-formatter";
+import { CryptoFee } from "src/modules/risk-engine/risk-engine.types";
 
 @Injectable()
 @UseFilters(CustomExceptionFilter)
@@ -67,7 +73,7 @@ export class WithdrawActionWizard {
             );
             const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
-            if (creditLine.rawCollateralAmount <= 0n) {
+            if (creditLine.rawDepositAmount <= 0n) {
                 const msgText = WithdrawTextSource.getZeroBalanceText();
                 await updateMessage(msgText, true);
                 return;
@@ -110,7 +116,9 @@ export class WithdrawActionWizard {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
         const economicalParameters = await this.botManager.getEconomicalParamsByLineId(creditLineId);
         const msgText = WithdrawTextSource.getWithdrawInfoText(
+            economicalParameters.minCryptoProcessingFeeFiat,
             economicalParameters.cryptoProcessingFee,
+            economicalParameters.debtCurrency.symbol,
             economicalParameters.collateralFactor
         );
 
@@ -141,8 +149,7 @@ export class WithdrawActionWizard {
 
             msgText = WithdrawTextSource.getFullWithdrawEnterAmountText(
                 creditLine.collateralCurrency,
-                creditLine.rawCollateralAmount,
-                creditLineExtras.maxAllowedCryptoToWithdraw,
+                creditLine.rawDepositAmount,
                 creditLineExtras.utilizationRate
             );
 
@@ -156,7 +163,7 @@ export class WithdrawActionWizard {
         } else {
             msgText = WithdrawTextSource.getGeneralEnterAmountText(
                 creditLine.collateralCurrency,
-                creditLine.rawCollateralAmount,
+                creditLine.rawDepositAmount,
                 creditLineExtras.maxAllowedCryptoToWithdraw,
                 creditLineExtras.utilizationRate,
                 creditLine.economicalParameters.collateralFactor
@@ -191,7 +198,8 @@ export class WithdrawActionWizard {
     @WizardStep(WithdrawSteps.SIGN_WITHDRAW_APPLICATION)
     async onSignWithdrawApplication(@Ctx() ctx: WithdrawContext) {
         const creditLineId = this.botCommon.getCreditLineIdFromSceneDto(ctx);
-        const collateralCurrency = this.botCommon.getCollateralCurrencyFromSceneDto(ctx);
+        const creditLine = await this.botManager.accrueInterestAndGetCLAllSettingsExtended(creditLineId);
+        const creditLineExtras = await this.botManager.getCreditLineExtras(creditLine);
 
         const requestedWithdrawAmount = ctx.scene.session.state.requestedWithdrawAmountRaw;
         const addressToWithdraw = ctx.scene.session.state.addressToWithdraw;
@@ -206,17 +214,34 @@ export class WithdrawActionWizard {
         }
 
         const requestedWithdrawAmountRaw = requestedWithdrawAmount
-            ? parseUnits(requestedWithdrawAmount, collateralCurrency.decimals)
-            : maxUint256;
-        const withdrawRequestDetails = await this.botManager.calculateWithdrawRequestDetails(
-            creditLineId,
-            requestedWithdrawAmountRaw
-        );
+            ? parseUnits(requestedWithdrawAmount, creditLine.collateralCurrency.decimals)
+            : await this.botManager.calculateMaxAllowedToWithdraw(creditLine);
+
+        const depositAfter = creditLine.rawDepositAmount - requestedWithdrawAmountRaw;
+
+        const processingFee: CryptoFee = isWithdrawAllCase
+            ? { feeCrypto: 0n, feeFiat: 0n }
+            : await this.botManager.calculateCryptoProcessingFeeAmount(
+                  creditLine.economicalParameters,
+                  creditLine.collateralCurrency,
+                  requestedWithdrawAmountRaw
+              );
+
+        const stateBefore = getCreditLineStateMsgData({ ...creditLine, ...creditLineExtras });
+
+        const creditLineAfter: CreditLine = { ...creditLine };
+        creditLineAfter.rawDepositAmount = depositAfter;
+        creditLineAfter.debtAmount += processingFee.feeFiat;
+        const creditLineAfterExtra = await this.botManager.getCreditLineExtras(creditLineAfter);
+
+        const stateAfter = getCreditLineStateMsgData({ ...creditLineAfter, ...creditLineAfterExtra });
 
         const msgText = WithdrawTextSource.getSignWithdrawApplicationText(
-            withdrawRequestDetails,
+            stateBefore,
+            stateAfter,
+            formatUnits(requestedWithdrawAmountRaw, creditLine.collateralCurrency.decimals),
             addressToWithdraw,
-            requestedWithdrawAmountRaw
+            truncateDecimals(formatUnitsNumber(processingFee.feeFiat, creditLine.debtCurrency.decimals))
         );
 
         const buttons = [

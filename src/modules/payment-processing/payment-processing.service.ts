@@ -118,7 +118,7 @@ export class PaymentProcessingService {
                 baseUrl + WITHDRAWAL_PATH,
                 {
                     customerId: chatId.toString(),
-                    amount: Number(withdrawAmount), // FIXME: After XGW fix data structure, should be `string` instead of `number`
+                    amount: withdrawAmount,
                     address: addressToWithdraw,
                     currency: currencySymbol,
                 },

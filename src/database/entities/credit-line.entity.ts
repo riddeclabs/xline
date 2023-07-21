@@ -94,8 +94,8 @@ export class CreditLine {
     })
     creditLineStatus!: CreditLineStatus;
 
-    @Column("numeric", { ...uint256(), name: "raw_collateral_amount" })
-    rawCollateralAmount = 0n;
+    @Column("numeric", { ...uint256(), name: "raw_deposit_amount" })
+    rawDepositAmount = 0n;
 
     @Column("numeric", { ...uint256(), name: "debt_amount" })
     debtAmount = 0n;

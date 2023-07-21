@@ -46,7 +46,9 @@ import { Role } from "../../common";
             liquidationFee: 0.1,
             collateralFactor: 0.7,
             liquidationFactor: 0.8,
+            minFiatProcessingFee: 10,
             fiatProcessingFee: 0.005,
+            minCryptoProcessingFeeFiat: 11,
             cryptoProcessingFee: 0.006,
         })
         .addEconomicalParameters({
@@ -56,7 +58,9 @@ import { Role } from "../../common";
             liquidationFee: 0.11,
             collateralFactor: 0.72,
             liquidationFactor: 0.82,
+            minFiatProcessingFee: 12,
             fiatProcessingFee: 0.02,
+            minCryptoProcessingFeeFiat: 13,
             cryptoProcessingFee: 0.015,
         })
         .addBusinessPaymentRequisites({
@@ -107,7 +111,9 @@ class DatabaseSeeder {
         liquidationFee: number;
         collateralFactor: number;
         liquidationFactor: number;
+        minFiatProcessingFee: number;
         fiatProcessingFee: number;
+        minCryptoProcessingFeeFiat: number;
         cryptoProcessingFee: number;
     }): DatabaseSeeder {
         const collateralCurrencyId = this.getCurrencyId(
@@ -123,7 +129,9 @@ class DatabaseSeeder {
             liquidationFee: parseUnits(params.liquidationFee.toString()),
             collateralFactor: parseUnits(params.collateralFactor.toString()),
             liquidationFactor: parseUnits(params.liquidationFactor.toString()),
+            minFiatProcessingFee: parseUnits(params.minFiatProcessingFee.toString()),
             fiatProcessingFee: parseUnits(params.fiatProcessingFee.toString()),
+            minCryptoProcessingFeeFiat: parseUnits(params.minCryptoProcessingFeeFiat.toString()),
             cryptoProcessingFee: parseUnits(params.cryptoProcessingFee.toString()),
         });
         return this;
