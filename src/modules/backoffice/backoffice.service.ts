@@ -19,7 +19,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { EXP_SCALE, PAGE_LIMIT, PAGE_LIMIT_REQUEST } from "src/common/constants";
 import {
     AllRequestByCreditLineType,
-    CollatetalCurrencyType,
+    CollateralCurrencyType,
     DebtCurrencyType,
 } from "./backoffice.types";
 import { RiskEngineService } from "../risk-engine/risk-engine.service";
@@ -221,14 +221,14 @@ export class BackOfficeService {
             .getRawOne();
     }
 
-    getCollateralCurrency(): Promise<CollatetalCurrencyType[]> {
+    getCollateralCurrency(): Promise<CollateralCurrencyType[]> {
         return this.creditLineRepo
             .createQueryBuilder("creditLine")
             .leftJoin("creditLine.collateralCurrency", "collateralCurrency")
             .select("collateralCurrency.id", "id")
             .addSelect("collateralCurrency.decimals", "decimals")
             .addSelect("collateralCurrency.symbol", "symbol")
-            .addSelect("SUM(creditLine.rawCollateralAmount)", "amount")
+            .addSelect("SUM(creditLine.rawDepositAmount)", "amount")
             .groupBy("collateralCurrency.id")
             .getRawMany();
     }

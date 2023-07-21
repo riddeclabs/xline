@@ -225,17 +225,14 @@ describe("ReviewService", () => {
     });
 
     describe("updateDepositAmountById", () => {
-        it("should update the `rawCollateralAmount` of a credit line", async () => {
-            const newRawCollateralAmount = 1775n;
+        it("should update the `rawDepositAmount` of a credit line", async () => {
+            const newRawDepositAmount = 1775n;
 
-            await creditLineService.updateDepositAmountById(
-                creditLine_BTC_USD.id,
-                newRawCollateralAmount
-            );
+            await creditLineService.updateDepositAmountById(creditLine_BTC_USD.id, newRawDepositAmount);
             const updatedCl = await creditLineService.getCreditLineById(creditLine_BTC_USD.id);
 
             expect(updatedCl.id).toEqual(creditLine_BTC_USD.id);
-            expect(updatedCl.rawDepositAmount).toEqual(newRawCollateralAmount);
+            expect(updatedCl.rawDepositAmount).toEqual(newRawDepositAmount);
         });
     });
 

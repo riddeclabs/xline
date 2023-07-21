@@ -143,7 +143,9 @@ export class BackOfficeController {
             })
         );
 
-        const totalDeposit = collateralCurrencyAmount.map(item => item.amount).reduce((a, b) => a + b, 0);
+        const totalDeposit = collateralCurrencyAmount
+            .map(item => item.amount)
+            .reduce((a, b) => a + b, 0);
 
         const debtCurrencyInitial = await this.backofficeService.getDebtCurrency();
 

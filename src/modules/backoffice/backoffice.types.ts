@@ -1,4 +1,4 @@
-export type CollatetalCurrencyType = {
+export type CollateralCurrencyType = {
     id: number;
     symbol: string;
     decimals: number;
