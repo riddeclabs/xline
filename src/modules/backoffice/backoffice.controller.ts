@@ -321,7 +321,7 @@ export class BackOfficeController {
                 ),
             };
         });
-        const totalCount = await this.backofficeService.getBorrowCount();
+        const totalCount = await this.backofficeService.getBorrowCount(chatIdFilter);
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -359,6 +359,7 @@ export class BackOfficeController {
             chatIdFilter,
             refNumberFilter
         );
+
         const allRepayResult = getAllRepay.map(item => {
             return {
                 ...item,
@@ -369,7 +370,7 @@ export class BackOfficeController {
             };
         });
 
-        const totalCount = await this.backofficeService.getRepayCount();
+        const totalCount = await this.backofficeService.getRepayCount(chatIdFilter, refNumberFilter);
         const totalPageCount = Math.ceil(totalCount / PAGE_LIMIT_REQUEST);
         const queryWithDefaults = {
             page: page > 1 ? page : undefined,
@@ -395,7 +396,7 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("borrow-request/:creditLineId/:id")
+    @Get("borrow-request/:customerId/:creditLineId/:id")
     @Render("backoffice/resolve-borrow-request")
     async borrowRequestResolve(@Param("id") id: string) {
         const borrowRequest = await this.requestHandler.getFullyAssociatedBorrowRequest(+id);
@@ -428,6 +429,8 @@ export class BackOfficeController {
             ),
             symbol: creditLine.debtCurrency.symbol,
         };
+
+        const businessPaymentRequisites = await this.backofficeService.getBusinessPaymentRequisites();
 
         const resultPageData = {
             accountName: creditLine.user.name,
@@ -468,17 +471,14 @@ export class BackOfficeController {
             status: borrowRequest.borrowRequestStatus,
             fiatTransactions,
             borrowAmountAndStatus,
+            ibanList: businessPaymentRequisites.map(item => item.iban),
         };
         return { resultPageData };
     }
 
-    @Get("repay-request/:creditLineId/:id")
+    @Get("repay-request/:customerId/:creditLineId/:id")
     @Render("backoffice/repay-request-item")
-    async repayItem(
-        @Res() res: Response,
-        @Param("creditLineId") creditLineId: string,
-        @Param("id") id: string
-    ) {
+    async repayItem(@Res() res: Response, @Param("id") id: string) {
         const repayRequestById = await this.backofficeService.getRepayRequestById(id);
         if (!repayRequestById) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
@@ -544,11 +544,12 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customers/credit-line-detail/:type/:creditLineId/:id")
+    @Get("customers/credit-line-detail/:type/:customerId/:creditLineId/:id")
     @Render("backoffice/credit-line-detail")
     async creditLineDetails(
         @Res() res: Response,
         @Param("id") id: string,
+        @Param("customerId") customerId: string,
         @Param("creditLineId") creditLineId: string,
         @Param("type") type: string,
         @CreditLineDetails() query: CreditLineDetailsDto
@@ -676,7 +677,7 @@ export class BackOfficeController {
             sortField,
             sortDirection,
         };
-        if (!resultTable.length) {
+        if (!checkStatus(type, status.status)) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
 
@@ -704,6 +705,8 @@ export class BackOfficeController {
                 checkBorrowFiatAmount,
                 borrowFiatAmount,
                 withdrawAmount,
+                creditLineId,
+                customerId,
             },
             rowTable: resultTable.map(item => {
                 return {
@@ -729,10 +732,11 @@ export class BackOfficeController {
         };
     }
 
-    @Get("customers/creditline-user-list/:creditLineId")
+    @Get("customers/creditline-user-list/:customerId/:creditLineId")
     @Render("backoffice/creditline-user-list")
     async userCreditLineList(
         @Res() res: Response,
+        @Param("customerId") customerId: string,
         @Param("creditLineId") creditLineId: string,
         @TransactionsQuery() query: TransactionsDto
     ) {
@@ -798,6 +802,7 @@ export class BackOfficeController {
         return {
             resultTable,
             creditLineId,
+            customerId,
             page: {
                 current: page,
                 query: queryWithDefaults,
@@ -814,10 +819,10 @@ export class BackOfficeController {
 
     @Roles(Role.ADMIN, Role.OPERATOR)
     @UseGuards(AuthenticatedGuard, RoleGuard)
-    @Get("customers-credit-line/:userId")
+    @Get("customers-credit-line/:customerId")
     @Render("backoffice/customer-credit-line")
-    async customerCreditLine(@Res() res: Response, @Param("userId") userId: string) {
-        const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(userId);
+    async customerCreditLine(@Res() res: Response, @Param("customerId") customerId: string) {
+        const fullyAssociatedUser = await this.backofficeService.getFullyAssociatedUserById(customerId);
         if (!fullyAssociatedUser) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }
@@ -917,6 +922,7 @@ export class BackOfficeController {
             mainInfo: {
                 name: fullyAssociatedUser?.name,
                 chatId: fullyAssociatedUser?.chatId,
+                customerId,
             },
             allCreditLine,
         };

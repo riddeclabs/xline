@@ -159,12 +159,15 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getBorrowCount() {
+    getBorrowCount(chatId?: string) {
         return this.borrowRepo
             .createQueryBuilder("borrow")
             .where("NOT (borrow.borrowRequestStatus IN (:...status))", {
                 status: [BorrowRequestStatus.REJECTED, BorrowRequestStatus.FINISHED],
             })
+            .leftJoin("borrow.creditLine", "creditLine")
+            .leftJoin("creditLine.user", "user")
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
             .getCount();
     }
 
@@ -190,12 +193,16 @@ export class BackOfficeService {
             .getMany();
     }
 
-    getRepayCount() {
+    getRepayCount(chatId?: string, refNumber?: string) {
         return this.repayRepo
             .createQueryBuilder("repay")
             .where("repay.repayRequestStatus = :status", {
                 status: RepayRequestStatus.VERIFICATION_PENDING,
             })
+            .leftJoinAndSelect("repay.creditLine", "creditLine")
+            .leftJoinAndSelect("creditLine.user", "user")
+            .andWhere("CAST(user.chat_id AS TEXT) like :chatId", { chatId: `%${chatId}%` })
+            .andWhere("creditLine.refNumber ilike  :refNumber", { refNumber: `%${refNumber}%` })
             .getCount();
     }
 
@@ -512,5 +519,9 @@ export class BackOfficeService {
 
     getBusinesRaymentRequisitesCount() {
         return this.businessRequisite.createQueryBuilder("biz").getCount();
+    }
+
+    getBusinessPaymentRequisites() {
+        return this.businessRequisite.createQueryBuilder("biz").getMany();
     }
 }

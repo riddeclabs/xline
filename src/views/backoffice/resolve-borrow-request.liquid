@@ -2,7 +2,11 @@
 {% block content %}
   <div class="success-mess" id="success">Successfully!</div>
   <div class="error-mess" id="error">Something went wrong!</div>
-  <div class="title-page">Borrow request resolve page</div>
+  <div class="title-page">Borrow request resolve page.</div>
+  <div class="breadcrumbs">
+    <a href="/backoffice/borrow-request">borrow requests</a>
+    / ...
+  </div>
   {% if resultPageData.status == 'WAITING_FOR_DEPOSIT' %}
     <div class='pb-1 text-white fs-5'>Step 1: Verify requested amount and send the funds</div>
     <div class='text-white fs-6'>Please make sure that the requested loan amount is within the limits set in the agreement and that all data for processing this request is present and correct.</div>
@@ -81,11 +85,21 @@
       </div>
       <div class='card bg-dark shadow-sm wrapper-count'>
         <h1 class='pb-2 fs-5'>Resolve request form:</h1>
+
         <p class='fs-6'>IBAN from:</p>
-        <input
-          id="iban"
-          type="text"
-          class="input-resolve">
+        <div class="custom-select">
+          <input
+            type="text"
+            id="iban"
+            placeholder="Search.."
+            class="input-resolve">
+
+          <div id="myDropdown" class="dropdown-content">
+            {% for iban in resultPageData.ibanList %}
+              <div class="option" onclick="selectOption(this)">{{ iban }}</div>
+            {% endfor %}
+          </div>
+        </div>
         <p class='fs-6 mt-2'>Transfer amount:</p>
         <input
           id="transferAmount"
@@ -152,6 +166,8 @@
     const baseUrl = document.location.origin;
     const acceptBtn = document.getElementById('acceptBtn');
     const finelizeBtn = document.getElementById('finelizeBtn');
+    const input = document.getElementById("iban");
+    const dropdown = document.getElementById("myDropdown");
     const borrowId = document
       .location
       .pathname
@@ -162,6 +178,42 @@
       .pathname
       .split("/")
       .slice(-2)[0];
+
+    if (input) {
+      input.addEventListener("focus", () => {
+        dropdown.style.display = "block"
+      });
+      input.addEventListener("focusout", () => {
+        setTimeout(() => {
+          dropdown.style.display = "none"
+        }, 300)
+      })
+
+      input.addEventListener("keyup", function filterFunction() {
+        let filter,
+          options,
+          i;
+
+        filter = input.value.toUpperCase();
+        options = dropdown.getElementsByClassName("option");
+
+        for (i = 0; i < options.length; i++) {
+          txtValue = options[i].textContent || options[i].innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            options[i].style.display = "block";
+          } else {
+            options[i].style.display = "none";
+          }
+        }
+      });
+    }
+
+
+    const customerId = document
+      .location
+      .pathname
+      .split("/")
+      .slice(-3)[0];
     rejectBtn.addEventListener('click', () => {
       const requestOptions = {
         method: 'POST',
@@ -177,7 +229,7 @@
           success.style.right = "30px"
           setTimeout(() => {
             success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
           }, 2000)
         } else {
           error.style.right = "30px"
@@ -188,6 +240,15 @@
         }
       });
     });
+
+    function selectOption(element) {
+      document.getElementById("iban").value = element.textContent;
+      var options = document.getElementsByClassName("option");
+      for (var i = 0; i < options.length; i++) {
+        options[i].style.display = "none";
+      }
+    }
+
     if (acceptBtn) {
       acceptBtn.addEventListener('click', () => {
         const requestOptions = {
@@ -208,7 +269,7 @@
             success.style.right = "30px"
             setTimeout(() => {
               success.style.right = "-700px";
-              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
             }, 3000)
           } else {
             error.style.right = "30px"
@@ -221,32 +282,33 @@
       });
     }
 
-
-    finelizeBtn.addEventListener('click', () => {
-      const requestOptions = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(
-          {requestId: Number(borrowId)}
-        )
-      };
-      fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
-        if (resJSON.success) {
-          success.style.right = "30px"
-          setTimeout(() => {
-            success.style.right = "-700px";
-            document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${creditLineId}/${borrowId}`
-          }, 2000)
-        } else {
-          error.style.right = "30px"
-          error.innerText = resJSON.message
-          setTimeout(() => {
-            error.style.right = "-700px"
-          }, 3000)
-        }
+    if (finelizeBtn) {
+      finelizeBtn.addEventListener('click', () => {
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(
+            {requestId: Number(borrowId)}
+          )
+        };
+        fetch(`${baseUrl}/request-resolver/resolve-request/borrow-finalize`, requestOptions).then(response => response.json()).then(resJSON => {
+          if (resJSON.success) {
+            success.style.right = "30px"
+            setTimeout(() => {
+              success.style.right = "-700px";
+              document.location.href = `${baseUrl}/backoffice/customers/credit-line-detail/Borrow/${customerId}/${creditLineId}/${borrowId}`
+            }, 2000)
+          } else {
+            error.style.right = "30px"
+            error.innerText = resJSON.message
+            setTimeout(() => {
+              error.style.right = "-700px"
+            }, 3000)
+          }
+        });
       });
-    });
+    }
   </script>
 {% endblock %}
