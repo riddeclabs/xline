@@ -13,6 +13,7 @@ import {
     BorrowRequestStatus,
     DepositRequestStatus,
     FiatTransactionStatus,
+    formatUnitsNumber,
     parseUnits,
     RepayRequestStatus,
     WithdrawRequestStatus,
@@ -28,7 +29,7 @@ import {
 } from "../../database/entities";
 import { PriceOracleService } from "../price-oracle/price-oracle.service";
 import { PaymentRequisiteService } from "../payment-requisite/payment-requisite.service";
-import { validateIban, validateName } from "../../common/input-validation";
+import { validateAmountDecimals, validateIban, validateName } from "../../common/input-validation";
 import { CallbackTypes } from "../payment-processing/payment-processing.types";
 
 @Injectable()
@@ -77,10 +78,24 @@ export class RequestResolverService {
             );
         }
 
+        const resBorrowReqAmount = parseUnits(
+            resolveBorrowRequest.rawTransferAmount,
+            creditLine.debtCurrency.decimals
+        );
+
         if (
-            parseUnits(resolveBorrowRequest.rawTransferAmount, creditLine.debtCurrency.decimals) !==
-            borrowRequest.borrowFiatAmount
+            !validateAmountDecimals(
+                formatUnitsNumber(resBorrowReqAmount, creditLine.debtCurrency.decimals),
+                2
+            )
         ) {
+            throw new HttpException(
+                "Incorrect rawTransferAmount amount: only 2 decimals after comma are allowed",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        if (resBorrowReqAmount !== borrowRequest.borrowFiatAmount) {
             throw new HttpException("Incorrect rawTransferAmount amount", HttpStatus.BAD_REQUEST);
         }
 
@@ -95,7 +110,7 @@ export class RequestResolverService {
             );
         }
 
-        const borrowAmountWithFee = await this.riskEngineService.calculateBorrowAmountWithFees(
+        const borrowAmountWithFee = this.riskEngineService.calculateBorrowAmountWithFees(
             creditLine.economicalParameters,
             borrowRequest.borrowFiatAmount
         );
@@ -350,10 +365,17 @@ export class RequestResolverService {
             );
         }
 
+        let repayAmount = transferAmount;
+
+        // In case of full repayment, we round debt amount to 1 cent
+        if (creditLine.debtAmount - transferAmount < parseUnits("0.01", debtCurrency.decimals)) {
+            repayAmount = creditLine.debtAmount;
+        }
+
         // Decrease debt amount for repay request
         const updatedCreditLine = await this.creditLineService.decreaseDebtAmountById(
             creditLine.id,
-            transferAmount
+            repayAmount
         );
 
         // Update status for repay request
