@@ -72,7 +72,13 @@ export class RiskEngineService {
             collateralTokenDecimals,
             scaledRawDepositAmount
         );
-        return (depositUsd * riskStrategyRate) / EXP_SCALE;
+
+        const borrowAmount = (depositUsd * riskStrategyRate) / EXP_SCALE;
+
+        // Truncate borrow amount to 2 decimals
+        const TRUNCATE_MULTIPLIER = 10n ** BigInt(collateralTokenDecimals - 2);
+        const borrowAmountTruncated = (borrowAmount / TRUNCATE_MULTIPLIER) * TRUNCATE_MULTIPLIER;
+        return borrowAmountTruncated;
     }
 
     calculateFiatProcessingFeeAmount(
