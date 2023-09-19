@@ -72,7 +72,6 @@ export class PaymentProcessingService {
 
         const baseUrl = paymentGateway.url;
         const apiKey = this.configService.get("GATEWAY_API_KEY");
-        const authToken = this.configService.get("GATEWAY_AUTH_TOKEN");
 
         let resData: XGateWayAddressResponse;
         try {
@@ -81,10 +80,7 @@ export class PaymentProcessingService {
                 { customerId: chatId, currency: currencySymbol },
                 {
                     withCredentials: true,
-                    headers: {
-                        "x-api-key": apiKey,
-                        Cookie: authToken,
-                    },
+                    headers: { "x-api-key": apiKey },
                 }
             );
             resData = res.data;
@@ -110,7 +106,6 @@ export class PaymentProcessingService {
 
         const baseUrl = paymentGateway.url;
         const apiKey = this.configService.get("GATEWAY_API_KEY");
-        const authToken = this.configService.get("GATEWAY_AUTH_TOKEN");
 
         let resData: XGateWayWithdrawalResponse;
         try {
@@ -124,10 +119,7 @@ export class PaymentProcessingService {
                 },
                 {
                     withCredentials: true,
-                    headers: {
-                        "x-api-key": apiKey,
-                        Cookie: authToken,
-                    },
+                    headers: { "x-api-key": apiKey },
                 }
             );
             resData = res.data;

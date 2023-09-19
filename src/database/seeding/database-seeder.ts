@@ -69,7 +69,7 @@ import { Role } from "../../common";
             iban: "SO061000001123123456789",
         })
         .addPaymentProcessing({
-            url: "https://api.xgateway.dev/api/v1",
+            url: "https://api.demo.xgateway.tech/api/v1",
         })
         .addOperator({
             username: "Vasia",

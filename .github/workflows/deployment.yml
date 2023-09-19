@@ -1,0 +1,73 @@
+name: Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository }}
+  IMAGE_PATH: ghcr.io/${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag
+        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          file: Dockerfile
+          tags: ${{ env.IMAGE_PATH }}:${{ env.VERSION }},${{ env.IMAGE_PATH }}:latest
+
+      # - name: Redeploy the service
+      #   timeout-minutes: 5
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      #   run: |
+      #     aws ecs update-service --cluster exchange-bot --service exchange-bot-dev --force-new-deployment
+      #     aws ecs wait services-stable --cluster exchange-bot --services exchange-bot-dev
+
+      # - name: Success Slack Notification
+      #   if: ${{ success() }}
+      #   uses: rtCamp/action-slack-notify@v2
+      #   env:
+      #     SLACK_COLOR: ${{ job.status }}
+      #     SLACK_TITLE: "A new Exchange Bot version ${{ env.VERSION }} has been deployed. :rocket:"
+      #     SLACK_MESSAGE: ""
+      #     SLACK_FOOTER: https://dev.exchange-bot.riddec.xyz/backoffice
+      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      #     MSG_MINIMAL: actions url,commit
+
+      # - name: Failure Slack Notification
+      #   if: ${{ failure() }}
+      #   uses: rtCamp/action-slack-notify@v2
+      #   env:
+      #     SLACK_COLOR: ${{ job.status }}
+      #     SLACK_TITLE: An Exchange Bot deployment pipeline has failed
+      #     SLACK_MESSAGE: ""
+      #     SLACK_FOOTER: ""
+      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      #     MSG_MINIMAL: actions url,commit
