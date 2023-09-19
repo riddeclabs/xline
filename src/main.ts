@@ -15,6 +15,14 @@ import * as morgan from "morgan";
 import { GlobalHttpExceptionFilter } from "./filters/global-http-exceptions.filter";
 
 async function bootstrap() {
+    // Read AWS secrets and assign them to environment variables
+    if (env.SECRETS) {
+        const secrets = JSON.parse(env.SECRETS);
+        for (const key in secrets) {
+            env[key] = secrets[key];
+        }
+    }
+
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
     app.useGlobalPipes(new ValidationPipe());
 
